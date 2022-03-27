@@ -1,16 +1,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-
 uint8_t* hex_to_binary(uint8_t* hex);
 int binary_len_of_hex(uint8_t* hex);
 
 void dec_to_bin(int n, int* b, int len);
-
-/* 
- * Converts hexadecimal to base64.
- */
-char* hex_to_base64(uint8_t* hex);
 
 void print_hex(uint8_t* hex);
 void print_binary(uint8_t* b, int len);

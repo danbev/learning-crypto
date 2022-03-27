@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <string.h>
 
+#include "base64.h"
 #include "util.h"
 
 int main(int argc, char** argv) {
