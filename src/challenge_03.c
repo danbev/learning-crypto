@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "hex.h"
+#include "xor.h"
 #include "util.h"
 
 // Generated using ./out/freq gatsby.txt
