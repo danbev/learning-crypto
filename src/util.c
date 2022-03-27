@@ -45,14 +45,6 @@ uint8_t* bin_to_hex(uint8_t* bin, int len) {
   return hex;
 }
 
-int nr_of_bits_dec(int n) {
-  return floor(log(n)/log(2)) + 1;
-}
-
-int nr_of_bits_hex(int n) {
-  return floor(log(n)/log(16)) + 1;
-}
-
 void dec_to_binary(int n, int* b, int len) {
   int x = n;
   for (int i = len - 1; i >= 0; i--) {
