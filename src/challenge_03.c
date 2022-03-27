@@ -4,11 +4,6 @@
 #include "hex.h"
 #include "util.h"
 
-struct freq {
-  int index;
-  int count;
-};
-
 // Generated using ./out/freq gatsby.txt
 double sampled_freq[] = {
   0.077432, // a 
