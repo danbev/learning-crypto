@@ -12,42 +12,12 @@ void print_binary(uint8_t* b, int size) {
   printf("\n");
 }
 
-void to_binary(int n, int** b, int* len) {
-  int x = n;
-  *len = nr_of_bits_hex(n); 
-  printf("%d\n", nr_of_bits_hex(n));
-
-  x = n;
-  *b = (int*) malloc(sizeof(int) * (*len));
-  for (int i = *len - 1; i >= 0; i--) { 
-    int r = x % 2;
-    x /= 2;
-    (*b)[i] = r;
+void print_hex(uint8_t* hex) {
+  int len = strlen(hex);
+  for (int i = 0; i < len; i++) {
+    printf("%c", hex[i]);
   }
-}
-
-uint8_t* to_bin_malloc(int n, int len) {
-  int q = n;
-  printf("n: %d\n", n);
-  printf("len: %d\n", len);
-  uint8_t* arr = (uint8_t*) malloc(len);
-  for (int i = len-1; q > 0; i--) {
-    int r = q % 2;
-    q = q / 2;
-    arr[i] = r;
-    printf("arr[%d]: %d\n", i, arr[i]);
-  }
-  return arr;
-}
-
-uint8_t* hex_to_bin_malloc(int n) {
-  int len = nr_of_bits_hex(n) * 4;
-  return to_bin_malloc(n, len);
-}
-
-uint8_t* dec_to_bin_malloc(int n) {
-  int len = nr_of_bits_dec(n);
-  return to_bin_malloc(n, len);
+  printf("\n");
 }
 
 void dec_to_bin(int n, int* b, int len) {
@@ -57,13 +27,6 @@ void dec_to_bin(int n, int* b, int len) {
     x /= 2;
     b[i] = r;
   }
-}
-
-uint8_t dec_to_hex(int dec) {
-  if (dec > 9) {
-    return dec + 55;
-  }
-  return dec + 48;
 }
 
 int binary_len_of_hex(uint8_t* hex) {
@@ -95,13 +58,6 @@ uint8_t* hex_to_binary(uint8_t* hex) {
     }
   }
   return arr;
-}
-
-void append_binary(uint8_t* to, int offset, uint8_t* from, int size) {
-  for (int i = 0; i < size; i++) {
-    int idx = offset + i;
-    to[idx] = from[i];
-  }
 }
 
 int bin_to_dec(uint8_t* b, int len) {
@@ -137,13 +93,6 @@ uint8_t* bin_to_hex(uint8_t* bin, int len) {
   return hex;
 }
 
-void print_hex(uint8_t* hex) {
-  int len = strlen(hex);
-  for (int i = 0; i < len; i++) {
-    printf("%c", hex[i]);
-  }
-  printf("\n");
-}
 
 char* hex_to_base64(unsigned char* hex) {
   static char base64[64] = {
@@ -222,10 +171,6 @@ int square_root(int x) {
   return r;
 }
 
-int cmp_floats(float a, float b) {
-  return fabsf(a-b) < FLT_EPSILON;
-}
-
 int nr_of_bits_dec(int n) {
   return floor(log(n)/log(2)) + 1;
 }
@@ -254,15 +199,13 @@ int hex_array_len(uint8_t* arr) {
   return strlen(arr) * 4;
 }
 
-uint8_t* xor(uint8_t* lhs, int l_len, uint8_t* rhs, int r_len) {
+uint8_t* xor_hex(uint8_t* lhs, int l_len, uint8_t* rhs, int r_len) {
   int b_len = l_len * 4;
-  printf("l_len: %d\n", l_len);
-  printf("b_len: %d\n", b_len);
   uint8_t* lhs_binary = hex_to_binary(lhs);
-  print_binary(lhs_binary, b_len);
+  //print_binary(lhs_binary, b_len);
 
   uint8_t* rhs_binary = hex_to_binary(rhs);
-  print_binary(rhs_binary, b_len);
+  //print_binary(rhs_binary, b_len);
 
   uint8_t* xored = (uint8_t*) malloc(b_len);
   for (int i = 0; i < b_len; i++) {
