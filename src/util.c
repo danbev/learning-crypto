@@ -45,54 +45,6 @@ uint8_t* bin_to_hex(uint8_t* bin, int len) {
   return hex;
 }
 
-int _log(int base, int x) {
-  int power = 0;
-  while((x /= base) >= 1) {
-    power++;
-  }
-  return power;
-}
-
-int factorial(int n) {
-  int f = 1;
-  for (int i=1; i <= n; i++) {
-    f *= i;
-  }
-  return f;
-}
-
-int power(int x, int n) {
-  int r = 1;
-  for (int i = 0; i < n; i++) {
-    r *= x;
-  }
-  return r;
-}
-
-int square_root(int x) {
-  if (x < 2) {
-    return x;
-  }
-
-  int r;
-  int start = 1;
-  int end = x/2;
-  while (start <= end) {
-    int mid = (start+end)/2;
-    long square = mid*mid;
-    if (square == x) {
-      return mid;
-    }
-    if (square < x) {
-      start = mid+1;
-      r = mid;
-    } else {
-      end = mid-1;
-    }
-  }
-  return r;
-}
-
 int nr_of_bits_dec(int n) {
   return floor(log(n)/log(2)) + 1;
 }
@@ -100,23 +52,6 @@ int nr_of_bits_dec(int n) {
 int nr_of_bits_hex(int n) {
   return floor(log(n)/log(16)) + 1;
 }
-
-uint8_t* dec_to_hex_malloc(int n) {
-  int q = n;
-  int len = nr_of_bits_hex(n);
-  uint8_t* arr = (uint8_t*) malloc(len);
-  for (int i = len-1; q > 0; i--) {
-    int r = q % 16;
-    q = q / 16;
-    if (r > 9) {
-      arr[i] += r + 55;
-    } else {
-      arr[i] = r + 49;
-    }
-  }
-  return arr;
-}
-
 
 uint8_t* xor_hex(uint8_t* lhs, int l_len, uint8_t* rhs, int r_len) {
   int b_len = l_len * 4;
