@@ -4,9 +4,8 @@
 #include <string.h>
 
 #include "hex.h"
-#include "dec.h"
 #include "xor.h"
-#include "util.h"
+#include "bin.h"
 
 int main(int argc, char** argv) {
   printf("Cryptopals Set 1, Challenge 2 XOR\n");

@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+
 #include "hex.h"
 #include "xor.h"
 #include "dec.h"
-#include "util.h"
+#include "bin.h"
 
 // Generated using ./out/freq gatsby.txt
 double sampled_freq[] = {

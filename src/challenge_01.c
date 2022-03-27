@@ -4,7 +4,7 @@
 
 #include "base64.h"
 #include "hex.h"
-#include "util.h"
+#include "bin.h"
 
 int main(int argc, char** argv) {
   printf("Cryptopals Set 1, Challenge 1 hex to base64 conversion\n");
