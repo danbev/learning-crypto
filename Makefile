@@ -11,6 +11,9 @@ out/challenge_02: out/util.o src/challenge_02.c | out
 out/challenge_03: out/util.o src/challenge_03.c | out
 	@${CC} ${CFLAGS} -g -lm -I./src -o $@ ${DEPS} $^
 
+out/freq: src/freq.c | out
+	@${CC} ${CFLAGS} -g -lm -I./src -o $@ ${DEPS} $^
+
 out/util.o: src/util.c src/util.h | out
 	@${CC} ${CFLAGS} -g -c -o $@ -lm -I./src $<
 
