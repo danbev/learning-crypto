@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "hex.h"
+#include "dec.h"
 #include "xor.h"
 #include "util.h"
 

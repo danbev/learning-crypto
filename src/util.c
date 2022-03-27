@@ -1,23 +1,16 @@
-#include "util.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include "hex.h"
+#include "dec.h"
+#include "util.h"
 
 void print_binary(uint8_t* b, int size) {
   for (int i = 0; i < size; i++) {
     printf("%d", b[i]);
   }
   printf("\n");
-}
-
-int bin_to_dec(uint8_t* b, int len) {
-  int dec = 0;
-  for (int i = 0, j = len-1; i < len; i++, j--) { 
-    dec += (int) pow(2, j) * b[i];
-  } 
-  return dec;
 }
 
 uint8_t* bin_to_hex(uint8_t* bin, int len) {
@@ -45,11 +38,10 @@ uint8_t* bin_to_hex(uint8_t* bin, int len) {
   return hex;
 }
 
-void dec_to_binary(int n, int* b, int len) {
-  int x = n;
-  for (int i = len - 1; i >= 0; i--) {
-    int r = x % 2;
-    x /= 2;
-    b[i] = r;
-  }
+int bin_to_dec(uint8_t* b, int len) {
+  int dec = 0;
+  for (int i = 0, j = len-1; i < len; i++, j--) { 
+    dec += (int) pow(2, j) * b[i];
+  } 
+  return dec;
 }

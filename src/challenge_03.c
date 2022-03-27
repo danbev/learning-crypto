@@ -3,6 +3,7 @@
 #include <string.h>
 #include "hex.h"
 #include "xor.h"
+#include "dec.h"
 #include "util.h"
 
 // Generated using ./out/freq gatsby.txt

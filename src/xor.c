@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include "hex.h"
+#include "xor.h"
 
 uint8_t* xor_hex(uint8_t* lhs, int l_len, uint8_t* rhs, int r_len) {
   int b_len = l_len * 4;
