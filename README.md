@@ -1,7 +1,6 @@
 # Cryptography notes and code
 This repository contains notes and code for learning about various things
 related to cryptography.
-
 Notes are available in the [notes](./notes) directory and I'll try have one
 file for each topic.
 
