@@ -20,7 +20,7 @@ int main(int argc, char** argv) {
   uint8_t* xored = xor_hex(lhs, strlen(lhs), rhs, strlen(rhs)); 
   //print_binary(xored, hex_array_len(lhs));
 
-  uint8_t* actual = bin_to_hex(xored, hex_array_len(lhs));
+  uint8_t* actual = bin_to_hex(xored, binary_len_of_hex(lhs));
   printf("Expected :%s\n", expected);
   printf("Actual   :");
   print_hex(actual);

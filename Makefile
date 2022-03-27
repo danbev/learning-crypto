@@ -1,6 +1,6 @@
 objs := $(patsubst src/%.c, out/%,  $(wildcard src/*.c))
 
-all: ${objs}
+all: out/challenge_01 out/challenge_02 out/challenge_03
 
 out/challenge_01: out/base64.o out/util.o src/challenge_01.c | out
 	@${CC} ${CFLAGS} -g -lm -I./src -o $@ ${DEPS} $^

@@ -3,18 +3,15 @@
 
 uint8_t* hex_to_binary(uint8_t* hex);
 int binary_len_of_hex(uint8_t* hex);
-
-void dec_to_bin(int n, int* b, int len);
-
 void print_hex(uint8_t* hex);
+int nr_of_bits_hex(int n);
+
+void dec_to_binary(int n, int* b, int len);
+int nr_of_bits_dec(int n);
+
 void print_binary(uint8_t* b, int len);
 
-
 uint8_t* bin_to_hex(uint8_t* bin, int len);
-int hex_array_len(uint8_t* arr);
-
-int nr_of_bits_dec(int n);
-int nr_of_bits_hex(int n);
 
 uint8_t dec_to_hex(int dec);
 

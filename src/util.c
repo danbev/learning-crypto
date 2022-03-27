@@ -20,7 +20,7 @@ void print_hex(uint8_t* hex) {
   printf("\n");
 }
 
-void dec_to_bin(int n, int* b, int len) {
+void dec_to_binary(int n, int* b, int len) {
   int x = n;
   for (int i = len - 1; i >= 0; i--) {
     int r = x % 2;
@@ -165,9 +165,6 @@ uint8_t* dec_to_hex_malloc(int n) {
   return arr;
 }
 
-int hex_array_len(uint8_t* arr) {
-  return strlen(arr) * 4;
-}
 
 uint8_t* xor_hex(uint8_t* lhs, int l_len, uint8_t* rhs, int r_len) {
   int b_len = l_len * 4;
