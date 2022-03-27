@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include "base64.h"
 #include "util.h"
+#include "hex.h"
 
 char* hex_to_base64(unsigned char* hex) {
   static char base64[64] = {

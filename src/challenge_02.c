@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "hex.h"
 #include "util.h"
 
 int main(int argc, char** argv) {

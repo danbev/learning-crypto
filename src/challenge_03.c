@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
-#include <util.h>
+#include "hex.h"
+#include "util.h"
 
 struct freq {
   int index;
