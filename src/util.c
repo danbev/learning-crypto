@@ -19,15 +19,6 @@ void print_hex(uint8_t* hex) {
   printf("\n");
 }
 
-void dec_to_binary(int n, int* b, int len) {
-  int x = n;
-  for (int i = len - 1; i >= 0; i--) {
-    int r = x % 2;
-    x /= 2;
-    b[i] = r;
-  }
-}
-
 int binary_len_of_hex(uint8_t* hex) {
   int len = strlen(hex);
   return len * 4;
@@ -189,4 +180,13 @@ uint8_t* xor_binary(uint8_t* lhs, uint8_t* rhs, int len) {
     xored[i] = lhs[i] ^ rhs[i];
   }
   return xored;
+}
+
+void dec_to_binary(int n, int* b, int len) {
+  int x = n;
+  for (int i = len - 1; i >= 0; i--) {
+    int r = x % 2;
+    x /= 2;
+    b[i] = r;
+  }
 }
