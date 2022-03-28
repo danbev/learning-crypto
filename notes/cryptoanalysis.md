@@ -68,3 +68,80 @@ We can visually inspect this and see which letters occur most frequently.
 
 Now, if we are looking a cipher text we have no idea how the plain text was
 encrypted, like was a mono
+
+### Index of Coincidence
+The goal here is to have a method of identifying if a cipher used a mono or
+poly alphabet. While this is can be done manually by inspecting a graph of
+letter frequency distributions we want to be able to do this mathematically
+as well.
+
+Lets say that we have the following frequency distributions taken from a text
+of 1000 characters:
+```
+Mono                 Poly
+A 73                 A 38
+B  9                 B 39
+C 30                 C 38
+D 44                 D 39
+...                  ...
+```
+Notice that the polyalphabetic distribution is smooth and the monoalphabetic
+distribution is rough. Picking a single letter from either distribution will
+give us a letter with 100% chance which may seem obvious and that does not
+provide and information as to if the cipher was using a mono or poly alphabet.
+But what about picking too of the same letters?  
+For mono:
+```
+            73     72
+Both A's = ---- * --- = 0,00526
+           1000   999
+```
+For poly:
+```
+            38     38
+Both A's = ---- * --- = 0,00144
+           1000   999
+```
+If we do this for all letters and sum the up:
+```
+ Z     i    i-1
+ ∑ = ---- * --------
+i=A  1000   1000 - 1
+
+Poly: 0,038
+Mono: 0,066
+```
+So 0,038 is the probability of picking 2 A's or B's or C's, etc, from a
+poly. distribution.
+
+When I first saw this I was surpised and I thought it would be the other way
+around. There is an example of using coin tosses that might help clarify this:
+Fair coin (even distribution, poly):
+```
+P(H): 0,5                     P=Probability
+P(T): 0,5                     H=Head
+                              T=Tail
+
+P(H or T) = P(H) + P(T) = 0,5 + 0,5 = 1
+
+P(2H or 2T) = P(2H) + P(2T)
+            = P(0.5 * 0.5) + P(0,5 * 0,5)
+            = P(0.25) + P(0,25)
+            = 0,5
+```
+Unfair coid (Uneven/rough distribution, mono)
+```
+P(H): 0,7                     P=Probability
+P(T): 0,3                     H=Head
+                              T=Tail
+
+P(H or T) = P(H) + P(T) = 0,7 + 0,3 = 1
+
+P(2H or 2T) = P(2H) + P(2T)
+            = P(0.7 * 0.7) + P(0,3 * 0,3)
+            = P(0.49) + P(0,09)
+            = 0,58
+```
+So we can use the index of coincedence on a ciphertext and if the index is
+around 0,04 the we know that we are dealing with a polyalphabetic cipher, and
+if it is around 0.06 it is a monoalphabetic cipher.
