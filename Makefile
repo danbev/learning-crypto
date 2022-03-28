@@ -11,7 +11,7 @@ out/challenge_02: out/bin.o out/hex.o out/xor.o src/challenge_02.c | out
 out/challenge_03: out/bin.o out/hex.o out/xor.o out/dec.o src/challenge_03.c | out
 	@${CC} ${CFLAGS} -g -lm -I./src -o $@ ${DEPS} $^
 
-out/freq: src/freq.c | out
+out/freq_gen: src/freq_gen.c | out
 	@${CC} ${CFLAGS} -g -lm -I./src -o $@ ${DEPS} $^
 
 out/freq_analysis: out/bin.o out/hex.o out/xor.o out/dec.o out/freq2.o src/freq_analysis.c | out

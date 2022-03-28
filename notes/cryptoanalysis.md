@@ -1,9 +1,9 @@
 ### Frequency analysis
 This can be used to find out the frequency of letters in a language. For example
-we can use the program [freq](../src/freq.c) to find the frequency of letter
-in the book `The Great Gatsby`:
+we can use the program [freq_gen](../src/freq_gen.c) to find the frequency of
+letter in the book `The Great Gatsby`:
 ```console
-$ ./out/freq gatsby.txt 
+$ ./out/freq_gen gatsby.txt 
 Total lowercase letters: 214088
 Total uppercase letters: 7710
 Lower case:
