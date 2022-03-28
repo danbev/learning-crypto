@@ -13,31 +13,33 @@ int main(int argc, char** argv) {
   char* input = "This is my very secret message";
   char key = 'k';
   uint8_t* input_bin = str_to_binary(input);
-  int bin_len = binary_len_of_str(input);
+  int bin_str_len = binary_len_of_str(input);
   printf("Input: %s\n", input);
-  printf("Binary:"), print_binary(input_bin, bin_len);
+  printf("Binary:\n"), print_binary(input_bin, bin_str_len);
+  print_binary_as_chars(input_bin, bin_str_len);
   printf("Key: %c\n", key);
 
-  uint8_t* binary_key = gen_single_key(key, bin_len);
-  printf("Binary Key:"), print_binary(binary_key, bin_len);
+  uint8_t* binary_key = gen_single_key(key, bin_str_len);
+  printf("Binary Key:\n"), print_binary(binary_key, bin_str_len);
 
-  /*
-  uint8_t ciphertext_hex[] = "1B37373331363F78151B7F2B783431333D78397828372D363C78373E783A393B3736";
-  printf("Input: ");
+  uint8_t* xored = xor_binary(input_bin, binary_key, bin_str_len);
+  printf("Xored:\n"), print_binary(xored, bin_str_len);
+
+  uint8_t* ciphertext_hex = bin_to_hex(xored, bin_str_len);
+  printf("Xored hex:\n"), print_hex(ciphertext_hex);
+
+  printf("Input:\n");
   print_hex(ciphertext_hex);
   printf("\n");
 
   // Convert the ciphertext to binary
   uint8_t* ciphertext_bin = hex_to_binary(ciphertext_hex);
   int bin_len = binary_len_of_hex(ciphertext_hex);
-  printf("Input as binary:\n");
-  print_binary(ciphertext_bin, bin_len);
-  printf("\n");
 
   uint8_t* key_bin = malloc(bin_len);
 
   struct score_t score = {3.0, 0.0, NULL};
-  for (int i = 8; i <= 255; i++) {
+  for (int i = 0; i <= 255; i++) {
     int b[8] = {0};
     dec_to_binary(i, b, 8);
     for (int y = 0; y < bin_len; y+=8) {
@@ -52,30 +54,24 @@ int main(int argc, char** argv) {
       key_bin[idx+7] = b[7];
     }
 
-    //print_binary(key_bin, bin_len);
-    //printf("\n");
-    // So we xor the ciphertext and the current key
     uint8_t* plaintext_bin = xor_binary(ciphertext_bin, key_bin, bin_len);
 
     double s = score_plaintext(plaintext_bin, bin_len);
     if (s < score.s) {
-      printf("New score: %f, score.s: %f\n", s, score.s);
+      printf("New score: %f, score.s: %f, key: %d (%c)\n", s, score.s, i, i);
       score.s = s;
       score.key = i;
       if (score.binary != NULL) {
         free(score.binary);
       }
       score.binary = plaintext_bin;
-      printf("Potential solution: "), print_bin_as_chars(score.binary, bin_len);
-      printf("\n");
     } else {
       free(plaintext_bin);
     }
   }
   printf("Solution with lowest score (closest match): %f\n", score.s);
-  print_bin_as_chars(score.binary, bin_len);
+  print_binary_as_chars(score.binary, bin_len);
   free(score.binary);
   free(ciphertext_bin);
-  */
   return 0;
 }

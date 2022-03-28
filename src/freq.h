@@ -19,4 +19,6 @@ int index_of(char c);
 
 double score_plaintext(uint8_t* bin, int bin_len);
 
+void print_binary_as_chars(uint8_t* bin, int bin_len);
+
 #endif /* SRC_FREQ_H */
