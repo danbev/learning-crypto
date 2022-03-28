@@ -8,7 +8,7 @@ out/challenge_01: out/base64.o out/bin.o out/hex.o src/challenge_01.c | out
 out/challenge_02: out/bin.o out/hex.o out/xor.o src/challenge_02.c | out
 	@${CC} ${CFLAGS} -g -lm -I./src -o $@ ${DEPS} $^
 
-out/challenge_03: out/bin.o out/hex.o out/xor.o out/dec.o src/challenge_03.c | out
+out/challenge_03: out/bin.o out/hex.o out/xor.o out/dec.o out/freq.o src/challenge_03.c | out
 	@${CC} ${CFLAGS} -g -lm -I./src -o $@ ${DEPS} $^
 
 out/freq_gen: src/freq_gen.c | out
