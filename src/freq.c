@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <math.h>
 
 #include "freq.h"
 #include "dec.h"
@@ -84,7 +85,7 @@ double score_plaintext(uint8_t* bin, int bin_len) {
 
   for (int i = 0; i < 26; i++) {
     double f = (double) frequencies[i] / bytes_len;
-    score += sampled_freq[i] - f;
+    score += fabs(sampled_freq[i] - f);
   }
   return score;
 }
