@@ -32,32 +32,6 @@ double sampled_freq[] = {
   0.001988, // x 
   0.022836, // y 
   0.000629, // z 
-  0.053439, // A 
-  0.032315, // B 
-  0.026908, // C 
-  0.016472, // D 
-  0.039105, // E 
-  0.027160, // F 
-  0.025525, // G 
-  0.039482, // H 
-  0.400352, // I 
-  0.008927, // J 
-  0.003898, // K 
-  0.016472, // L 
-  0.038225, // M 
-  0.017478, // N 
-  0.020621, // O 
-  0.022507, // P 
-  0.000126, // Q 
-  0.013706, // R 
-  0.044009, // S 
-  0.082233, // T 
-  0.008676, // U 
-  0.005533, // V 
-  0.036213, // W 
-  0.000251, // X 
-  0.020370, // Y 
-  0.000000, // Z 
 };
 
 const int freq_len = sizeof(sampled_freq) / sizeof(double);
@@ -81,21 +55,15 @@ uint8_t* gen_single_key(char key, int len) {
 }
 
 double frequency_for(char c) {
-  if (c >= 65 && c <= 90) {
-    return sampled_freq[c - 65];
-  } 
   if (c >= 97 && c <= 122) {
-    return sampled_freq[(c - 97) + 26];
+    return sampled_freq[(c - 97)];
   } 
   return 0.0;
 }
 
 int index_of(char c) {
-  if (c >= 65 && c <= 90) {
-    return c - 65;
-  } 
   if (c >= 97 && c <= 122) {
-    return (c - 97) + 26;
+    return (c - 97);
   } 
   return -1;
 }
@@ -103,7 +71,7 @@ int index_of(char c) {
 double score_plaintext(uint8_t* bin, int bin_len) {
   double score = 0.0;
   // Calculate the frequencies of the plaintext.
-  int frequencies[52] = {0};
+  int frequencies[26] = {0};
   int byte_len = 0;
   for (int i = 0; i < bin_len;) {
     int dec = bin[i++] * 128 + bin[i++] * 64 + bin[i++] * 32 + bin[i++] * 16 +
@@ -116,7 +84,7 @@ double score_plaintext(uint8_t* bin, int bin_len) {
     byte_len++;
   }
 
-  for (int i = 0; i < 52; i++) {
+  for (int i = 0; i < 26; i++) {
     double f = (double) frequencies[i] / byte_len;
     score += sampled_freq[i] - f;
   }
