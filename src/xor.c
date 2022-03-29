@@ -1,6 +1,9 @@
 #include <stdint.h>
+#include <string.h>
 
 #include "hex.h"
+#include "dec.h"
+#include "str.h"
 #include "xor.h"
 
 uint8_t* xor_hex(uint8_t* lhs, int l_len, uint8_t* rhs, int r_len) {
@@ -27,4 +30,9 @@ uint8_t* xor_binary(uint8_t* lhs, uint8_t* rhs, int len) {
     xored[i] = lhs[i] ^ rhs[i];
   }
   return xored;
+}
+
+uint8_t* xor_text_with_key(uint8_t* hex, char* key) {
+  uint8_t* binary = str_to_binary(hex);
+  return NULL;
 }

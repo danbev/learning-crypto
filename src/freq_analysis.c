@@ -6,6 +6,7 @@
 #include "xor.h"
 #include "dec.h"
 #include "bin.h"
+#include "str.h"
 #include "freq.h"
 
 int main(int argc, char** argv) {
