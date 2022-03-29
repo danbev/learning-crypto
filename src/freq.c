@@ -72,20 +72,18 @@ double score_plaintext(uint8_t* bin, int bin_len) {
   double score = 0.0;
   // Calculate the frequencies of the plaintext.
   int frequencies[26] = {0};
-  int byte_len = 0;
+  int bytes_len = bin_len / 8;
   for (int i = 0; i < bin_len;) {
     int dec = bin[i++] * 128 + bin[i++] * 64 + bin[i++] * 32 + bin[i++] * 16 +
       bin[i++] * 8 + bin[i++] * 4 + bin[i++] * 2 + bin[i++] * 1;
     int idx = index_of(dec);
-    //printf("%c", dec);
     if (idx != -1) {
       frequencies[idx]++;
     }
-    byte_len++;
   }
 
   for (int i = 0; i < 26; i++) {
-    double f = (double) frequencies[i] / byte_len;
+    double f = (double) frequencies[i] / bytes_len;
     score += sampled_freq[i] - f;
   }
   return score;
