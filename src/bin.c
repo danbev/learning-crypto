@@ -30,7 +30,7 @@ uint8_t* bin_to_hex(uint8_t* bin, int len) {
     int r = d % 16;
     d = d / 16;
     if (r > 9) {
-      hex[j] += r + 55;
+      hex[j] += r + 87;
     } else {
       hex[j] = r + 48;
     }
