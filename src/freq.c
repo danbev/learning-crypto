@@ -92,7 +92,6 @@ double score_plaintext(uint8_t* bin, int bin_len) {
 }
 
 void print_binary_as_chars(uint8_t* bin, int bin_len) {
-  int byte_len = 0;
   for (int i = 0; i < bin_len;) {
     int dec = bin[i++] * 128 + bin[i++] * 64 + bin[i++] * 32 + bin[i++] * 16 +
       bin[i++] * 8 + bin[i++] * 4 + bin[i++] * 2 + bin[i++] * 1;
