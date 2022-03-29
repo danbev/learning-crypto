@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
   uint8_t* key_bin = malloc(bin_len);
 
   struct score_t score = {3.0, 0.0, NULL};
-  for (int i = 8; i <= 255; i++) {
+  for (int i = 0; i <= 255; i++) {
     int b[8] = {0};
     dec_to_binary(i, b, 8);
     for (int y = 0; y < bin_len; y+=8) {
