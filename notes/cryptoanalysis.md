@@ -1,7 +1,11 @@
-### Frequency analysis
-This can be used to find out the frequency of letters in a language. For example
-we can use the program [freq_gen](../src/freq_gen.c) to find the frequency of
-letter in the book `The Great Gatsby`:
+## Frequency analysis
+
+### Frequency distribution generator
+This can be used to find out the frequency of letters in a language.
+[freq_gen](./src/freq_gen.c) can be used to generate frequency distributions
+for a given test and will output arrays that can be included in other programs.
+For example we can use it to find the frequency of letter in the book
+`The Great Gatsby`:
 ```console
 $ ./out/freq_gen gatsby.txt 
 Total lowercase letters: 214088
@@ -64,10 +68,6 @@ double uppercase[] = {
   0.000130, // Z 
 };
 ```
-We can visually inspect this and see which letters occur most frequently. 
-
-Now, if we are looking a cipher text we have no idea how the plain text was
-encrypted, like was a mono
 
 ### Index of Coincidence
 The goal here is to have a method of identifying if a cipher used a mono or
