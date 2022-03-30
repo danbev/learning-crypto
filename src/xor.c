@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "hex.h"
 #include "dec.h"
@@ -32,7 +33,19 @@ uint8_t* xor_binary(uint8_t* lhs, uint8_t* rhs, int len) {
   return xored;
 }
 
-uint8_t* xor_text_with_key(uint8_t* hex, char* key) {
-  uint8_t* binary = str_to_binary(hex);
-  return NULL;
+uint8_t* xor_text_with_key(uint8_t* plaintext, char* key) {
+  uint8_t* plaintext_bin = str_to_binary(plaintext);
+  int b_len = binary_len_of_str(plaintext);
+
+  uint8_t* key_bin = str_to_binary(key);
+  int k_len = binary_len_of_str(key);
+
+  uint8_t* xored = (uint8_t*) malloc(b_len);
+  for (int i = 0, j = 0; i < b_len; i++) {
+    xored[i] = plaintext_bin[i] ^ key_bin[j++];
+    if (j == k_len) {
+      j = 0;
+    }
+  }
+  return xored;
 }
