@@ -24,6 +24,9 @@ out/freq_gen: src/freq_gen.c | out
 out/freq_analysis: out/bin.o out/hex.o out/xor.o out/dec.o out/freq.o out/str.o src/freq_analysis.c | out
 	@${CC} ${CFLAGS} -g -lm -I./src -o $@ ${DEPS} $^
 
+out/hamming_distance: out/ham.o out/dec.o out/bin.o src/hamming_distance.c | out
+	@${CC} ${CFLAGS} -g -lm -I./src -o $@ ${DEPS} $^
+
 out/bin.o: src/bin.c src/bin.h out/dec.o | out
 	@${CC} ${CFLAGS} -g -c -o $@ -lm -I./src $<
 
@@ -40,6 +43,9 @@ out/xor.o: src/xor.c src/xor.h out/str.o | out
 	@${CC} ${CFLAGS} -g -c -o $@ -lm -I./src $<
 
 out/str.o: src/str.c src/str.h | out
+	@${CC} ${CFLAGS} -g -c -o $@ -lm -I./src $<
+
+out/ham.o: src/ham.c src/ham.h | out
 	@${CC} ${CFLAGS} -g -c -o $@ -lm -I./src $<
 
 out/freq.o: src/freq.c src/freq.h | out
