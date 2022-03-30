@@ -16,4 +16,4 @@ Set 1:
 * [Challenge 05](src/challenge_05.c)
 
 ## Frequency distribution generator
-[Frequency distribution generator](./notes/cryptoanalysis#frequency_distribution_generator)
+[Frequency distribution generator](./notes/cryptoanalysis.md#frequency-distribution-generator)
