@@ -15,7 +15,7 @@ Set 1:
 * [Challenge 04](src/challenge_04.c)
 * [Challenge 05](src/challenge_05.c)
 
-Example of building and running:
+### Example of building and running:
 ```console
 $ make out/challenge_01
 ```
