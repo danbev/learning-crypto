@@ -53,8 +53,8 @@ void find_key(char* ciphertext_hex, struct score_t* score) {
   uint8_t* key_bin = malloc(bin_len);
 
   for (int i = 0; i <= 255; i++) {
-    int b[8] = {0};
-    dec_to_binary(i, b, 8);
+    uint8_t b[8] = {0};
+    dec_to_binary(i, b);
     for (int y = 0; y < bin_len; y+=8) {
       int idx = y;
       key_bin[idx] = b[0];

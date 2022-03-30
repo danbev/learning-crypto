@@ -6,13 +6,19 @@
 
 #include "dec.h"
 
-void dec_to_binary(int n, int* b, int len) {
+uint8_t* dec_to_binary(int n, uint8_t* b) {
+  uint8_t* bin = b;
+  if (bin == NULL) {
+    bin = (uint8_t*) malloc(sizeof(n) * 8);
+  }
+
   int x = n;
-  for (int i = len - 1; i >= 0; i--) {
+  for (int i = 8 - 1; i >= 0; i--) {
     int r = x % 2;
     x /= 2;
-    b[i] = r;
+    bin[i] = r;
   }
+  return bin;
 }
 
 uint8_t dec_to_hex(int dec) {
@@ -21,4 +27,3 @@ uint8_t dec_to_hex(int dec) {
   }
   return dec + 48;
 }
-

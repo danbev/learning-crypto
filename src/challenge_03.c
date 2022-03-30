@@ -32,8 +32,8 @@ int main(int argc, char** argv) {
 
   struct score_t score = {3.0, 0.0, NULL};
   for (int i = 0; i <= 255; i++) {
-    int b[8] = {0};
-    dec_to_binary(i, b, 8);
+    uint8_t b[8] = {0};
+    dec_to_binary(i, b);
     for (int y = 0; y < bin_len; y+=8) {
       int idx = y;
       key_bin[idx] = b[0];

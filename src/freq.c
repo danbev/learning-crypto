@@ -39,8 +39,8 @@ const int freq_len = sizeof(sampled_freq) / sizeof(double);
 
 uint8_t* gen_single_key(char key, int len) {
   uint8_t* key_bin = malloc(len);
-  int b[8] = {0};
-  dec_to_binary(key, b, 8);
+  uint8_t b[8] = {0};
+  dec_to_binary(key, b);
   for (int i = 0; i < len; i+=8) {
     int idx = i;
     key_bin[idx] = b[0];

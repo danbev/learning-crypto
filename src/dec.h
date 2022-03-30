@@ -1,4 +1,4 @@
 #include <stdint.h>
 
-void dec_to_binary(int n, int* b, int len);
+uint8_t* dec_to_binary(int n, uint8_t* b);
 uint8_t dec_to_hex(int dec);
