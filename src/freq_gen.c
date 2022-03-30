@@ -46,7 +46,6 @@ int main(int argc, char** argv) {
   }
   printf("};\n");
 
-  // Closing the file
   fclose(file);
 
   return 0;
