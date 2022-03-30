@@ -12,4 +12,6 @@ Set 1:
 * [Challenge 01](src/challenge_01.c)
 * [Challenge 02](src/challenge_02.c)
 * [Challenge 03](src/challenge_03.c)
+* [Challenge 04](src/challenge_04.c)
+* [Challenge 05](src/challenge_05.c)
 
