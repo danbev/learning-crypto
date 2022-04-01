@@ -27,6 +27,9 @@ out/freq_analysis: out/bin.o out/hex.o out/xor.o out/dec.o out/freq.o out/str.o 
 out/hamming_distance: out/ham.o out/dec.o out/str.o out/bin.o src/hamming_distance.c | out
 	@${CC} ${CFLAGS} -g -lm -I./src -o $@ ${DEPS} $^
 
+out/base64_decoder: src/base64_decoder.c out/base64.o out/bin.o out/hex.o out/dec.o out/str.o | out
+	@${CC} ${CFLAGS} -g -lm -I./src -o $@ ${DEPS} $^
+
 out/bin.o: src/bin.c src/bin.h out/dec.o | out
 	@${CC} ${CFLAGS} -g -c -o $@ -lm -I./src $<
 
