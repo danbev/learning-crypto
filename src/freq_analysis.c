@@ -27,10 +27,10 @@ int main(int argc, char** argv) {
   printf("Xored:\n"), print_binary(xored, bin_str_len);
 
   uint8_t* ciphertext_hex = bin_to_hex(xored, bin_str_len);
-  printf("Xored hex:\n"), print_hex(ciphertext_hex);
+  printf("Xored hex:\n"), print_hex(ciphertext_hex, strlen(ciphertext_hex));
 
   printf("Input:\n");
-  print_hex(ciphertext_hex);
+  print_hex(ciphertext_hex, strlen(ciphertext_hex));
   printf("\n");
 
   // Convert the ciphertext to binary

@@ -22,7 +22,7 @@ int main(int argc, char** argv) {
   uint8_t* xored = xor_text_with_key(plaintext, key);
   int b_len = binary_len_of_str(plaintext);
   uint8_t* xored_hex = bin_to_hex(xored, b_len);
-  print_hex(expected);
-  print_hex(xored_hex);
+  print_hex(expected, strlen(expected));
+  print_hex(xored_hex, strlen(xored_hex));
   assert(strcmp(xored_hex, expected) == 0);
 }

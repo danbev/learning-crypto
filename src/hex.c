@@ -3,10 +3,13 @@
 #include <string.h>
 #include <stdio.h>
 
-void print_hex(uint8_t* hex) {
-  int len = strlen(hex);
+void print_hex(uint8_t* hex, int len) {
   for (int i = 0; i < len; i++) {
-    printf("%c", hex[i]);
+    if (hex[i] > 9) {
+      printf("%c", hex[i]);
+    } else {
+      printf("%d", hex[i]);
+    }
   }
   printf("\n");
 }

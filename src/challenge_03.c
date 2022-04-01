@@ -18,7 +18,7 @@ int main(int argc, char** argv) {
   printf("Cryptopals Set 1, Challenge 3\n");
   uint8_t ciphertext_hex[] = "1B37373331363F78151B7F2B783431333D78397828372D363C78373E783A393B3736";
   printf("Input: ");
-  print_hex(ciphertext_hex);
+  print_hex(ciphertext_hex, strlen(ciphertext_hex));
   printf("\n");
 
   // Convert the ciphertext to binary
