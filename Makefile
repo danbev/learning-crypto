@@ -43,6 +43,9 @@ out/base64_decoder: src/base64_decoder.c out/base64.o out/bin.o out/hex.o \
        	out/dec.o out/str.o | out
 	@${CC} ${CFLAGS} -g -lm -I./src -o $@ ${DEPS} $^
 
+out/ceasar_encrypt: src/ceasar_encrypt.c out/ceasar.o
+	@${CC} ${CFLAGS} -g -lm -I./src -o $@ ${DEPS} $^
+
 out/bin.o: src/bin.c src/bin.h out/dec.o | out
 	@${CC} ${CFLAGS} -g -c -o $@ -lm -I./src $<
 
@@ -65,6 +68,9 @@ out/ham.o: src/ham.c src/ham.h | out
 	@${CC} ${CFLAGS} -g -c -o $@ -lm -I./src $<
 
 out/freq.o: src/freq.c src/freq.h | out
+	@${CC} ${CFLAGS} -g -c -o $@ -lm -I./src $<
+
+out/ceasar.o: src/ceasar.c src/ceasar.h | out
 	@${CC} ${CFLAGS} -g -c -o $@ -lm -I./src $<
 
 out:
