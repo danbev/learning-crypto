@@ -32,7 +32,6 @@ int index_of(char c) {
   return 0;
 }
 
-
 char* hex_to_base64(unsigned char* hex) {
   uint8_t* bin = hex_to_binary(hex);
   int bin_len = binary_len_of_hex(hex);
@@ -40,13 +39,11 @@ char* hex_to_base64(unsigned char* hex) {
   char* ret = (char*) malloc(bin_len/6);
   int idx = 0;
 
-  int total = 0;
   for (int i = 0; i < bin_len;) {
     int dec = bin[i++] * 32 + bin[i++] * 16 + bin[i++] * 8 + bin[i++] * 4 +
       bin[i++] * 2 + bin[i++];
     //printf("dec: %d, base64: %c\n", dec, base64[dec]);
     ret[idx++] = base64[dec];
-    total++;
   }
   return ret;
 }
