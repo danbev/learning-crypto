@@ -15,16 +15,16 @@ void print_hex(uint8_t* hex, int len) {
 }
 
 int binary_len_of_hex(uint8_t* hex) {
-  int len = strlen(hex);
+  int len = strlen((char*)hex);
   return len * 4;
 }
 
 uint8_t* hex_to_binary(uint8_t* hex) {
-  int len = strlen(hex);
+  int len = strlen((char*)hex);
   int b_len = len * 4;
   uint8_t* arr = (uint8_t*) malloc(b_len);
 
-  for (int i = 0, k = b_len, j = 0; i < len; i++) {
+  for (int i = 0; i < len; i++) {
     int dec = 0;
     if (hex[i] >= 48 && hex[i] <= 57) {
       dec += hex[i] - 48;
