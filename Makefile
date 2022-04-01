@@ -3,7 +3,7 @@ objs := $(patsubst src/%.c, out/%,  $(wildcard src/*.c))
 all: out/challenge_01 out/challenge_02 out/challenge_03 out/challenge_04 \
 	out/freq_gen out/freq_analysis out/challenge_05
 
-out/challenge_01: out/base64.o out/bin.o out/hex.o src/challenge_01.c | out
+out/challenge_01: out/base64.o out/bin.o out/hex.o out/str.o src/challenge_01.c | out
 	@${CC} ${CFLAGS} -g -lm -I./src -o $@ ${DEPS} $^
 
 out/challenge_02: out/bin.o out/hex.o out/xor.o out/str.o src/challenge_02.c | out
@@ -30,7 +30,7 @@ out/hamming_distance: out/ham.o out/dec.o out/str.o out/bin.o src/hamming_distan
 out/bin.o: src/bin.c src/bin.h out/dec.o | out
 	@${CC} ${CFLAGS} -g -c -o $@ -lm -I./src $<
 
-out/base64.o: src/base64.c src/base64.h | out
+out/base64.o: src/base64.c src/base64.h out/hex.o out/str.o | out
 	@${CC} ${CFLAGS} -g -c -o $@ -lm -I./src $<
 
 out/hex.o: src/hex.c src/hex.h | out
