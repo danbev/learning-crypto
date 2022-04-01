@@ -18,7 +18,6 @@ int main(int argc, char** argv) {
   printf("Input 2: %s\n", rhs);
 
   uint8_t* xored = xor_hex(lhs, strlen(lhs), rhs, strlen(rhs)); 
-  print_binary(xored, binary_len_of_hex(lhs));
 
   uint8_t* actual = bin_to_hex(xored, binary_len_of_hex(lhs));
   printf("Expected :%s\n", expected);
