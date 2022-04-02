@@ -22,3 +22,16 @@ char* ceasar_encrypt(char* plaintext, char key) {
   }
   return ciphertext;
 }
+
+char* ceasar_decrypt(char* ciphertext, char key) {
+  int len = strlen(ciphertext);
+  char* plaintext = malloc(len);
+  int nr = key - 97;
+  for (int i = 0; i < len; i++) {
+    int letter = ciphertext[i] - 97;
+    int new_value = mod(letter - nr, 26) + 97;
+    plaintext[i] = new_value;
+  }
+
+  return plaintext;
+}

@@ -1,10 +1,10 @@
 objs := $(patsubst src/%.c, out/%,  $(wildcard src/*.c))
 
-override CFLAGS += -Wall -g -lm -I./src
+override CFLAGS += -Werror -g -lm -I./src
 
 all: out/challenge_01 out/challenge_02 out/challenge_03 out/challenge_04 \
 	out/freq_gen out/freq_analysis out/challenge_05 out/base64_decoder \
-	out/hamming_distance
+	out/hamming_distance out/ceasar_encrypt out/ceasar_decrypt
 
 out/challenge_01: out/base64.o out/bin.o out/hex.o out/str.o \
 	src/challenge_01.c | out
@@ -46,6 +46,9 @@ out/base64_decoder: src/base64_decoder.c out/base64.o out/bin.o out/hex.o \
 	@${CC} ${CFLAGS} -o $@ ${DEPS} $^
 
 out/ceasar_encrypt: src/ceasar_encrypt.c out/ceasar.o
+	@${CC} ${CFLAGS} -o $@ ${DEPS} $^
+
+out/ceasar_decrypt: src/ceasar_decrypt.c out/ceasar.o
 	@${CC} ${CFLAGS} -o $@ ${DEPS} $^
 
 out/bin.o: src/bin.c src/bin.h out/dec.o | out
