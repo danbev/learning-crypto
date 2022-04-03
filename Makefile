@@ -51,6 +51,9 @@ out/ceasar_encrypt: src/ceasar_encrypt.c out/freq.o out/dec.o out/ceasar.o
 out/ceasar_decrypt: src/ceasar_decrypt.c out/freq.o out/dec.o out/ceasar.o
 	@${CC} ${CFLAGS} -o $@ ${DEPS} $^
 
+out/vigenere_encrypt: src/vigenere_encrypt.c out/vigenere.o
+	@${CC} ${CFLAGS} -o $@ ${DEPS} $^
+
 out/bin.o: src/bin.c src/bin.h out/dec.o | out
 	@${CC} ${CFLAGS} -c -o $@  $<
 
@@ -76,6 +79,9 @@ out/freq.o: src/freq.c src/freq.h | out
 	@${CC} ${CFLAGS} -c -o $@ $<
 
 out/ceasar.o: src/ceasar.c src/ceasar.h out/freq.o | out
+	@${CC} ${CFLAGS} -c -o $@ $<
+
+out/vigenere.o: src/vigenere.c src/vigenere.h out/freq.o | out
 	@${CC} ${CFLAGS} -c -o $@ $<
 
 out:
