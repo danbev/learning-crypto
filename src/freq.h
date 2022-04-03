@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-extern double sampled_freq[52];
+extern double sampled_freq[26];
 extern const int freq_len;
 
 struct score_t {
