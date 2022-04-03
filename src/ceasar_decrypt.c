@@ -10,8 +10,13 @@ int main(int argc, char** argv) {
   }
   char* ciphertext = argv[1];
   char key = *argv[2];
-  printf("ciphertext: %s, key: %c\n", ciphertext, key);
+  printf("ciphertext: %s\n", ciphertext);
   char* plaintext = ceasar_decrypt(ciphertext, key);
   printf("plaintext: %s\n", plaintext);
+
+  printf("decrypt without using key:\n");
+  char k = find_key(ciphertext);
+  printf("key found: %c\n", k);
+  printf("using key %c: %s\n", k, ceasar_decrypt(ciphertext, k));
   return 0;
 }
