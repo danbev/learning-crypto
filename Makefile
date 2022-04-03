@@ -54,6 +54,9 @@ out/ceasar_decrypt: src/ceasar_decrypt.c out/freq.o out/dec.o out/ceasar.o
 out/vigenere_encrypt: src/vigenere_encrypt.c out/vigenere.o
 	@${CC} ${CFLAGS} -o $@ ${DEPS} $^
 
+out/vigenere_decrypt: src/vigenere_decrypt.c out/vigenere.o
+	@${CC} ${CFLAGS} -o $@ ${DEPS} $^
+
 out/bin.o: src/bin.c src/bin.h out/dec.o | out
 	@${CC} ${CFLAGS} -c -o $@  $<
 
