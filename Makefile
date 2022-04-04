@@ -37,7 +37,7 @@ out/freq_analysis: out/bin.o out/hex.o out/xor.o out/dec.o out/freq.o \
        	out/str.o src/freq_analysis.c | out
 	@${CC} ${CFLAGS} -o $@ ${DEPS} $^
 
-out/hamming_distance: out/ham.o out/dec.o out/str.o out/bin.o \
+out/hamming_distance: out/ham.o out/dec.o out/str.o out/bin.o out/crypto_math.o \
        	src/hamming_distance.c | out
 	@${CC} ${CFLAGS} -o $@ ${DEPS} $^
 
@@ -45,16 +45,18 @@ out/base64_decoder: src/base64_decoder.c out/base64.o out/bin.o out/hex.o \
        	out/dec.o out/str.o | out
 	@${CC} ${CFLAGS} -o $@ ${DEPS} $^
 
-out/ceasar_encrypt: src/ceasar_encrypt.c out/freq.o out/dec.o out/ceasar.o
+out/ceasar_encrypt: src/ceasar_encrypt.c out/freq.o out/dec.o out/ceasar.o \
+	out/crypto_math.o
 	@${CC} ${CFLAGS} -o $@ ${DEPS} $^
 
-out/ceasar_decrypt: src/ceasar_decrypt.c out/freq.o out/dec.o out/ceasar.o
+out/ceasar_decrypt: src/ceasar_decrypt.c out/freq.o out/dec.o out/ceasar.o \
+	out/crypto_math.o
 	@${CC} ${CFLAGS} -o $@ ${DEPS} $^
 
-out/vigenere_encrypt: src/vigenere_encrypt.c out/vigenere.o
+out/vigenere_encrypt: src/vigenere_encrypt.c out/vigenere.o out/crypto_math.o
 	@${CC} ${CFLAGS} -o $@ ${DEPS} $^
 
-out/vigenere_decrypt: src/vigenere_decrypt.c out/vigenere.o
+out/vigenere_decrypt: src/vigenere_decrypt.c out/vigenere.o out/crypto_math.o
 	@${CC} ${CFLAGS} -o $@ ${DEPS} $^
 
 out/bin.o: src/bin.c src/bin.h out/dec.o | out
@@ -75,7 +77,10 @@ out/xor.o: src/xor.c src/xor.h out/str.o | out
 out/str.o: src/str.c src/str.h | out
 	@${CC} ${CFLAGS} -c -o $@ $<
 
-out/ham.o: src/ham.c src/ham.h | out
+out/crypto_math.o: src/crypto_math.c src/crypto_math.h | out
+	@${CC} ${CFLAGS} -c -o $@ $<
+
+out/ham.o: src/ham.c src/ham.h out/crypto_math.o | out
 	@${CC} ${CFLAGS} -c -o $@ $<
 
 out/freq.o: src/freq.c src/freq.h | out

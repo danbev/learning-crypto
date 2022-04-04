@@ -4,11 +4,7 @@
 #include <math.h>
 
 #include "vigenere.h"
-
-int mod(int a, int n) {
-  int r = a - n * floor(a / n);
-  return (r < 0) ? r + n : r;
-}
+#include "crypto_math.h"
 
 char* vigenere_encrypt(char* plaintext, char* key) {
   int len = strlen(plaintext);
@@ -26,5 +22,15 @@ char* vigenere_encrypt(char* plaintext, char* key) {
 }
 
 char* vigenere_decrypt(char* ciphertext, char* key) {
-  return NULL;
+  int len = strlen(ciphertext);
+  int key_len = strlen(key);
+  char* plaintext = (char*) malloc(len);
+  for (int i = 0, j = 0; i < len; i++) {
+    plaintext[i] = mod((ciphertext[i] - 97) - (key[j] - 97), 26) + 97; 
+    j++;
+    if (j == key_len) {
+      j = 0;
+    }
+  }
+  return plaintext;
 }

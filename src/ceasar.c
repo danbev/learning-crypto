@@ -5,11 +5,7 @@
 
 #include "ceasar.h"
 #include "freq.h"
-
-int mod(int a, int n) {
-  int r = a - n * floor(a / n);
-  return (r < 0) ? r + n : r;
-}
+#include "crypto_math.h"
 
 char* ceasar_encrypt(char* plaintext, char key) {
   int len = strlen(plaintext);
