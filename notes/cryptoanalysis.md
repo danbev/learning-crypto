@@ -330,10 +330,64 @@ it one position:
                          dot product larger
 ```
 If we now take the dot product we would expect to get a smaller value compared
-to when we compared the aligned ciphertext copy with. In this case the key
+to when we compared the aligned ciphertext copy. In this case the key
 was only one character but if it was multiple characters we would still see
-the same behaviour namely that when have an alignment the dot product will be
+the same behaviour namely that when we have an alignment the dot product will be
 larger. If we could the number of shifts between these the larger dot product
 that should give us the key length.
 
+```console
+$ ./out/vigenere_encrypt "some where over the rainbow, sun shine and cares are gone and everyone is happy" bajja
+keyword: bajja
+ciphertext: tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh
+```
+So, we now take the ciphertext and take a copy. This is then shifted on
+position to the right and we then cound the number of matches we find:
+```
+tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh
+1tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpy
+                                                       ↑         1
+tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh
+2 tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbp
+                  ↑                                ↑             2
+tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh
+2  tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhb
+                                      ↑           ↑              2
+tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh
+4   tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbh
+                         ↑                                       1
+tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh
+5    tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerb
+        ↑  ↑↑                                           ↑        4
+tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh
+6     tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooer
+          ↑                                         ↑      ↑     3
+tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh
+7      tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooe
+                                            ↑ ↑         ↑        3
+tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh
+8       tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahoo
+         ↑                    ↑     ↑↑           ↑               5  
+tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh         
+9        tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweaho         
+                                                                 0       
+tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh    <---+
+10        tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweah        |
+                            ↑↑                     ↑           ↑ 4      |
+tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh        |
+11         tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmewea        |
+                   ↑                                             1      |
+tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh        |
+12          tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmewe        |
+                     ↑      ↑      ↑                             3      |
+tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh        |
+13           tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmew        |
+                                                    ↑            1      |
+tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh        |
+14            tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawme        |
+                                  ↑     ↑                        2      |
+tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawmeweahooerbhbpyh        |
+15             tovnwieanoweachfrjrncofbuosqrnfawmcbrnbasepxnfawm        |
+                              ↑             ↑↑↑↑↑                6 <----+
+```
 
