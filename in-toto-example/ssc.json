@@ -1,0 +1,269 @@
+{
+ "signatures": [],
+ "signed": {
+  "_type": "layout",
+  "expires": "2022-11-08T03:27:42Z",
+  "inspect": [],
+  "keys": {
+   "b8b08216b11cfb2750370e0d0d18e56f840cf07dc8f9f97bd16dadb5d383f67a": {
+    "keyid": "b8b08216b11cfb2750370e0d0d18e56f840cf07dc8f9f97bd16dadb5d383f67a",
+    "keyid_hash_algorithms": [
+     "sha256",
+     "sha512"
+    ],
+    "keytype": "rsa",
+    "keyval": {
+     "private": "",
+     "public": "-----BEGIN PUBLIC KEY-----\nMIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEApWDMYVhCu+PIaKc0nLXJ\nyBmj+VqWGmQt7AEFycQOk05jqVydsRTyXJ+AKm+wnl8SiRZWrb0znxWDAjU38zlr\neNQen+fj/4fGughCOkJxYMPiKTk0kNsqzoupfwNrr/3mv1eqhlp/IaZKSQ7iNckl\nBV7WH9w68b7cheyFtkvQBAUETIndsRSxOjFLmjE6Q2b1PYmkTzwsqNNERCACOto+\nK2FkUWlBttgYlRsMxN6aROOnF5DlDF1iEiESrQvxxzIR5urqJIxm9afHFW5/yTYD\nr2e5KzLK88Ss98MY2iBlG3Lf38sBgMcIbnf91RB3VgDmqYks1lgYlWTyZ6Blvf1c\n/WedllgnC3cgR/VwCe/q/A3me3fLGBUfU4viYI36y8nwByBTAcxhcTAlFtccJEEA\nprZJwygB0rvg/058rwhwhR/u/mndGcr0zwxR2PT8uwVDqyP0BeVhtVMQF34ofW/I\nvHj9/1nthfm6aYFGdNP1p6d+Pmo0Ql/O7LQg/tLTgBfFAgMBAAE=\n-----END PUBLIC KEY-----"
+    },
+    "scheme": "rsassa-pss-sha256"
+   }
+  },
+  "readme": "",
+  "steps": [
+   {
+    "_type": "step",
+    "expected_command": [
+     "git",
+     "clone",
+     "https://github.com/danbev/learning-crypto"
+    ],
+    "expected_materials": [
+     [
+      "DISALLOW",
+      "*"
+     ]
+    ],
+    "expected_products": [
+     [
+      "DISALLOW",
+      "*"
+     ]
+    ],
+    "name": "vcs-1",
+    "pubkeys": [
+     "b8b08216b11cfb2750370e0d0d18e56f840cf07dc8f9f97bd16dadb5d383f67a"
+    ],
+    "threshold": 1
+   },
+   {
+    "_type": "step",
+    "expected_command": [
+     "make",
+     "-C",
+     "learning-crypto",
+     "all"
+    ],
+    "expected_materials": [
+     [
+      "MATCH",
+      "*",
+      "WITH",
+      "PRODUCTS",
+      "FROM",
+      "vcs-1"
+     ]
+    ],
+    "expected_products": [
+     [
+      "ALLOW",
+      "learning-crypto/src/str.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/.gitignore"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/out/hex.o"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/str.h"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/dec.h"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/hamming_distance.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/challenge_01.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/hex.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/base64.h"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/base64_decoder.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/notes/sigstore.md"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/base64.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/challenge_03.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/challenge_02.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/README.md"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/ceasar_decrypt.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/xor.h"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/crypto_math.h"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/ham.h"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/ceasar.h"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/challenge_05.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/ham.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/crypto_math.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/challenge_04.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/ceasar.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/vigenere_encrypt.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/freq_analysis.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/out/dec.o"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/out/bin.o"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/ceasar_encrypt.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/vigenere_decrypt.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/4.txt"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/xor.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/out/base64.o"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/bin.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/freq.h"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/dec.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/bin.h"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/out/str.o"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/freq.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/freq_gen.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/vigenere.h"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/hex.h"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/Makefile"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/notes/cryptoanalysis.md"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/src/vigenere.c"
+     ],
+     [
+      "ALLOW",
+      "learning-crypto/out/challenge_01"
+     ],
+     [
+      "DISALLOW",
+      "*"
+     ]
+    ],
+    "name": "building-1",
+    "pubkeys": [
+     "b8b08216b11cfb2750370e0d0d18e56f840cf07dc8f9f97bd16dadb5d383f67a"
+    ],
+    "threshold": 1
+   }
+  ]
+ }
+}

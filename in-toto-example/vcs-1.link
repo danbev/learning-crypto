@@ -1,0 +1,144 @@
+{
+ "signatures": [],
+ "signed": {
+  "_type": "link",
+  "byproducts": {
+   "return-value": 0,
+   "stderr": "Cloning into 'learning-crypto'...\n",
+   "stdout": ""
+  },
+  "command": [
+   "git",
+   "clone",
+   "https://github.com/danbev/learning-crypto"
+  ],
+  "environment": {},
+  "materials": {},
+  "name": "vcs-1",
+  "products": {
+   "learning-crypto/.gitignore": {
+    "sha256": "54034ac5c6e9ea95734ec2b729fd6d62abf64af34a9f9ce5d466cb788191a73d"
+   },
+   "learning-crypto/Makefile": {
+    "sha256": "ad0c611568da269b3e988ffef4cd862db8f18d8c8005ebfd7a248ad082f4c012"
+   },
+   "learning-crypto/README.md": {
+    "sha256": "c96e0b67068f6f9d71ded0e5f6bd249262911fc9b3efa6eadb8c2329ddbb7171"
+   },
+   "learning-crypto/notes/cryptoanalysis.md": {
+    "sha256": "e15faf47416094bcb5a0b139a6259da9144dccda9f3e175ccef0651cf5ef0ec9"
+   },
+   "learning-crypto/notes/sigstore.md": {
+    "sha256": "d49c54043a64ec01f8d746e1a5464495fabe6011c50272957dab932dd8afcad0"
+   },
+   "learning-crypto/src/4.txt": {
+    "sha256": "c87c921c561bf2a69cf4847dd6649f6d05430fcabae80fe5e78b56d78978a436"
+   },
+   "learning-crypto/src/base64.c": {
+    "sha256": "a633766c42fea1726a7b96ee6db190cba348d26c318499bdc51d9d8999afa592"
+   },
+   "learning-crypto/src/base64.h": {
+    "sha256": "b9b4787ae86744746755f44ae55f08703e8eff6a6729c0570226805f7ae4a98e"
+   },
+   "learning-crypto/src/base64_decoder.c": {
+    "sha256": "bc0e4ffc9127a08b199ea1c8a41e42ed4e328468ca1e0c25218a809fd10553aa"
+   },
+   "learning-crypto/src/bin.c": {
+    "sha256": "3301a09c056bf2092de6dd7fa2a7439c4f5ffe013ce41c243a5ace2d8baa3fa4"
+   },
+   "learning-crypto/src/bin.h": {
+    "sha256": "9b4d28f9f18a7b8d88c8d4037afd59f20e88929aad3640c337ee1fb9280cd950"
+   },
+   "learning-crypto/src/ceasar.c": {
+    "sha256": "e5e65a78fbd41d6f4889edba5fce95c9bf129c474f41c3e0ee7b45e0aa31aa66"
+   },
+   "learning-crypto/src/ceasar.h": {
+    "sha256": "236d858dd9f48d94402101dba294289f80c0f9f0c986e639a64e2d756185c3a1"
+   },
+   "learning-crypto/src/ceasar_decrypt.c": {
+    "sha256": "dd2e52c636ae3b9ba7e464dd19a72fee4a7f1ce1c7679f16b0c2db02546c8ef5"
+   },
+   "learning-crypto/src/ceasar_encrypt.c": {
+    "sha256": "f9e45745ce5476845996f680785c5ba91236dc384a465a68f0284fe7a35b9447"
+   },
+   "learning-crypto/src/challenge_01.c": {
+    "sha256": "923b252cf818c5311f43ccee6d56437efc63fdf9be54424e8327830e2f0be129"
+   },
+   "learning-crypto/src/challenge_02.c": {
+    "sha256": "aa6e18824b7a5eacf6f5c5e68ff7475ab8c9ba4cb31d548386b770014b141dc5"
+   },
+   "learning-crypto/src/challenge_03.c": {
+    "sha256": "d4d89514a97c2edea5c84347037c89dee35bb9fd5e4164254bc1803bf7047fbe"
+   },
+   "learning-crypto/src/challenge_04.c": {
+    "sha256": "519c141686df9b9f968b8afc2c8c8cf6d608592a474b9cca4ca54257e65a44c6"
+   },
+   "learning-crypto/src/challenge_05.c": {
+    "sha256": "90472188d6e4e77c73582ea0a968f98e714663953838775b8a4694997afba531"
+   },
+   "learning-crypto/src/crypto_math.c": {
+    "sha256": "89912e4c01eea3388ae233f04e55f8a9182426ad6d0b30c34bcc2edfb6047e4f"
+   },
+   "learning-crypto/src/crypto_math.h": {
+    "sha256": "34aa54ff5c109b986ba10d97a7a9888faa0f50f936a0f8302ed3e454fabd55cb"
+   },
+   "learning-crypto/src/dec.c": {
+    "sha256": "8d65377d2ec8c3a77230606a2fdb207db95796e04e5451f2c54723192840976f"
+   },
+   "learning-crypto/src/dec.h": {
+    "sha256": "ebeacb905c90124927bc0c861033cae092b80dbd0a35cb4bc4d74ff165e51196"
+   },
+   "learning-crypto/src/freq.c": {
+    "sha256": "4d073421dfb8e835d9051683c33949f9409e07af41fac4f2fd96c3af02121238"
+   },
+   "learning-crypto/src/freq.h": {
+    "sha256": "758aacfb09e1765cdb65b3ab714a0cde5e996304bf57753ab6e4a4a2e06e87de"
+   },
+   "learning-crypto/src/freq_analysis.c": {
+    "sha256": "e0093ab2cf9adf6b3d1f6ccd63f797b548a7cb909291b256b14273f894dfc10b"
+   },
+   "learning-crypto/src/freq_gen.c": {
+    "sha256": "d8193ecd3d082334d72f6b96c10b14f8e3705e76db63427674171130aa7f3adb"
+   },
+   "learning-crypto/src/ham.c": {
+    "sha256": "3a2a027ff1cb44f81a88dcf20484903df85a7f52b0183b2c7adcd6202d290269"
+   },
+   "learning-crypto/src/ham.h": {
+    "sha256": "f72cc7136b5ecd7e1480fe135c1534fa409da45673731d6e481e28f77df3dc4b"
+   },
+   "learning-crypto/src/hamming_distance.c": {
+    "sha256": "e65b06c4df8c17147fb95c328a09db0ad9e1777cd772a22f7ffc4a7553528ade"
+   },
+   "learning-crypto/src/hex.c": {
+    "sha256": "0901a67e2a47f70b70c6e97eae36369bb45fea1a03e5a4e931c23bf7abcf727b"
+   },
+   "learning-crypto/src/hex.h": {
+    "sha256": "e5a7b5dc5b6c27b2634c2290da3bb08c372a4ba4ca91bd9c124b3e5d6ac6f063"
+   },
+   "learning-crypto/src/str.c": {
+    "sha256": "ab13aa15a1de3d3b42893d7a5eda2273ac6511c662664f9c150ceb1a398e917e"
+   },
+   "learning-crypto/src/str.h": {
+    "sha256": "f8f492ccc3a15a167e2f474429871d6d2e86bf56da47fb04429f4a8bd6b2aa17"
+   },
+   "learning-crypto/src/vigenere.c": {
+    "sha256": "b75c6b25801877f39f2e3451f4580188f97b6bddef4247101a979890cbbf8f42"
+   },
+   "learning-crypto/src/vigenere.h": {
+    "sha256": "ce26e1cd2c3d11e281fa9601db84688d1ed3374bb1acf63619beb7d3f97c3370"
+   },
+   "learning-crypto/src/vigenere_decrypt.c": {
+    "sha256": "2b6a9834596543b3beea50289d44625ddcf142c31f340bc9e6a9eabe847a1a26"
+   },
+   "learning-crypto/src/vigenere_encrypt.c": {
+    "sha256": "33177754984682d907686c5fbf79ed121e5103acca48cca4baa0e5c8d4921633"
+   },
+   "learning-crypto/src/xor.c": {
+    "sha256": "e092bb3fb7b787305273fa9702663cddcfb4212d521d03a462bbf11273dc8f04"
+   },
+   "learning-crypto/src/xor.h": {
+    "sha256": "bc951dfbe3b7b685a860402bc697791c4b592995034f5d6cbafbf5d62f8cd7b0"
+   }
+  }
+ }
+}
