@@ -99,4 +99,16 @@ Rule 'q' defined in package repl. Type 'show' to see rules.
 ]
 ```
 
-
+### Running tests on policies
+In the [opa-example](./opa-example) director there is an a policy file named
+[opa-data.rego](./opa-example/opa-data.rego), and the test is in
+[test-opa-data.rego](./opa-example/test-opa-data.rego). We can run the test
+using: 
+```console
+$ cd opa-example
+$ ../opa test . -v
+test-opa-data.rego:
+data.example.test_has_fletch: PASS (1.23484ms)
+--------------------------------------------------------------------------------
+PASS: 1/1
+```
