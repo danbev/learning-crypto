@@ -5,11 +5,6 @@
 ```console
 $ curl -L -o opa https://github.com/open-policy-agent/opa/releases/tag/v0.45.0/opa_linux_amd64
 $ chmod 744 opa
-$ ./opa version
-Version: 0.11.0
-Build Commit: e7a34319
-Build Timestamp: 2019-05-21T06:30:29Z
-Build Hostname: e4b849da0bbb
 ```
 
 ### Rego
