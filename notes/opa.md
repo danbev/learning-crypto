@@ -18,7 +18,7 @@ $ ./opa run
 
 When we start there will be nothing:
 ```console
-> designated
+> data
 {}
 ```
 
