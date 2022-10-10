@@ -53,9 +53,9 @@ Now, lets say that another company or another project want include our software
 in theirs, like a thirdparty dependency. Ours might be one of many dependencies
 that they include in their product and they might have requirements/restrictions
 on what they are allow to use. For example, they might require that only certain
-licences are used. The licence information is hopefully available if the
+licences are used. The license information is hopefully available if the
 projects have used in-toto, but there is nothing available to say that only
-certain licences are allowed. This is where [Open Policy Agent (OPA)](./opa.md)
+certain licenses are allowed. This is where [Open Policy Agent (OPA)](./opa.md)
 comes into play. OPA gives us the ability to write policy rules that take
 in-toto json files as input and verifies that there are licences for all
 thirdparty dependencies and that they are of the type/types that are allowed.
