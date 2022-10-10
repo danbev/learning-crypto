@@ -23,7 +23,7 @@ simplfies this process, similar to how Let's Encrypt made it simpler to get
 certificate to be used with web sites. Sigstore also provides tools to verify
 signatures and transparency log to store certificates. So that allows us to
 sign the end product and publish the code-signing certs to the transparancy
-log and verify our artifact. But how can we trust what was build, like if I
+log and verify our artifact. But how can we trust what was built, like if I
 build this on my local laptop I could replace a source code file with a backdoor
 and still be able to produce a valid signature and end product/artifact. This
 is also the case if a build server is used, and we need something more.
@@ -55,10 +55,11 @@ on what they are allow to use. For example, they might require that only certain
 licences are used. The licence information is hopefully available if the
 projects have used in-toto, but there is nothing available to say that only
 certain licences are allowed. This is where [Open Policy Agent (OPA)](./opa.md)
-comes into play. OPA gives us the ability to write policy rules and we could
-write that takes as input in-toto json files and verifies that there are
-licences for all thirdparty dependencies and that they are of the type/types
-that are allowed.
+comes into play. OPA gives us the ability to write policy rules that take
+in-toto json files as input and verifies that there are licences for all
+thirdparty dependencies and that they are of the type/types that are allowed.
+Rules can be written to handle other types of restrictions/requirements as well,
+which are the policies that the company has.
 
 _wip_
 
