@@ -15,6 +15,7 @@ it comes from and that it has not been tampered with.
 To achieve this we can use a combination of tools/products/project and this
 document is my attempt to make sense of some/all of these. 
 
+### Motivation for using tools/project
 Lets say we have a software project that we want to distribute. We want to sign
 the artifact that we produce, lets say it's distributed as a tar file. This is
 possible to to do manually but it involves some work like managing keys and
