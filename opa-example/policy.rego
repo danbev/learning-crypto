@@ -7,6 +7,8 @@ allow_if_has_fletch if {
     p.name = "Fletch"
 }
 
+default get_names = "No Name :("
+
 get_names := name if {
   some p in input
     p.name == "Fletch"
