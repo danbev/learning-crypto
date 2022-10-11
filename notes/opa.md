@@ -107,3 +107,15 @@ data.example.test_has_fletch: PASS (1.23484ms)
 --------------------------------------------------------------------------------
 PASS: 1/1
 ```
+
+### Running as a server
+```console
+$ ./opa run --server opa-example/opa-data.rego
+{"addrs":[":8181"],"diagnostic-addrs":[],"level":"info","msg":"Initializing server.","time":"2022-10-11T12:27:25+02:00"}
+```
+
+We can retreive a policy by using a GET request:
+```console
+$ curl --silent http://localhost:8181/v1/policies/opa-example/opa-data.rego?pretty=true
+```
+
