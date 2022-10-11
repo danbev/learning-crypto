@@ -94,6 +94,54 @@ Rule 'q' defined in package repl. Type 'show' to see rules.
 ]
 ```
 
+### OPA eval
+This allows us to evaluate a rule.
+
+The following example will return true if the rule specified, which in this
+case is `allow_if_has_fletch` is true:
+```console
+$ ../opa eval --data policy.rego 'data.example.allow_if_has_fletch' --input input.json 
+{
+  "result": [
+    {
+      "expressions": [
+        {
+          "value": true,
+          "text": "data.example.allow_if_has_fletch",
+          "location": {
+            "row": 1,
+            "col": 1
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+But rules don't have to only return boolean values, they can return pretty much
+anything. 
+
+For example, there is a rule named `get_names` which returns a string:
+```console
+$ ../opa eval --data policy.rego 'data.example.get_names' --input input.json 
+{
+  "result": [
+    {
+      "expressions": [
+        {
+          "value": "Fletch",
+          "text": "data.example.get_names",
+          "location": {
+            "row": 1,
+            "col": 1
+          }
+        }
+      ]
+    }
+  ]
+}
+```
+
 ### Running tests on policies
 In the [opa-example](./opa-example) director there is an a policy file named
 [opa-data.rego](./opa-example/opa-data.rego), and the test is in
@@ -110,12 +158,19 @@ PASS: 1/1
 
 ### Running as a server
 ```console
-$ ./opa run --server opa-example/opa-data.rego
+$ cd opa-example
+$ ./opa run --server policy.rego
 {"addrs":[":8181"],"diagnostic-addrs":[],"level":"info","msg":"Initializing server.","time":"2022-10-11T12:27:25+02:00"}
 ```
 
 We can retreive a policy by using a GET request:
 ```console
-$ curl --silent http://localhost:8181/v1/policies/opa-example/opa-data.rego?pretty=true
+$ curl --silent http://localhost:8181/v1/policies/policy.rego?pretty=true
 ```
 
+And we can evaluate a policy, similar to what we did above with the `opa eval`
+command, using the following curl command:
+```console
+$ curl -d '{"input": [{"name": "Fletch"}, {"name": "DrRosen"}, {"name": "MrSinilinden"}]}' -H "Content-Type: application/json" -X POST http://localhost:8181/v1/data/example/get_names
+{"result":"Fletch"}
+```
