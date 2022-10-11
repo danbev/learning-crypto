@@ -3,22 +3,66 @@ One of the main values of sigstore is to sign/validate/verify artifacts, like
 thirdparty software dependencies, to avoid supply chain attacks. It has not been
 very easy to sign code/modules/containers etc before which has led to people
 simply not doing it. It is the software and also the maintaince of keys which
-adds makes this difficult. sigstore is a project under the CNFC and it goal is
-to provide a software-signing equivalent to `Let's Encrypt`. It is not just one
-tool but a collection of tools namely; `fulico`, `rekor`, and `cosign`. 
+adds makes this difficult.
+
+sigstore is a project under the CNFC and it goal is to provide a
+software-signing equivalent to `Let's Encrypt`. It is not just one tool but a
+collection of tools namely; `fulico`, `rekor`, and `cosign`. 
 
 With sigstore we don't have to manage private keys, and it makes it simpler to
 handle revocation
 
-### fulcio
-Is a root CA for code signing certs and issues code-signing certificates..
+### Installation
+```console
+$ go install github.com/sigstore/cosign/cmd/cosign@latest
+```
 
-## rekor
+### Fulcio
+Is a root CA for code signing certs and issues code-signing certificates.
+Based on an OpenID Connect email address, Fulcio signs X.509 certificates valid
+for 10 minutes.
+
+## Rekor
 Is the transparency log which is immutable, append only log which can be used
-to check what was signed by whom.
+other parties to check what was signed and by whom.
+It has a restful API server, https://rekor.sigstore.dev.
+Example of retrieving a log entry can be done using:
+```
+$ curl -s https://rekor.sigstore.dev/api/v1/log/entries?logIndex=3321511 | jq
+```
+
+```console
+$ go install -v github.com/sigstore/rekor/cmd/rekor-cli@latest
+```
 
 ### cosign
-Is a container signing tool.
+Is a container signing tool and storage in an OCI registry.
+
+Signing steps:
+* A keypair for codesigning is generated.
+* The user authenticates to an OpenID Connect Provider (OIDC) to verify the ownership of their email address.
+* Upon successful authentication a code-signing cert is received.
+* The code-signing cert is published to Rekor, the transparency log.
+* User signs an artifact using the certificatate and the privat key from the keypair.
+* The signature from the signed artifact is published to Rekor.
+* The keypair used are deleted
+* The signed artifact can be published.
+
+#### Trust Root
+To verify the identity of a system we need to ask that system to present us
+with credentials. And we then need to verify those credentials. To do this we
+need to have something at the beginning of this flow that we trust can verify
+these credentials. In WebPKI there are Root Certificate Authorities (CA) which
+are built into browsers and OS's. A browser will check that a website has the
+identity it claims by checking that it can be chained back to one of these
+Root CA's.
+In sigstores case the root trust allows users and systems to automatically
+retreive digital certificates that prove who they are, and they use these
+certs to sign artifacts that they produce and distribute. The users of these
+artifacts can verify the signatures and certificates against the trust root.
+
+### OpenID Connect
+This is used for authentication.
 
 ### Signing JavaScript
 First we have to install https://github.com/sigstore/sigstore-js and npm link
