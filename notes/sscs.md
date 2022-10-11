@@ -1,7 +1,7 @@
 ## Software Supply-Chain Security (SSCS)
 Is about security around the products that users install, or use as thirdparty
 dependencies, to allow them to be able to verify that nothing has been tampered
-with, or replaced, when installing/using a piece of software.
+with, when installing/using a piece of software.
 
 There are many steps in the process of building software and making the produced
 artifact available to users. The build process could be tampered with, the
@@ -9,7 +9,7 @@ source control management system could be compromised, the packaging could
 tampered, as well as the distribution server/channel.
 
 The goal is to that an end user or system be able to verify that the software
-they want to install or use can be verified that it comes from where they think
+they want to install or use, can be verified that it comes from where they think
 it comes from and that it has not been tampered with.
 
 To achieve this we can use a combination of tools/products/project and this
@@ -23,14 +23,16 @@ tools to perform the signing tasks. Using [sigstore](./sigstore.md) simplfies
 this process, similar to how Let's Encrypt made it simpler to get certificate
 to be used with web sites. Sigstore also provides tools to verify signatures
 and a transparency log to store signatures. So that allows us to sign the end
-product and publish the code-signing certs to the transparancy log and verify
-our artifact. But how can we trust what was built, like if I build this on my
-local laptop I could replace a source code file with a backdoor and still be
-able to produce a valid signature and end product/artifact. This is also the
-case if a build server is used, and we need something more.
+product and publish the signatures to the transparancy log and verify our
+artifact.
+
+But how can we trust what was built, like if I build this on my local laptop I
+could replace a source code file with a backdoor and still be able to produce a
+valid signature and end product/artifact. This is also the case if a build
+server is used, and we need something more.
 
 This is where another project named [in-toto](./in-toto.md) comes into play. It
-contains tools to define steps of a build process, assigns someone that is
+contains tools to define steps of a build process, assign someone that is
 responsible for each step, and who also signs the artifact produced by that
 step. Each step is signed by the person responsible for that step, called the
 funtionary, and then all the steps are signed by a product owner. This will
@@ -39,7 +41,8 @@ software with signatures for each step. So one step might have been checking out
 a specific version from git, and this could be verified that it was indeed that
 version that was used, and the source files that were uses, the compiled object
 would also be signed and be verifiable, the packaged tar also etc. This gives
-the end user insight into the product that they are about to install.
+the end user insight into the product that they are about to install and the
+ability to verify it.
 
 Now, if the end user is using the above artifact in a project they might add
 the verification step to their build process, like if they are using our
@@ -47,9 +50,9 @@ software to build their own product.
 
 So we now have our built artifact signed and we have attestations, in this case
 json files that contain metadata about how it was built. And we can use
-in-toto-verify to verfify that all that information is correct.
+`in-toto-verify` to verfify that all that information is correct.
 
-Now, lets say that another company, or another project, wants include our
+Now, lets say that another company, or another project, wants to include our
 software in theirs, as a thirdparty dependency. Ours might be one of many
 dependencies that they include in their product and they might have
 requirements/restrictions on what they are allow to use. For example, they might
@@ -68,20 +71,6 @@ policy rules the have defined.
 Policy rules can also be useful when deploying applications in container images
 where one might want to make sure that only supported base images are used etc.
 
-_wip_
-
-### Source distributed software
-sigstore and in-toto are not used in the majority of project, at least not yet.
-If we want to be able to have secure software supply chain we need to be able
-to handle these type of dependencies. What if we write a tool that does the
-sigstore and in-toto steps for us, producing artifacts that can be placed
-in any repository. End users of these artifacts can then verify them and
-also use policies that we provide or that they write themselves.
-
-### Binary distributes software
-So how about binary distributed software. This is more difficult as how can we
-trust the artifact that we want to use has not been compromised?
-
 ### Definitions in SSCS
 Just terms that were not clear, or needed refreshing.
 
@@ -99,4 +88,18 @@ context it could be the process of verifying the signature of the build.
 Information about where, when, and how software the artifacts were
 produced. In this context it could be information about the build, like the
 system (CI/CD perhaps), date and the command used to build. 
+
+_wip_
+
+### Source distributed software
+`sigstore` and `in-toto` are not used in the majority of project, at least not
+yet.  If we want to be able to have secure software supply chain we need to be
+able to handle these type of dependencies. Would it be possible to write a tool
+that does the sigstore signing and in-toto steps for us, producing artifacts
+that can be placed in any repository. End users of these artifacts can then
+verify them and also use policies that we provide or that they write themselves.
+
+### Binary distributes software
+So how about binary distributed software. This is more difficult as how can we
+trust the artifact that we want to use has not been compromised?
 
