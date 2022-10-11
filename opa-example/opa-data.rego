@@ -12,3 +12,7 @@ get_names := name if {
     p.name == "Fletch"
     name := p.name
 }
+
+return_value = "yes" {
+    1 == 1
+}
