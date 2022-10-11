@@ -100,7 +100,7 @@ This allows us to evaluate a rule.
 The following example will return true if the rule specified, which in this
 case is `allow_if_has_fletch` is true:
 ```console
-$ ../opa eval --data policy.rego 'data.example.allow_if_has_fletch' --input input.json 
+$ ../opa eval --data policy.rego 'data.example.allow_if_has_fletch' --input input.txt 
 {
   "result": [
     {
