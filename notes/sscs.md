@@ -62,15 +62,30 @@ thirdparty dependencies and that they are of the type/types that are allowed.
 Rules can be written to handle other types of restrictions/requirements as well,
 which are the policies that the company has.
 
+Policy rules can also be useful when deploying applications in container images
+where one might want to make sure that only supported base images are used.
+
 _wip_
+
+### Source distributed software
+sigstore and in-toto are not used in the majority of project, at least not yet.
+If we want to be able to have secure software supply chain we need to be able
+to handle these type of dependencies. What if we write a tool that does the
+sigstore and in-toto steps for us, producing artifacts that can be placed
+in any repository. End users of these artifacts can then verify them and
+also use policies that we provide or that they write themselves.
+
+### Binary distributes software
+So how about binary distributed software. This is more difficult as how can we
+trust the artifact that we want to use has not been compromised?
 
 ### Definitions in SSCS
 Just terms that were not clear, or needed refreshing.
 
 #### Attestation
-Like is sometimes required to get a new passport, some one needs
-to attest, with their signature, that the photo is actually of you. So in this
-context attestation could be signing of a build with the private key by the
+Like is sometimes required to get a new passport, someone needs to attest, with
+their signature, that the photo is actually of you. So in this context
+attestation could be signing of a build with the private key by the
 person/system responible for that step.
 
 #### Verification
