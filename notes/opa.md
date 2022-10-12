@@ -147,6 +147,12 @@ $ ../opa eval --format raw --data policy.rego 'data.example.get_names' --input i
 Fletch
 ```
 
+### Input vs Data
+I was a little confused about input vs data. But data is simply a json that can
+be used in a policy rules file from an external source, similar to input. These
+objects are exposed via the global `data` variable, similar to the global `input`
+variable.
+
 ### Running tests on policies
 In the [opa-example](./opa-example) director there is an a policy file named
 [opa-data.rego](./opa-example/opa-data.rego), and the test is in
