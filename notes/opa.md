@@ -141,6 +141,11 @@ $ ../opa eval --data policy.rego 'data.example.get_names' --input input.json
   ]
 }
 ```
+The output can also be shown in `raw` format:
+```console
+$ ../opa eval --format raw --data policy.rego 'data.example.get_names' --input input.txt
+Fletch
+```
 
 ### Running tests on policies
 In the [opa-example](./opa-example) director there is an a policy file named
@@ -174,3 +179,22 @@ command, using the following curl command:
 $ curl -d '{"input": [{"name": "Fletch"}, {"name": "DrRosen"}, {"name": "MrSinilinden"}]}' -H "Content-Type: application/json" -X POST http://localhost:8181/v1/data/example/get_names
 {"result":"Fletch"}
 ```
+
+### Building as wasm
+```console
+$ ../opa build -t wasm -e example/hello policy.rego 
+
+$ tar tvf bundle.tar.gz 
+tar: Removing leading `/' from member names
+-rw------- 0/0               3 1970-01-01 01:00 /data.json
+-rw------- 0/0             281 1970-01-01 01:00 /policy.rego
+-rw------- 0/0          131583 1970-01-01 01:00 /policy.wasm
+-rw------- 0/0              93 1970-01-01 01:00 /.manifest
+```
+The `data.json` file in this case will just be an empty json object. The file
+`policy.rego` is our rules file. The `.manifest` contains the following:
+```console
+{"revision":"","roots":[""],"wasm":[{"entrypoint":"example/hello","module":"/policy.wasm"}]}
+```
+The .wasm file is the compiled rego policy as a wasm (module).
+
