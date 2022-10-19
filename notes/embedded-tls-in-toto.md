@@ -162,12 +162,17 @@ Then to generate default steps for a project, perhaps only clone and run tests:
 ```console
 $ cargo trustification gen-steps
 ```
+Hopefully this would be able to use a "keyless" approach similar to sigstore's
+cosign tool which used OIDC.
+
 And then to generate the root.layout:
 ```console
 $ cargo trustification gen-layout
 ```
 The idea would be that these tasks be run as part of, or before, the release
-process.
+process. By default the link files and root.layout would be generated in a
+directory named `sscs` or something like that and could be configurable. These
+files would then be checked in.
 
 A user of this project would include this project as a dependency in Cargo.toml
 and the verification would be performed on the project that Cargo fetched. 
@@ -176,6 +181,9 @@ to verify that there are no vulnerabilities in the project.
 ```
 $ cargo trustification verify embedded-tls
 ```
+The idea here is that this verify operation would use the link files, layout
+and public key from the repository that Cargo fetches. TODO: are there any
+issues with doing this?
 
 ### Questions
 #### When do we want to generate the in-toto artifacts?  
