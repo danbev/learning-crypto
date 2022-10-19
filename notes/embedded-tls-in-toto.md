@@ -182,8 +182,16 @@ to verify that there are no vulnerabilities in the project.
 $ cargo trustification verify embedded-tls
 ```
 The idea here is that this verify operation would use the link files, layout
-and public key from the repository that Cargo fetches. TODO: are there any
-issues with doing this?
+and public key from the repository that Cargo fetches. So the in-toto-verfify
+command takes a `--layout`, a `--layout-keys`, and a `--link-dir` option which
+perhaps could be pointed to the repository that cargo checked out:
+```console
+$ in-toto-verify -v --layout $CARGO_HOME/git/checkouts/ebedded-tls-<sha>/sscs/artifacts/root.layout \
+   --layout-key $CARGO_HOME/git/checkouts/ebedded-tls-<sha>/sscs/artifacts/sscs-tool.pub \
+   --link-dir $CARGO_HOME/git/checkouts/ebedded-tls-<sha>/sscs/artifacts
+```
+TODO: are there any issues with doing this?  
+
 
 ### Questions
 #### When do we want to generate the in-toto artifacts?  
