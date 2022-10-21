@@ -163,7 +163,8 @@ Then to generate default steps for a project, perhaps only clone and run tests:
 $ cargo trustification gen-steps
 ```
 Hopefully this would be able to use a "keyless" approach similar to sigstore's
-cosign tool which used OIDC.
+cosign tool which used OIDC. For example, is should be possible to get the
+keypair using [sigstore-rs](https://github.com/danbev/sigstore-rs/blob/fulcio_get_keypair_example/examples/fulcio/cert/main.rs).
 
 And then to generate the root.layout:
 ```console
