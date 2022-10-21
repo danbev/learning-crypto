@@ -85,11 +85,17 @@ Is the process of establishing that something is true. So in this
 context it could be the process of verifying the signature of the build.
 
 #### Provenance
-Information about where, when, and how software the artifacts were
-produced. In this context it could be information about the build, like the
-system (CI/CD perhaps), date and the command used to build. 
+Information about where, when, and how the software artifacts were produced. In
+this context it could be information about the build, like the system
+(CI/CD perhaps), date and the command used to build. 
 
 _wip_
+
+### Suggestion
+The tool is intendend to be run by a maintainer/contributer to an opensource
+software project.
+The tool will:
+* 
 
 ### Source distributed software
 `sigstore` and `in-toto` are not used in the majority of project, at least not
@@ -103,3 +109,14 @@ verify them and also use policies that we provide or that they write themselves.
 So how about binary distributed software. This is more difficult as how can we
 trust the artifact that we want to use has not been compromised?
 
+
+## SSCS Attacks
+
+### Dependency Confusion
+This is an attack that takes advantage of how some package managers work (like
+pip, Cargo, RubyGems, npm etc) and can cause unwanted code to be included in a
+project that uses a dependency from the package managers repository. If the
+package manager checks the public repository before a private one. So an
+attacker could find out the name of a private package used and then publish a
+public package with the same name and have their public one included.
+This was discovered in 2021 by Alex Birsan.
