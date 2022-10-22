@@ -1,6 +1,7 @@
 ## Digital Certificates
-So certificates are basically a way to create a datastructure consisting of a
-name and a public key, linking/mapping a name to a public key:
+So certificates are basically a way to create a mapping between a name and
+a public key. Imaging having a datastructure consisting of a name and a public
+key, linking/mapping a name to a public key:
 ```rust
 struct Certificate {
   name: String,
@@ -8,24 +9,27 @@ struct Certificate {
 }
 ```
 The actual format will be in [ans.1](./asn1.md) but that is not important at the
-moment. But if that was then only thing that a certificate consisted of then
+moment. But if that was the only thing that a certificate consisted of then
 I would be able to construct one my self claiming that some public key that
 does not belong to me is mine. This would be like me creating my own passport
 or drivers licence which can both be used to prove identity. So what happens
 is that the data structure is signed by a thridparty, like a passport is issued
 by the police, at least that is the case in Sweden.
-The issuer/certificate authority is the entity that signes the data structure.
+
+The issuer/certificate authority is the entity that signs the data structure.
 What this means is they would use their private key to sign this structure. If
-we create a self signed certificate then we use our own private key with then
+we create a self signed certificate then we use our own private key with the
 signature algorithm. A certifiate authority (CA) is similar in that it also
 has a private key and a certificate, and it signs part of the certificate with
 its private key, and the CA's certificate, the public key, can be used to
 verify. The CA's certificate needs to be included in the trust stores and this
-is how someone can verify the signature.
+is how someone can verify the signature (of the binding of a name to a public
+key).
 
 x.500 was first created in 1988 and is a directory service originally intendend
-for phone books. So that spec was for mapping names to phone numbers. This was
+for phone books. So that spec was for mapping people to phone numbers. This was
 so that telecommunication companies to have a global phone book thingy.
+
 When we create a certificate, for example:
 ```console
 $ openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365
@@ -35,6 +39,7 @@ State or Province Name, Locality Name (city), Organization Name (company),
 Comman Name(host/domain name), and email address. Things like Country Name,
 and Locality are leftovers from the original spec and is why they have these
 names.
+
 The cert.pem file created is in Privacy Enhanced EMail format which is a base64
 encoded payload between a header and a footer.
 We can read this using openssl as well:
@@ -164,6 +169,26 @@ viH/g6MwNw==
 -----END CERTIFICATE-----
 ```
 
+## Trust and root certificates
+Lets start with the a certificate that we have and that is signed by a CA.
+And we have an issuer that issued our certificate, that is the issuer has signed
+the name-public key structure with it's private key. So the certificate
+authority (the issuer) is saying that the public key in fact belongs to the
+subject, this is what a certificate is. But why would I trust that
+statment/claim from the certificate authority?  Let just think about how we
+verify this, we need to take the subject and the public key
+```
+ x = { subject: name/identity, pub_key: xb135 }
+ s = signature(x, priv_key)
+ 
+ accept = verify(x, s, pub_key) 
+```
+So `verify` takes datastructure, the signature, and the public key.
+
+### Pulic Key Infrastructure (PKI)
+Is intrastructure for that are needed for managing certificates, like how to
+issue, how to distribute, how to store, use, verify, etc.
+
 ### Critical/Non-Critical
 You might see this certificates, for example:
 ```
@@ -185,3 +210,38 @@ Certificate Request:
 Critical tells implementations that don't recognize the extension in question to
 reject it, and non-critical is used if it is alright for the extension to be
 ignore if the implementation does not recognize the extension.
+
+### Managing Certificates
+There is no renewal process defined in Web PKI and instead the cert is replaced
+with a new one. So we have to go through the normal process to get a new cert.
+And certificates have, at least x.509 certificates do, have an expiration date
+which means one needs to keep this date in mind and request a new certificate
+and replace the old one before it expires.
+
+### Short-lived Certificates
+The benifit with short-lived certificates is that it removes or reduces the
+issue of revoking certificates which is/can be complicated. 
+
+These are what they sound like certificates that have a short expiration time.
+But how is that useful, like they will be "invalid" when the expire right?  
+If we think about that we are trying to do is to sign an artifact using a
+private key, and we have requested a certificate from a CA that for this key
+pair. We them sign our artifact using the private key, and the certificate
+proves our identity and also that we had the private key for the public key
+at the certificate issueing point. Now time goes by and the certifate expires
+and a verification would fail. But if we look at this if we can prove that the
+artifacts were signed when the certifate was valid that would be enough. 
+This is where a timestamping service like Rekor helps
+
+[RFC 3161 ](https://www.ietf.org/rfc/rfc3161.txt) is rfc for a Time-Stamp 
+Protocol (TSP).
+A Time-Stamp Authority (TSA) generates timestamp responses (TSR) which contains
+information needed to verify the timestamp.
+
+
+### Certificate Signing Request (CSR)
+This is a request to a CA issuer that we want to have a certificate issued and
+contains a data structure with the public key, a name, and a signature. The
+signature is signed with the private key, self-signed, and this proves that
+person/system that sent this CSR infact knows the private key. So the CA will
+take the data-structure and use the public key to verify the signature.
