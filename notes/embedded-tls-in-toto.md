@@ -191,7 +191,27 @@ $ in-toto-verify -v --layout $CARGO_HOME/git/checkouts/ebedded-tls-<sha>/sscs/ar
    --layout-key $CARGO_HOME/git/checkouts/ebedded-tls-<sha>/sscs/artifacts/sscs-tool.pub \
    --link-dir $CARGO_HOME/git/checkouts/ebedded-tls-<sha>/sscs/artifacts
 ```
-TODO: are there any issues with doing this?  
+
+This would hopefully work, but we do have a manual step which the OIDC step part
+which generates the shortlived keypair. For the majority of projects building/
+releasing is an automated process. Having a manual step is not going to work in
+these cases and if we want all projects to be secured at some point, the effort
+of adding such security should be as small as possible. And including it in a
+normal build server should be a one time configuration/step or users will not do
+ it.(similar to many did not bother with certificates before Lets Encrypt but
+since it was so simple there was not any reason not do add it).
+
+Sigstore's Code Signing CA can, in addition to OIDC, issue tokens based on
+[SPIFFI](./spiffe.md) so instead of binding public keys to email addresses which
+is what OIDC does, in this case we are binding to SPIFFE Verified Identity
+Document (SVID) to public keys.
+
+We would upload our root trust domain certificate and a SPIFFE ID, something
+like spiffe://sscs.redhat.com/build. 
+In this case I think the build server would request a x509 SVID from the SPIRE
+server, it then creates keypair and generates a certificate signing request and
+includes that SVID and the public key (in the OIDC flow this would have been the
+verified email address and the public key) which is sent to Fulcio. 
 
 
 ### Questions
