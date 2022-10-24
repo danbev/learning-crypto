@@ -129,8 +129,12 @@ $ rm func-test
 And to verify we use the same command:
 ```console
 $ in-toto-sign -k func-test.pub -f testing.fd223b69.link --verify
+$ echo $?
+0
 ```
-
+So that was ok. But this required that we create keypair which is not really
+great because anyone can create one and sign something in the same way we did
+above. 
 
 
 ### in-toto-keygen
@@ -169,3 +173,23 @@ $ tar tvf in_toto_link_files.tar.gz
 -rw-r--r-- danielbevenius/danielbevenius 5492 2022-10-08 09:19 vcs-1.link
 -rw-r--r-- danielbevenius/danielbevenius 14198 2022-10-08 09:24 building-1.link
 ```
+
+### Materials
+These are the files used to perform a step in the supply chain.
+
+### Products
+Are the results of a step.
+
+### layout
+This section contains some notes while reading
+the [in-toto-spec v0.9](https://github.com/in-toto/docs/blob/v0.9/in-toto-spec.md)
+
+#### Steps
+These are the steps are to performed by the functionaries
+
+#### Inspections
+These are operations that are performed at verification time.
+
+#### threshold
+Should be an integer and is for when more than functionary needs to perform a
+step. If only one is required then it is left as 1.
