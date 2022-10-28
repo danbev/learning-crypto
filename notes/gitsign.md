@@ -56,6 +56,13 @@ the sigstore Certificate Authority root is not part of Githubs trust root and
 also because validation needs to be done using Rekor to verify that the
 certificate was valid at the time this commit was signed.
 
+To avoid having to choose a auth flow to use can be annoying and it can be
+specified using an environment variable, for example:
+```console
+$ export GITSIGN_CONNECTOR_ID=https://github.com/login/oauth
+```
+
+
 ### Verifying a commit
 A commit can be verified using:
 ```console
@@ -66,6 +73,7 @@ gitsign: Good signature from [daniel.bevenius@gmail.com]
 Validated Git signature: true
 Validated Rekor entry: true
 ```
+
 
 ### Inspect commit signature
 ```console
