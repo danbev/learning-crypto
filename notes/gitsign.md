@@ -6,8 +6,8 @@
 $ go install github.com/sigstore/gitsign@latest
 ```
 
-
 ### Configure git
+The collowing will configure signing for the current project:
 ```console
 #!/bin/bash
 
@@ -22,6 +22,22 @@ git config --local gpg.x509.program gitsign
 
 # gitsign expects x509 args
 git config --local gpg.format x509 
+```
+To configure for all projects, `global` use:
+```console
+#!/bin/bash
+
+# Sign all commits
+git config --global commit.gpgsign true
+
+# Sign all tags
+git config --global tag.gpgsign true
+
+# Use gitsign for signing
+git config --global gpg.x509.program gitsign
+
+# gitsign expects x509 args
+git config --global gpg.format x509 
 ```
 
 ### Commit
