@@ -317,7 +317,68 @@ external call.
 
 ### Get Fulcia root certificate
 ```console
-$ curl https://fulcio.sigstore.dev/api/v1/rootCert
+$ curl -q https://fulcio.sigstore.dev/api/v1/rootCert | openssl x509 -text
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  1531  100  1531    0     0   3147      0 --:--:-- --:--:-- --:--:--  3143
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            b9:d5:89:57:e7:53:46:eb:25:ab:26:46:41:eb:9f:f5:27:7d:a4
+        Signature Algorithm: ecdsa-with-SHA384
+        Issuer: O = sigstore.dev, CN = sigstore
+        Validity
+            Not Before: Apr 13 20:06:15 2022 GMT
+            Not After : Oct  5 13:56:58 2031 GMT
+        Subject: O = sigstore.dev, CN = sigstore-intermediate
+        Subject Public Key Info:
+            Public Key Algorithm: id-ecPublicKey
+                Public-Key: (384 bit)
+                pub:
+                    04:f1:15:52:ff:2b:07:f8:d3:af:b8:36:72:3c:86:
+                    6d:8a:58:14:17:d3:65:6a:b6:29:01:df:47:3f:5b:
+                    c1:04:7d:54:e4:25:7b:ec:b4:92:ee:cd:19:88:7e:
+                    27:13:b1:ef:ee:9b:52:e8:bb:ef:47:f4:93:93:bf:
+                    7c:2d:58:0c:cc:b9:49:e0:77:88:7c:5d:ed:1d:26:
+                    9e:c4:b7:18:a5:20:12:af:59:12:d0:df:d1:80:12:
+                    73:ff:d8:d6:0a:25:e7
+                ASN1 OID: secp384r1
+                NIST CURVE: P-384
+        X509v3 extensions:
+            X509v3 Key Usage: critical
+                Certificate Sign, CRL Sign
+            X509v3 Extended Key Usage: 
+                Code Signing
+            X509v3 Basic Constraints: critical
+                CA:TRUE, pathlen:0
+            X509v3 Subject Key Identifier: 
+                DF:D3:E9:CF:56:24:11:96:F9:A8:D8:E9:28:55:A2:C6:2E:18:64:3F
+            X509v3 Authority Key Identifier: 
+                keyid:58:C0:1E:5F:91:45:A5:66:A9:7A:CC:90:A1:93:22:D0:2A:C5:C5:FA
+
+    Signature Algorithm: ecdsa-with-SHA384
+         30:64:02:30:3c:2b:10:2b:80:d8:89:96:03:3c:86:83:8b:91:
+         c5:2a:77:f1:5f:1e:80:49:25:66:11:17:ec:ca:76:01:89:7d:
+         97:e9:22:51:9d:95:3c:e3:ff:43:65:d9:c5:be:fc:66:02:30:
+         4e:b7:a4:29:06:57:38:27:fd:03:c6:f9:13:0a:aa:5c:96:fc:
+         e2:2f:a0:42:08:f9:e3:76:52:01:dc:fb:b7:07:1b:0f:9b:28:
+         14:63:b2:22:db:36:dd:09:d9:62:8a:8c
+-----BEGIN CERTIFICATE-----
+MIICGjCCAaGgAwIBAgIUALnViVfnU0brJasmRkHrn/UnfaQwCgYIKoZIzj0EAwMw
+KjEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MREwDwYDVQQDEwhzaWdzdG9yZTAeFw0y
+MjA0MTMyMDA2MTVaFw0zMTEwMDUxMzU2NThaMDcxFTATBgNVBAoTDHNpZ3N0b3Jl
+LmRldjEeMBwGA1UEAxMVc2lnc3RvcmUtaW50ZXJtZWRpYXRlMHYwEAYHKoZIzj0C
+AQYFK4EEACIDYgAE8RVS/ysH+NOvuDZyPIZtilgUF9NlarYpAd9HP1vBBH1U5CV7
+7LSS7s0ZiH4nE7Hv7ptS6LvvR/STk798LVgMzLlJ4HeIfF3tHSaexLcYpSASr1kS
+0N/RgBJz/9jWCiXno3sweTAOBgNVHQ8BAf8EBAMCAQYwEwYDVR0lBAwwCgYIKwYB
+BQUHAwMwEgYDVR0TAQH/BAgwBgEB/wIBADAdBgNVHQ4EFgQU39Ppz1YkEZb5qNjp
+KFWixi4YZD8wHwYDVR0jBBgwFoAUWMAeX5FFpWapesyQoZMi0CrFxfowCgYIKoZI
+zj0EAwMDZwAwZAIwPCsQK4DYiZYDPIaDi5HFKnfxXx6ASSVmERfsynYBiX2X6SJR
+nZU84/9DZdnFvvxmAjBOt6QpBlc4J/0DxvkTCqpclvziL6BCCPnjdlIB3Pu3BxsP
+mygUY7Ii2zbdCdliiow=
+-----END CERTIFICATE-----
+
 ```
 
 [hawkbit]: https://www.eclipse.org/hawkbit/
