@@ -315,4 +315,9 @@ to reach/call out to Rekor?
 * Can we store the sigstore root CA to verify the signature without making and
 external call.
 
+### Get Fulcia root certificate
+```console
+$ curl https://fulcio.sigstore.dev/api/v1/rootCert
+```
+
 [hawkbit]: https://www.eclipse.org/hawkbit/
