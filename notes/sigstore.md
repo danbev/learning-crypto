@@ -10,7 +10,7 @@ software-signing equivalent to `Let's Encrypt`. It is not just one tool but a
 collection of tools namely; `fulico`, `rekor`, and `cosign`. 
 
 With sigstore we don't have to manage private keys, and it makes it simpler to
-handle revocation
+handle revocation.
 
 ### Installation
 ```console
@@ -18,9 +18,40 @@ $ go install github.com/sigstore/cosign/cmd/cosign@latest
 ```
 
 ### Fulcio
-Is a root CA for code signing certs and issues code-signing certificates.
-Based on an OpenID Connect email address, Fulcio signs X.509 certificates valid
-for 10 minutes.
+Is a root CA for code signing certs, and issues code-signing certificates.
+Importantly it is an automatic certificate authority.
+
+The certificates that Fulicio provides are not like the ones we use for TLS but
+they are intended for code signing. The `KeyUsage` field looks like this:
+```
+X509v3 Key Usage: critical
+    Digital Signature
+X509v3 Extended Key Usage:
+    Code Signing
+```
+For the meaning of critical see [certificates.md](./certificates.md).
+
+The `Subject` field is also different. This is typically a domain name in a TLS
+certificate but in a code-signing certificate these are email addresses (people)
+or SPIFFE SVID (workloads).
+
+Fulcio has to validate the user/system that is requesting a certificate to be
+created for it. OpenID Connect (OIDC) can be used so it will handle the email
+address, Fulcio signs X.509 certificates valid for 10 minutes.
+
+Every certificate issued will be appended to a public certificate transparency
+(CT) log. This log can be inspected by anyone and the certificates can be used
+to verify signatures. This is not the Rekor log.
+
+So Fulcio will first create a special x.509 extension called a poision extension
+in the certifiate before it is added to the CT log. This kind of cert is called
+a precertifcate and is not useful by clients at this stage.
+The response from the CT is a signed certificate timestamp (SCT) which is a
+promise of inclusion in the CT log.
+Now, this SCT is embedded into the certificate and it is signed again to include
+this information in the signature. Then the certificate is returned to the
+client.
+
 
 ## Rekor
 Is the transparency log which is immutable, append only log which can be used
@@ -39,17 +70,78 @@ $ go install -v github.com/sigstore/rekor/cmd/rekor-cli@latest
 ```
 
 ### cosign
-Is a container signing tool and storage in an OCI registry.
+Is a signing tool which I think is named after container signing but it can be
+used to sign anything blob of data.
 
 Signing steps:
 * A keypair for codesigning is generated.
 * The user authenticates to an OpenID Connect Provider (OIDC) to verify the ownership of their email address.
 * Upon successful authentication a code-signing cert is received.
 * The code-signing cert is published to Rekor, the transparency log.
-* User signs an artifact using the certificatate and the privat key from the keypair.
+* User signs an artifact using the certificatate and the private key from the keypair.
 * The signature from the signed artifact is published to Rekor.
 * The keypair used are deleted
 * The signed artifact can be published.
+
+#### Blob signing
+Even though cosign "has container in its name" it can be used to store other
+types of files. We can store any blob we like using `cosign upload blob`:
+
+First create a file that we want to upload:
+```console
+$ echo "bajja" > artifact
+```
+Next, we can hash this file using:
+```console
+$ shasum -a 256 artifact
+311375908b2a10688fb8841b61d8b1daa9a3e904f84d2ed88d0a35cb4f0e1a95 artifact
+```
+Create a unique name for the file to be uploaded:
+```console
+$ uuidgen | head -c 8
+c408de42
+```
+We can take that and c408de42 and use it in a name to make our artifact name
+unique:
+```
+test-blob-upload-c408de42
+```
+Now, upload the blob using cosign to [ttl.sh](https://ttl.sh/):
+```console
+$ cosign upload blob -f artifact ttl.sh/test-blob-upload-c408de42:1h
+Uploading file from [artifact] to [ttl.sh/test-blob-upload-c408de42:1h] with media type [text/plain]
+File [artifact] is available directly at [ttl.sh/v2/test-blob-upload-c408de42/blobs/sha256:311375908b2a10688fb8841b61d8b1daa9a3e904f84d2ed88d0a35cb4f0e1a95]
+
+Uploaded image to:
+ttl.sh/test-blob-upload-c408de42@sha256:2d7b03e920733c17a89742a965be0fda49270b9b95f4dc2e3efe60fb8579b2c5
+```
+Fetch the file:
+```console
+$ curl -L ttl.sh/v2/test-blob-upload-c408de42/blobs/sha256:311375908b2a10688fb8841b61d8b1daa9a3e904f84d2ed88d0a35cb4f0e1a95 > fetched-artifact
+```
+
+```console
+$ cat fetched-artifact | shasum -a 256
+311375908b2a10688fb8841b61d8b1daa9a3e904f84d2ed88d0a35cb4f0e1a95  -
+```
+Sign...
+```console
+$ cosign sign --key cosign.key ttl.sh/test-blob-upload-c408de42@sha256:2d7b03e920733c17a89742a965be0fda49270b9b95f4dc2e3efe60fb8579b2c5
+Enter password for private key: 
+Pushing signature to: ttl.sh/test-blob-upload-c408de42
+```
+```console
+$ cosign verify --key cosign.pub ttl.sh/v2/test-blob-upload-c408de42/blobs/sha256:311375908b2a10688fb8841b61d8b1daa9a3e904f84d2ed88d0a35cb4f0e1a95
+```
+
+
+
+
+#### keyless signatures
+These are when shortlived keys are used.
+```console
+$ COSIGN_EXPERIMENTAL=1 cosign sign $IMAGE_DIGEST
+```
 
 #### Trust Root
 To verify the identity of a system we need to ask that system to present us
@@ -210,3 +302,17 @@ $ curl --silent https://rekor.sigstore.dev/api/v1/log/entries?logIndex=4874058 |
 ```
 
 _work in progress_
+
+### Embedded signing and verification
+Currently [hawkbit] is storing binary firmware along with metadata. We should be
+able sign the binary using sigstore and storing the signature and certificate
+in the json metadata. This is then later downloaded/sent to the device during
+a firmware update. 
+Questions:
+* Can we verify the signatur of these downloaded firmware blobs without having
+to reach/call out to Rekor?
+
+* Can we store the sigstore root CA to verify the signature without making and
+external call.
+
+[hawkbit]: https://www.eclipse.org/hawkbit/
