@@ -1,9 +1,15 @@
 ## gitsign
+This document contains steps for setting up
+[gitsign](https://github.com/sigstore/gitsign).
 
 
 ### Install gitsign
 ```console
 $ go install github.com/sigstore/gitsign@latest
+```
+Or using brew:
+```console
+$ brew install sigstore/tap/gitsign
 ```
 
 ### Configure git
@@ -283,3 +289,7 @@ qBL/s9tVePg2AjEAlaxT4IrISnc/yorxtWxXTSyzerpChkW/kcCy5JrJGkRdFH8Q
 JmlnFanpQZBtepuu
 -----END CERTIFICATE-----
 ```
+
+* How can we enforce the that PRs are signed
+* Can we resign ammed commits for users pull requests.
+
