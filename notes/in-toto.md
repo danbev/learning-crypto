@@ -193,3 +193,11 @@ These are operations that are performed at verification time.
 #### threshold
 Should be an integer and is for when more than functionary needs to perform a
 step. If only one is required then it is left as 1.
+
+
+### Pedigree
+Is about where a piece of software came from and how it might have changed over
+time.
+
+### Provenance
+Is about the ability to trust or validate the lineage/pedigree.
