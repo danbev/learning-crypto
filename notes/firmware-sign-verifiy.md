@@ -82,4 +82,10 @@ The size of the bundle is around 4K:
 $ ls -lh firmware.bundle 
 -rw-------. 1 danielbevenius danielbevenius 3.8K Nov  3 14:38 firmware.bundle
 ```
+Is the size reasonable to be downloaded and stored on the device?
+
+When we create the container image that our firmware is part of we will need to
+add a layer to this image. This new layer will contain the bundle. By doing this
+I think the bundle will be made available to the bootloader application on the
+device which can then use that information to verify the firmware itself.
 
