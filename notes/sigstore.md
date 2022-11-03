@@ -93,7 +93,7 @@ $ echo "bajja" > artifact
 ```
 Next, we can hash this file using:
 ```console
-$ shasum -a 256 artifact
+$ shasum -a 258 artifact
 311375908b2a10688fb8841b61d8b1daa9a3e904f84d2ed88d0a35cb4f0e1a95 artifact
 ```
 Create a unique name for the file to be uploaded:
@@ -102,40 +102,158 @@ $ uuidgen | head -c 8
 c408de42
 ```
 We can take that and c408de42 and use it in a name to make our artifact name
-unique:
-```
-test-blob-upload-c408de42
-```
+unique, for example `danbev/c408de42`.
+
 Now, upload the blob using cosign to [ttl.sh](https://ttl.sh/):
 ```console
-$ cosign upload blob -f artifact ttl.sh/test-blob-upload-c408de42:1h
-Uploading file from [artifact] to [ttl.sh/test-blob-upload-c408de42:1h] with media type [text/plain]
-File [artifact] is available directly at [ttl.sh/v2/test-blob-upload-c408de42/blobs/sha256:311375908b2a10688fb8841b61d8b1daa9a3e904f84d2ed88d0a35cb4f0e1a95]
+$ cosign upload blob -f artifact ttl.sh/danbev/c408de42:2h
+Uploading file from [artifact] to [ttl.sh/danbev/c408de42:2h] with media type [text/plain]
+File [artifact] is available directly at
+[ttl.sh/v2/danbev/c408de42/blobs/sha256:311375908b2a10688fb8841b61d8b1daa9a3e904f84d2ed88d0a35cb4f0e1a95]
 
 Uploaded image to:
-ttl.sh/test-blob-upload-c408de42@sha256:2d7b03e920733c17a89742a965be0fda49270b9b95f4dc2e3efe60fb8579b2c5
+ttl.sh/danbev/c408de42@sha256:7502069007aa8fb8319c139f29fbdd511f288607ce1dd183bda06fcca783536
 ```
-Fetch the file:
+So the artifact, in this case just a file is available using the url displayed
+above:
 ```console
 $ curl -L ttl.sh/v2/test-blob-upload-c408de42/blobs/sha256:311375908b2a10688fb8841b61d8b1daa9a3e904f84d2ed88d0a35cb4f0e1a95 > fetched-artifact
 ```
-
-```console
-$ cat fetched-artifact | shasum -a 256
-311375908b2a10688fb8841b61d8b1daa9a3e904f84d2ed88d0a35cb4f0e1a95  -
+Notice that the url contains the sha256 digest:
 ```
-Sign...
+sha256:311375908b2a10688fb8841b61d8b1daa9a3e904f84d2ed88d0a35cb4f0e1a95
+```
 ```console
-$ cosign sign --key cosign.key ttl.sh/test-blob-upload-c408de42@sha256:2d7b03e920733c17a89742a965be0fda49270b9b95f4dc2e3efe60fb8579b2c5
+$ shasum -a 256 fetched-artifact 
+311375908b2a10688fb8841b61d8b1daa9a3e904f84d2ed88d0a35cb4f0e1a95  fetched-artifact
+```
+
+We can now sign the blob using:
+```console
+$ cosign sign --key cosign.key ttl.sh/danbev/c408de42:2h
 Enter password for private key: 
-Pushing signature to: ttl.sh/test-blob-upload-c408de42
+WARNING: Image reference ttl.sh/danbev/c408de42:2h uses a tag, not a digest, to identify the image to sign.
+
+This can lead you to sign a different image than the intended one. Please use a
+digest (example.com/ubuntu@sha256:abc123...) rather than tag
+(example.com/ubuntu:latest) for the input to cosign. The ability to refer to
+images by tag will be removed in a future release.
+Pushing signature to: ttl.sh/danbev/c408de42
 ```
+
+And to verify the blob:
 ```console
-$ cosign verify --key cosign.pub ttl.sh/v2/test-blob-upload-c408de42/blobs/sha256:311375908b2a10688fb8841b61d8b1daa9a3e904f84d2ed88d0a35cb4f0e1a95
+$ cosign verify --key cosign.pub ttl.sh/danbev/c408de42:2h | jq
+
+Verification for ttl.sh/danbev/c408de42:2h --
+The following checks were performed on each of these signatures:
+  - The cosign claims were validated
+  - The signatures were verified against the specified public key
+[
+  {
+    "critical": {
+      "identity": {
+        "docker-reference": "ttl.sh/danbev/c408de42"
+      },
+      "image": {
+        "docker-manifest-digest": "sha256:7502069007aa8fb8319c139f29fbdd511f288607ce1dd183bda06fcca783536f"
+      },
+      "type": "cosign container image signature"
+    },
+    "optional": null
+  }
+]
+```
+We can save the signature using `cosign save`: 
+```console
+$ cosign save --dir out/ ttl.sh/danbev/c408de42:2h
+```
+And we can inspect it:
+```console
+$ ls out/
+blobs  index.json  oci-layout
 ```
 
+```console
+$ cat out/index.json 
+{
+   "schemaVersion": 2,
+   "manifests": [
+      {
+         "mediaType": "application/vnd.oci.image.manifest.v1+json",
+         "size": 366,
+         "digest": "sha256:7502069007aa8fb8319c139f29fbdd511f288607ce1dd183bda06fcca783536f",
+         "annotations": {
+            "kind": "dev.cosignproject.cosign/image"
+         }
+      },
+      {
+         "mediaType": "application/vnd.oci.image.manifest.v1+json",
+         "size": 558,
+         "digest": "sha256:3858bff64c98a08de76a0b9dcf90e66517c46b939c84680ed48d8090baccea52",
+         "annotations": {
+            "kind": "dev.cosignproject.cosign/sigs"
+         }
+      }
+   ]
+}
+```
 
+The image containing the signature can be found using `cosign triangulate`:
+```console
+$ cosign triangulate ttl.sh/danbev/c408de42:2h
+ttl.sh/danbev/c408de42:sha256-7502069007aa8fb8319c139f29fbdd511f288607ce1dd183bda06fcca783536f.sig
+```
+Use `-d` to get debugging output.
 
+We can also use `skopeo` to inspect the image that contains the signature:
+```console
+$ skopeo inspect --raw docker://$(cosign triangulate ttl.sh/danbev/c408de42:2h) | jq
+{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.oci.image.manifest.v1+json",
+  "config": {
+    "mediaType": "application/vnd.oci.image.config.v1+json",
+    "size": 248,
+    "digest": "sha256:287baa3058e11295538c4a97d8b0b9565955ea3ad721625c8412fb74d86d972e"
+  },
+  "layers": [
+    {
+      "mediaType": "application/vnd.dev.cosign.simplesigning.v1+json",
+      "size": 238,
+      "digest": "sha256:640e155f4ff1294c658cedf2acf4e49154ac976efa8fb298646dbddd47a6893f",
+      "annotations": {
+        "dev.cosignproject.cosign/signature": "MEUCICgRI1p03iFNnN5YwnA8I7yXdvsTK1ol5x8fc+D2xYcBAiEAya2rjeCbyR5VRJybGRz/fn92GdKGJIDtoAiyAfhqRYQ="
+      }
+    }
+  ]
+}
+```
+
+By default cosign will communicate with the remote registry to get the resources
+required for the verification process resources. As shown above we can get the
+resources and provided them instead, so there does not need to be any
+interaction with the remote registry.
+
+First, we get the signature using:
+```console
+$ skopeo inspect --raw docker://$(cosign triangulate ttl.sh/danbev/c408de42:2h) | jq -r '.layers[0].annotations["dev.cosignproject.cosign/signature"]' > danbev-blob.sig
+```
+Now, we can use this signature with `cosign verify`:
+```console
+$ cosign verify --signature=danbev-blob.sig --key cosign.pub ttl.sh/danbev/c408de42:2h | jq
+```
+
+We can instruct cosign to not upload the signature, and that it be stored in a
+file instead, and also that the certificate be stored in a file.
+```console
+$ cosign sign --upload=false --output-signature=danbev-blob.sig --output-certificate=danbev-blob.crt --key cosign.key ttl.sh/danbev/c408de42:2h
+```
+
+And we can use those files to verify:
+```console
+$ cosign verify --signature=danbev-blob.sig --key danbev-blob.crt ttl.sh/danbev/c408de42:2h | jq
+```
 
 #### keyless signatures
 These are when shortlived keys are used.
@@ -315,6 +433,10 @@ to reach/call out to Rekor?
 * Can we store the sigstore root CA to verify the signature without making and
 external call.
 
+* A device would configure the DFU that is should perform verification. It is
+the firmware application that is responsible for configuring DFU I think and
+we should be able to hook this in there somehow.
+
 ### Get Fulcia root certificate
 ```console
 $ curl -q https://fulcio.sigstore.dev/api/v1/rootCert | openssl x509 -text
@@ -382,3 +504,62 @@ mygUY7Ii2zbdCdliiow=
 ```
 
 [hawkbit]: https://www.eclipse.org/hawkbit/
+
+
+### Offline verification
+From https://www.chainguard.dev/unchained/busting-5-sigstore-myths:
+```
+Another common use case is that organizations need to run systems in air-gapped
+environments with no outside network access. That means it’s not possible to
+look up a signature in the transparency log, Rekor, right? Wrong! We use what’s
+called “stapled inclusion proofs” by default, meaning you can verify an object
+is present in the transparency log without needing to contact the transparency
+log! The signer is responsible for gathering this evidence from the log and
+presenting it alongside the artifact and signature. We store this in an OCI
+image automatically, but you can treat it like a normal file and copy it around
+for verification as well.
+```
+So I think this means that we should be able to add this "stapled inclusion
+proofs" to storage which I think has support for additional metadata, either
+an OCI repository or as [ORAS](https://oras.land/) thingy.
+
+
+So lets first try signing a binary blob.
+First we generate a keypair:
+```console
+$ cosign generate-key-pair
+Enter password for private key: 
+Enter password for private key again: 
+Private key written to cosign.key
+Public key written to cosign.pub
+```
+```console
+$ echo "firmware..." > firmware.bin
+```
+```console
+$ cosign sign-blob --key cosign.key firmware.bin 
+Using payload from: firmware.bin
+Enter password for private key: 
+MEUCIQC6bGdQq+Y8Cudg7QCQbK8mMMBYLQxtIXqxfx9axNQTgQIgImy4OcK9ERn2Mi6NNcfi0UqS7aO3ei7+pfodI37iz80=
+```
+The output above is the base64-encoded signature.
+
+
+### Bundle
+```console
+{
+  "SignedEntryTimestamp": "MEUCIQDHiGUesxPpn+qRONLmKlNIVPhl9gBMnwNeIQmRkRmZVQIgRxPpuYQDZR/8lYKcEfiQn5b+7VDoJIC72ZWHO9ZCp1A=",
+  "Payload": {
+    "body": "eyJhcGlWZXJzaW9uIjoiMC4wLjEiLCJzcGVjIjp7ImRhdGEiOnsiaGFzaCI6eyJhbGdvcml0aG0iOiJzaGEyNTYiLCJ2YWx1ZSI6ImE0NDkyYjBlYWJkZDIzMTJmMDYzMjkwYWJkNzk3ZDlkNzFhM2FiMjhiZDY1YTJjMTg5YjBkZjBkMzliOGMzYjkifX0sInNpZ25hdHVyZSI6eyJjb250ZW50IjoiTUVRQ0lDTmRYeTNiWHAxRE1PTDZOUGZYMzVnSjI3YnpsZHdTdkNBTnd5ZE9RVWlqQWlCQWg5WlJwQ3AzYlg5eE9UbEhTR2w0cFVGd0ZtUFJJWGZpY09pRTBHM1Vzdz09IiwiZm9ybWF0IjoieDUwOSIsInB1YmxpY0tleSI6eyJjb250ZW50IjoiTFMwdExTMUNSVWRKVGlCRFJWSlVTVVpKUTBGVVJTMHRMUzB0Q2sxSlNVTmxla05EUVdkRFowRjNTVUpCWjBsVVZISk9aa013YkZSSmRWSXZWR0UyWm14MWFtdFFOWHBaTDFSQlMwSm5aM0ZvYTJwUFVGRlJSRUY2UVhFS1RWSlZkMFYzV1VSV1VWRkxSWGQ0ZW1GWFpIcGtSemw1V2xNMWExcFlXWGhGVkVGUVFtZE9Wa0pCVFZSRFNFNXdXak5PTUdJelNteE5RalJZUkZSSmVBcE5SRmw1VFdwSmVFMUVaM2RPUm05WVJGUkplRTFFV1hsTmFrbDRUV3BuZDAweGIzZEJSRUphVFVKTlIwSjVjVWRUVFRRNVFXZEZSME5EY1VkVFRUUTVDa0YzUlVoQk1FbEJRazFGV1M4ck4yRktjRmRLVFhjNWVrTmljMDFrT0hOQlRUTmxSbk5OTjBSbFpFZGlXRzlNUjJ4YUwyZHBNR2h5WTBaU1NWVTRiM2NLUzBKeU1ISkVTRE5QVkZaSWJVdFVZMkV2SzIweGQxQjNTVzlZTTFGUVYycG5aMFYwVFVsSlFrdFVRVTlDWjA1V1NGRTRRa0ZtT0VWQ1FVMURRalJCZHdwRmQxbEVWbEl3YkVKQmQzZERaMWxKUzNkWlFrSlJWVWhCZDAxM1JFRlpSRlpTTUZSQlVVZ3ZRa0ZKZDBGRVFXUkNaMDVXU0ZFMFJVWm5VVlZ5WVRoTENuSnJaMjAzVGtsNFRrNXBVMkpZVG00eFdFVkxhRzFyZDBoM1dVUldVakJxUWtKbmQwWnZRVlY1VFZWa1FVVkhZVXBEYTNsVlUxUnlSR0UxU3pkVmIwY0tNQ3QzZDJkWk1FZERRM05IUVZGVlJrSjNSVUpDU1VkQlRVZzBkMlpCV1VsTGQxbENRbEZWU0UxQlMwZGpSMmd3WkVoQk5reDVPWGRqYld3eVdWaFNiQXBaTWtWMFdUSTVkV1JIVm5Wa1F6QXlUVVJPYlZwVVpHeE9lVEIzVFVSQmQweFVTWGxOYW1OMFdXMVpNMDVUTVcxT1Ixa3hXbFJuZDFwRVNUVk9WRkYxQ21NelVuWmpiVVp1V2xNMWJtSXlPVzVpUjFab1kwZHNla3h0VG5aaVV6bHFXVlJOTWxsVVJteFBWRmw1VGtSS2FVOVhXbXBaYWtVd1RtazVhbGxUTldvS1kyNVJkMHBCV1VSV1VqQlNRVkZJTDBKQ2IzZEhTVVZYWTBoS2NHVlhSak5aVjFKdlpESkdRVm95T1haYU1uaHNURzFPZG1KVVFVdENaMmR4YUd0cVR3cFFVVkZFUVhkT2NFRkVRbTFCYWtWQk1UQlVSR015Wm1oUFZrRlVNWFJzZFM4MmMzWnhSbEZ1YkRaWU9YZGhNbXRUU2t0RGJqUkZZbFJFYTNwYVJYb3lDblppUWtwb2FFZ3ZjbWRXUjFKMU5tWkJha1ZCYkhsb05uUmhZelJZVFRaS2IzVlZlRWtyTjFnelFtUTFXVXR5WlRGS1dFOWhia0ZaYW1adldHNTVUSFFLZDNCSVFWb3paVzFhY0VWa00yeHFTVEF3Vm04S0xTMHRMUzFGVGtRZ1EwVlNWRWxHU1VOQlZFVXRMUzB0TFFvPSJ9fX0sImtpbmQiOiJyZWtvcmQifQ==",
+    "integratedTime": 1624396085,
+    "logIndex": 5179,
+    "logID": "c0d23d6ad406973f9559f3ba2d1ca01f84147d8ffc5b8445c224f98b9591801d"
+  }
+}
+```
+SignedEntryTimestamp is a signature of the logIndex, body, and integratedTime
+created by Rekor and this can be retrieved from Rekor:
+```console
+$ curl --silent https://rekor.sigstore.dev/api/v1/log/entries?logIndex=4874058 | jq '.[].verification.signedEntryTimestamp'
+"MEQCIAD7UUGDjQPvdOP28REv7Lq/ZGQn3j5u4HVdz6IMDBEHAiAlpXP5BD0Hx5CRkcqcfbRJRIjdpschUGf0XcOC6xuuyw=="
+```
