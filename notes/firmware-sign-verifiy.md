@@ -72,9 +72,14 @@ Certificate wrote in the file firmware.crt
 
 And to make verify using this information:
 ```console
-$ cosign verify-blob --bundle=firmware.bundle firmware.txt 
 $ cosign verify-blob --bundle=firmware.bundle firmware.txt
 tlog entry verified offline
 Verified OK
+```
+
+The size of the bundle is around 4K:
+```console
+$ ls -lh firmware.bundle 
+-rw-------. 1 danielbevenius danielbevenius 3.8K Nov  3 14:38 firmware.bundle
 ```
 
