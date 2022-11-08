@@ -259,7 +259,26 @@ document type.
 Just keep in mind that the predicate is part of the Statement which is base64
 encoded and then included in the `payload` field of the Envelope.
 
+So we can imaging if we used a `predicateType` of Link then we would have a
+json object in here like the contents of a link file above.
 
+Now, if we have created an Envelope like described above we provide it with
+our software. From a consumers point of view they would take the Envelope, the
+software artifact it self, a collection of name/public_key pairs to verify
+the attesters of the Envelope.
+
+First the attestation is decoded as a JSON encoded Envelope. Next the statements
+signatures are collected and later used to verify all the subjects.
+
+If any of the above steps fail then validation fails. If the above steps passes
+then the ouput of the above will be fed into a policy engine:
+* predicateType
+* predicate
+* artifactNames (gathered by the first step)
+* attesterNames (gathered by the first step)
+
+So this was the part that was not clear to me regarding the predicate, but this
+is provided as input to a polic rule engine like OPA for example.
 
 
 ### in-toto-enhancements (ITE)
