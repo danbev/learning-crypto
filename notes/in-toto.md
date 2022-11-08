@@ -202,8 +202,13 @@ time.
 Is about the ability to trust or validate the lineage/pedigree.
 
 ### SLSA an in-toto
+The examples up until now in this document have been using in-toto 0.9. While
+reading about SLSA I've seen references to in-toto attestations but was not
+able to find any such constructs in the main 0.9 documentation. The reason for
+this is that attestations are currently being developed.
+
 This is currently under development but there is a [attestation spec] and
-related to [ITE-5]. An attestation is a authenticated metadata about something
+related to [ITE-5]. An attestation is authenticated metadata about something
 which in this case is a software artifact.
 
 As an example, an attestion could be about how the software was built (including
@@ -234,12 +239,27 @@ base64 encoded:
     },
   ],
   "predicateType": "<URI>",
-  "predicate": { ... }
+  "predicate": {}
 }
 ```
 The subjects bind this attestation to a set of software artifacts.
 Each software artifact is given a name and a digest. The digest contains name
 of the hashing algorithm used and the digest (the outcome of the hash function).
+The name could be a file name but it can also be left unspecified using `_`.
+
+This leads us to the `Predicate` structure which is just like it is show above
+and has a type and an any object as the content of the predicate.
+This is the innermost part of the attestation and can contain pretty much
+any metadata related to the Statement objects subjects. The type of predicate
+provides a way to knowing how to interpret the predicate field.
+Examples of predicate types are `SLSA Provenance`, `Link` from in-toto 0.9 which
+was what the earlier examples in this document used. It can also be `SPDX`
+document type.
+
+Just keep in mind that the predicate is part of the Statement which is base64
+encoded and then included in the `payload` field of the Envelope.
+
+
 
 
 ### in-toto-enhancements (ITE)
