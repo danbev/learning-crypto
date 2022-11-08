@@ -278,7 +278,8 @@ then the ouput of the above will be fed into a policy engine:
 * attesterNames (gathered by the first step)
 
 So this was the part that was not clear to me regarding the predicate, but this
-is provided as input to a polic rule engine like OPA for example.
+is provided as input to a policy rule engine like OPA for example which can the
+approve/deny depending on the rules written.
 
 
 ### in-toto-enhancements (ITE)
