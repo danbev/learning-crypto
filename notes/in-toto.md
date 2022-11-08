@@ -194,10 +194,56 @@ These are operations that are performed at verification time.
 Should be an integer and is for when more than functionary needs to perform a
 step. If only one is required then it is left as 1.
 
-
 ### Pedigree
 Is about where a piece of software came from and how it might have changed over
 time.
 
 ### Provenance
 Is about the ability to trust or validate the lineage/pedigree.
+
+### SLSA an in-toto
+This is currently under development but there is a [attestation spec] and
+related to [ITE-5]. An attestation is a authenticated metadata about something
+which in this case is a software artifact.
+
+As an example, an attestion could be about how the software was built (including
+the build commands), all of the deps. There is a model in SLSA that needs to be
+followed for these attestations. 
+
+#### Attestation
+An attestation is a json object that and the outermost layer is the Envelope::
+```json
+{
+  "payloadType": "application/vnd.in-toto+json",
+  "payload": "<Base64(Statement)>",
+  "signatures": [{"sig": "<Base64(Signature)>"}]
+}
+```
+Notice that the payload is a base64 encoded Statement. Aparently this format
+follows the [dsse](./dsse.md) format.
+The payloadType could be JSON, CBOR, or ProtoBuf.
+
+The structure of the `Statement`  looks something like this before it is
+base64 encoded:
+```json
+{
+  "_type": "https://in-toto.io/Statement/v0.1",
+  "subject": [ {
+      "name": "<NAME>",
+      "digest": {"<ALGORITHM>": "<HEX_VALUE>"}
+    },
+  ],
+  "predicateType": "<URI>",
+  "predicate": { ... }
+}
+```
+The subjects bind this attestation to a set of software artifacts.
+Each software artifact is given a name and a digest. The digest contains name
+of the hashing algorithm used and the digest (the outcome of the hash function).
+
+
+### in-toto-enhancements (ITE)
+https://github.com/in-toto/ITE
+
+[attestation spec]: https://github.com/in-toto/attestation/blob/main/spec/README.md
+[ITE-5]: https://github.com/in-toto/ITE/tree/master/ITE/5
