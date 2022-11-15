@@ -9,8 +9,8 @@ sigstore is a project under the CNFC and it goal is to provide a
 software-signing equivalent to `Let's Encrypt`. It is not just one tool but a
 collection of tools namely; `fulico`, `rekor`, and `cosign`. 
 
-With sigstore we don't have to manage private keys, and it makes it simpler to
-handle revocation.
+With sigstore we don't have to manage keys, and it makes it simpler to handle
+revocation.
 
 ### Installation
 ```console
@@ -39,14 +39,19 @@ Fulcio has to validate the user/system that is requesting a certificate to be
 created for it. OpenID Connect (OIDC) can be used so it will handle the email
 address, Fulcio signs X.509 certificates valid for 10 minutes.
 
-Every certificate issued will be appended to a public certificate transparency
+Every certificate issued will be appended to a public Certificate Transparency
 (CT) log. This log can be inspected by anyone and the certificates can be used
-to verify signatures. This is not the Rekor log.
+to verify signatures. The CT log is specified in
+[RFC-6962](https://www.rfc-editor.org/rfc/rfc6962.html). This allows anyone to
+audit/check issued certificates.
+This is not to be confused with Rekor which is the transparency log which stores
+signed artifacts.
 
 So Fulcio will first create a special x.509 extension called a poision extension
 in the certifiate before it is added to the CT log. This kind of cert is called
-a precertifcate and is not useful by clients at this stage.
-The response from the CT is a signed certificate timestamp (SCT) which is a
+a pre-certifcate and is not useful by clients at this stage.
+
+The response from the CT is a Signed Certificate Timestamp (SCT) which is a
 promise of inclusion in the CT log.
 Now, this SCT is embedded into the certificate and it is signed again to include
 this information in the signature. Then the certificate is returned to the
