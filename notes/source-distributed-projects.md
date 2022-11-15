@@ -47,5 +47,10 @@ created an [issue](https://github.com/in-toto/in-toto/issues/522) in in-toto
 suggesting something be created for doing this (and perhaps hide some of the
 internal details regarding the json format).
 
-_work in progress_
+With those changes we can now have a github action that creates an in-toto
+layout which is signed, and also create the steps (currently only a git clone
+and running of tests) and verify the layout. But this verification and signing
+is not using the additional Sigstore components like Rekor, the transparency
+log. The next step is to look into how this can be made possible.
 
+_work in progress_
