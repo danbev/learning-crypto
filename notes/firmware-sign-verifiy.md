@@ -115,7 +115,6 @@ binary. In the directory [firmware-project](../firmware-project) there is
 ```console
 $ cd firmare-project
 $ make sign
-$ make sign
 env COSIGN_EXPERIMENTAL=1 cosign sign-blob  \
 	--bundle=firmware.bundle \
        	--output-certificate=firmware.crt \
@@ -156,6 +155,7 @@ tlog entry created with index: 7328763
 Bundle wrote in the file firmware.bundle
 Signature wrote in the file firmware.sig
 Certificate wrote in the file firmware.crt
+```
 
 And lets make sure that we can verify this the binary:
 ```console
