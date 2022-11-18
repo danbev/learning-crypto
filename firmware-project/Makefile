@@ -31,6 +31,19 @@ pull:
 	@echo -e "\nPulled images to pulled-images/"
 	@ls pulled-images
 
+push-single:
+	oras push -v localhost:5000/firmware-project-single:latest \
+	       firmware.bin:application/octet-stream
+
+fetch-single:
+	oras manifest fetch localhost:5000/firmware-project-single:latest | jq
+
+
+attach-bundle:
+	oras attach localhost:5000/firmware-project-single:latest \
+	       --artifact-type=application/json firmware.bundle
+
+
 download-image: oras-pull
 	podman save -o firmware-project.tar localhost/firmware-project:latest 
 

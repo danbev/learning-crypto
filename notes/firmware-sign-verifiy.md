@@ -271,38 +271,55 @@ firmware.bin  firmware.bundle  firmware.json
 I've tried to attach the the bundle using oras but running into an issue when
 trying to do this. 
 
-First we push a new image, this time without the firmware.bundle:
+First we push a new image, this time just the firmware.bin:
 ```console
-$ oras manifest fetch localhost:5000/firmware-bundle3:latest
-{"schemaVersion":2,"mediaType":"application/vnd.oci.image.manifest.v1+json","config":{"mediaType":"application/vnd.oras.config.v1+json","digest":"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855","size":0},"layers":[{"mediaType":"application/octet-stream","digest":"sha256:d0960116cb5e16fe2603c424690d09adbcecd8d69a74f015399dfdf57130efb3","size":94808,"annotations":{"io.deis.oras.content.digest":"sha256:cd1ca4e7e885be45b28939aeec9970ef70a46d97eb5465a417ad6722e72b81f9","io.deis.oras.content.unpack":"true","org.opencontainers.image.title":"firmware-project"}}]}$ oras manifest fetch localhost:5000/firmware-bundle3:latest | jq
+$ make push-single 
+oras push -v localhost:5000/firmware-project-single:latest \
+       firmware.bin:application/octet-stream
+Preparing firmware.bin
+Uploading b8d96f286798 firmware.bin
+Uploading 44136fa355b3 application/vnd.unknown.config.v1+json
+Uploaded  b8d96f286798 firmware.bin
+Uploaded  44136fa355b3 application/vnd.unknown.config.v1+json
+Uploading cf2b20c1fcff application/vnd.oci.image.manifest.v1+json
+Uploaded  cf2b20c1fcff application/vnd.oci.image.manifest.v1+json
+Pushed localhost:5000/firmware-project-single:latest
+Digest: sha256:cf2b20c1fcff5f5734c1df31634caa40420ad76b7b619e723509053f37289c68
+```
+And we can verify that this container image only contains the firmware.bin:
+```console
+$ make fetch-single 
+oras manifest fetch localhost:5000/firmware-project-single:latest | jq
 {
   "schemaVersion": 2,
   "mediaType": "application/vnd.oci.image.manifest.v1+json",
   "config": {
-    "mediaType": "application/vnd.oras.config.v1+json",
-    "digest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-    "size": 0
+    "mediaType": "application/vnd.unknown.config.v1+json",
+    "digest": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+    "size": 2
   },
   "layers": [
     {
       "mediaType": "application/octet-stream",
-      "digest": "sha256:d0960116cb5e16fe2603c424690d09adbcecd8d69a74f015399dfdf57130efb3",
-      "size": 94808,
+      "digest": "sha256:b8d96f286798d368d00b2a9ebee5efbf4f37b0a4928a0d1e2926c4fd09e4d43d",
+      "size": 122700,
       "annotations": {
-        "io.deis.oras.content.digest": "sha256:cd1ca4e7e885be45b28939aeec9970ef70a46d97eb5465a417ad6722e72b81f9",
-        "io.deis.oras.content.unpack": "true",
-        "org.opencontainers.image.title": "firmware-project"
+        "org.opencontainers.image.title": "firmware.bin"
       }
     }
   ]
 }
 ```
+
 And the we try to attach the bundle:
 ```
-$ oras attach -v localhost:5000/firmware-bundle3:latest firmware.bundle:application/json --artifact-type cosign/bundle
-Preparing firmware.bundle
-Exists    3b091317f2a6 firmware.bundle
-Uploading 131526905df7 application/vnd.cncf.oras.artifact.manifest.v1+json
-Error: PUT "http://localhost:5000/v2/firmware-bundle3/manifests/sha256:131526905df7741cc7af933d5dc92c807caffccd284cddd8dbb01629b4c4da82": unexpected status code 400: manifest invalid: manifest invalid
+$ make attach-bundle 
+oras attach localhost:5000/firmware-project-single:latest \
+       --artifact-type=application/json firmware.bundle
+Uploading 61f31d217518 firmware.bundle
+Uploaded  61f31d217518 firmware.bundle
+Error: PUT "http://localhost:5000/v2/firmware-project-single/manifests/sha256:17fedd3cc0ddd822b37fe98b62b4b5cd212e0dc8bce0c6edef80e1734b02559a": unexpected status code 400: manifest invalid: manifest invalid
+make: *** [Makefile:43: attach-bundle] Error 1
 ```
+
 _work in progress_
