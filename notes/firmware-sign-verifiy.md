@@ -367,7 +367,7 @@ Attached to localhost:5000/firmware-project-single@sha256:cf2b20c1fcff5f5734c1df
 ```
 I wonder if we can pull that file using the `Digest`:
 ```console
-$ make pull-attachment
+$ make pull-attachment 
 oras pull -o pulled-images localhost:5000/firmware-project-single@sha256:aefd8d54134812098c8662a6ee971d3d70f6ed9708e3efb2ef7fb268b2530a4d
 Downloading 61f31d217518 firmware.bundle
 Downloading b8d96f286798 firmware.bin
@@ -376,8 +376,15 @@ Downloaded  b8d96f286798 firmware.bin
 Pulled localhost:5000/firmware-project-single@sha256:aefd8d54134812098c8662a6ee971d3d70f6ed9708e3efb2ef7fb268b2530a4d
 Digest: sha256:aefd8d54134812098c8662a6ee971d3d70f6ed9708e3efb2ef7fb268b2530a4d
 
-$ ls pulled-images/
+Pulled images to pulled-images/
 firmware.bin  firmware.bundle
+
+Verify the binary using the bundle
+env COSIGN_EXPERIMENTAL=1 cosign verify-blob \
+	--bundle=pulled-images/firmware.bundle \
+	pulled-images/firmware.bin
+tlog entry verified offline
+Verified OK
 ```
 
 _work in progress_
