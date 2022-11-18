@@ -8,20 +8,21 @@ in Drogue IoT. So we first need to sign the firmware before/after it has been
 pushed to an OCI registry.
 
 We also need to take into consideration that verifying a normal artifacts like
-a container usually reach out to transparency log (Rekor) to perform the
+a container usually reaches out to transparency log (Rekor) to perform the
 verification process. This is probably not going to work for many types of
-constrained IoT devices.
+constrained IoT devices and is something we need to take into consideration.
 
-Using "stapled inclusion proofs" we verify an object is present in the
+Using "stapled inclusion proofs" we verify that an object is present in the
 transparency log without having to contact the transparency log iself. But the
 signer needs to collect the information from the log and present it along with
 the artifact and signature.
 
 ### Firmware Signing
-So we have to create a Sigstore/Cosign `bundle` to be added to stored with/in
-the artifact in the OCI repository.
+So we have to create a Sigstore/Cosign `bundle`, which contains all the
+information required for "stapled inclusion proofs", to be added to stored
+with/in the artifact in the OCI repository.
 
-Lets, pretent that we want to sign a binary firmware file, but in this example
+Lets say that we want to sign a binary firmware file, but in this example
 we will just be using a text file for testing purposes:
 ```console
 $ echo "firmware..." > firmware.txt
@@ -31,7 +32,9 @@ a23356201583455aa0d7c7340c3fbad04587285ddd89a3e5110c071998733233  firmware.txt
 
 Next, we can sign the file and tell cosign to generate a `bundle` for it:
 ```console
-$ COSIGN_EXPERIMENTAL=1 cosign sign-blob --bundle=firmware.bundle --output-certificate=firmware.crt --output-signature=firmare.sig firmware.txt
+$ COSIGN_EXPERIMENTAL=1 cosign sign-blob --bundle=firmware.bundle \
+     --output-certificate=firmware.crt \
+     --output-signature=firmare.sig firmware.txt
 Using payload from: firmware.txt
 Generating ephemeral keys...
 Retrieving signed certificate...
@@ -84,12 +87,20 @@ $ ls -lh firmware.bundle
 ```
 Is the size reasonable to be downloaded and stored on the device?
 
-When we create the container image that our firmware is part of we will need to
-add a layer to this image. This new layer will contain the bundle. By doing this
-I think the bundle will be made available to the bootloader application on the
+When we create the container image that our firmware is part of we can add a
+layer to this image. This new layer will contain the bundle. By doing this
+I think the bundle will be available to the bootloader application on the
 device which can then use that information to verify the firmware itself.
 
-### Building an example firmware
+Another approach would be to attach the bundle, or just the signature, to the
+container image in the OCI registry. 
+
+We will explore both options.
+
+
+### Adding the bundle to the container image
+This section will take a look at the option of adding the bundle as a layer in
+the container image.
 
 First we start a registry that we can push to:
 ```console
