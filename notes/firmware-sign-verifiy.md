@@ -321,5 +321,45 @@ Uploaded  61f31d217518 firmware.bundle
 Error: PUT "http://localhost:5000/v2/firmware-project-single/manifests/sha256:17fedd3cc0ddd822b37fe98b62b4b5cd212e0dc8bce0c6edef80e1734b02559a": unexpected status code 400: manifest invalid: manifest invalid
 make: *** [Makefile:43: attach-bundle] Error 1
 ```
+I'm currently using this version oras
+```console
+$ oras version
+Version:        0.15.1
+Go version:     go1.19
+Git commit:     36dc01d02c54bf410d56d5e16b597eedbe666ec6
+Git tree state: clean
+```
+There is a later version available, and I'll try updating in case that may help:
+```console
+$ oras version
+Version:        0.16.0
+Go version:     go1.19.2
+Git commit:     d606fed4be252fd6162f63548e024451c31f3864
+Git tree state: clean
+```
+And lets try the attach command again:
+```console
+$ make attach-bundle 
+oras attach localhost:5000/firmware-project-single:latest \
+       --artifact-type=application/json firmware.bundle
+Exists    61f31d217518 firmware.bundle
+Attached to localhost:5000/firmware-project-single@sha256:cf2b20c1fcff5f5734c1df31634caa40420ad76b7b619e723509053f37289c68
+Digest: sha256:aefd8d54134812098c8662a6ee971d3d70f6ed9708e3efb2ef7fb268b2530a4d
+```
+Yay, that worked this time.
+
+So what do we get if we pull this image (expecting only the single file):
+```console
+$ make pull-single 
+oras pull -o pulled-images localhost:5000/firmware-project-single:latest
+Downloading b8d96f286798 firmware.bin
+Downloaded  b8d96f286798 firmware.bin
+Pulled localhost:5000/firmware-project-single:latest
+Digest: sha256:cf2b20c1fcff5f5734c1df31634caa40420ad76b7b619e723509053f37289c68
+
+Pulled images to pulled-images/
+firmware.bin
+```
+
 
 _work in progress_

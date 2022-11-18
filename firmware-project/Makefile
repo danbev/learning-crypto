@@ -31,6 +31,9 @@ pull:
 	@echo -e "\nPulled images to pulled-images/"
 	@ls pulled-images
 
+download-image: pull
+	podman save -o firmware-project.tar localhost/firmware-project:latest 
+
 push-single:
 	oras push -v localhost:5000/firmware-project-single:latest \
 	       firmware.bin:application/octet-stream
@@ -42,10 +45,14 @@ fetch-single:
 attach-bundle:
 	oras attach localhost:5000/firmware-project-single:latest \
 	       --artifact-type=application/json firmware.bundle
+pull-single: 
+	@${RM} -r pulled-images
+	@mkdir pulled-images
+	oras pull -o pulled-images localhost:5000/firmware-project-single:latest
+	@echo -e "\nPulled images to pulled-images/"
+	@ls pulled-images
 
 
-download-image: oras-pull
-	podman save -o firmware-project.tar localhost/firmware-project:latest 
 
 
 .PHONY: clean
