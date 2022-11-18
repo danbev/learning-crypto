@@ -25,6 +25,15 @@ push:
 fetch:
 	oras manifest fetch localhost:5000/firmware-project:latest | jq
 
+pull: 
+	@mkdir -p pulled-images
+	oras pull -o pulled-images localhost:5000/firmware-project:latest
+	@echo -e "\nPulled images to pulled-images/"
+	@ls pulled-images
+
+download-image: oras-pull
+	podman save -o firmware-project.tar localhost/firmware-project:latest 
+
 
 .PHONY: clean
 clean: 

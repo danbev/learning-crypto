@@ -249,6 +249,24 @@ oras manifest fetch localhost:5000/firmware-project:latest | jq
 ```
 This would make the cosign bundle needed for verification a layer in the image.
 
+And we can pull the image and see what what it contains:
+```console
+$ make pull
+oras pull -o pulled-images localhost:5000/firmware-project:latest
+Downloading b8d96f286798 firmware.bin
+Downloading 61f31d217518 firmware.bundle
+Downloading 073c6a85e1ce firmware.json
+Downloaded  073c6a85e1ce firmware.json
+Downloaded  61f31d217518 firmware.bundle
+Downloaded  b8d96f286798 firmware.bin
+Pulled localhost:5000/firmware-project:latest
+Digest: sha256:7089bbcc00bab84bb4744a21bf70ac150283059c1513aa16f5fa77ca01f8fa2d
+
+Pulled images to pulled-images/
+firmware.bin  firmware.bundle  firmware.json
+```
+
+
 ### Attaching the bundle to the image
 I've tried to attach the the bundle using oras but running into an issue when
 trying to do this. 

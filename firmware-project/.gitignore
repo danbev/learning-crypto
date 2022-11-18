@@ -2,3 +2,5 @@ firmware.crt
 firmware.bundle
 firmware.json
 firmware.sig
+firmware-project.tar
+pulled-images
