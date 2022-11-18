@@ -58,6 +58,10 @@ pull-attachment:
 	oras pull -o pulled-images localhost:5000/firmware-project-single@sha256:aefd8d54134812098c8662a6ee971d3d70f6ed9708e3efb2ef7fb268b2530a4d
 	@echo -e "\nPulled images to pulled-images/"
 	@ls pulled-images
+	@echo -e "\nVerify the binary using the bundle"
+	env COSIGN_EXPERIMENTAL=1 cosign verify-blob \
+		--bundle=pulled-images/firmware.bundle \
+		pulled-images/firmware.bin
 
 
 
