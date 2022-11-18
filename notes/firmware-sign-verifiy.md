@@ -104,12 +104,22 @@ the container image.
 
 First we start a registry that we can push to:
 ```console
-$ podman run -d -p 5000:5000 --restart always --name registry registry:2
+$ cd firmware-project
+$ make start-registry
 ```
-Next we sign and create a cosign bundle:
+
+Next we are going to create a container image that will contain our firmware
+binary. In the directory [firmware-project](../firmware-project) there is
+`firmware.bin` file.
+
 ```console
 $ cd firmare-project
-$ COSIGN_EXPERIMENTAL=1 cosign sign-blob --bundle=firmware.bundle --output-certificate=firmware.crt --output-signature=firmware.sig firmware.bin
+$ make sign
+$ make sign
+env COSIGN_EXPERIMENTAL=1 cosign sign-blob  \
+	--bundle=firmware.bundle \
+       	--output-certificate=firmware.crt \
+	--output-signature=firmware.sig firmware.bin
 Using payload from: firmware.bin
 Generating ephemeral keys...
 Retrieving signed certificate...
@@ -121,62 +131,86 @@ Retrieving signed certificate...
 
 Are you sure you want to continue? (y/[N]): y
 Your browser will now be opened to:
-https://oauth2.sigstore.dev/auth/auth?access_type=online&client_id=sigstore&code_challenge=ao4hhCGg2h3x65uTWJPr_SzCdj0-0-0ETx3fqy3-95Q&code_challenge_method=S256&nonce=2H50snpcyLJWl0H24FoNF4QSrGp&redirect_uri=http%3A%2F%2Flocalhost%3A34013%2Fauth%2Fcallback&response_type=code&scope=openid+email&state=2H50spy70kRa5scsX9E5navr2Ak
+https://oauth2.sigstore.dev/auth/auth?access_type=online&client_id=sigstore&code_challenge=mlqDCbFmSVpR8byKQpPII-uoHQQDJichLQyKKk2KdwQ&code_challenge_method=S256&nonce=2HiCXP82DnDvPCgitAu93l8LNUV&redirect_uri=http%3A%2F%2Flocalhost%3A46181%2Fauth%2Fcallback&response_type=code&scope=openid+email&state=2HiCXQE2GeqtivAEKteGKUfSuzo
 Successfully verified SCT...
 using ephemeral certificate:
 -----BEGIN CERTIFICATE-----
-MIICqDCCAi+gAwIBAgIUcdPJurmkcpKbYJvw4llJfmeRkQkwCgYIKoZIzj0EAwMw
+MIICqTCCAi6gAwIBAgIUDtSHi+Koa+UyC0uQlYYS+RTLie0wCgYIKoZIzj0EAwMw
 NzEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MR4wHAYDVQQDExVzaWdzdG9yZS1pbnRl
-cm1lZGlhdGUwHhcNMjIxMTA0MTEwNDExWhcNMjIxMTA0MTExNDExWjAAMFkwEwYH
-KoZIzj0CAQYIKoZIzj0DAQcDQgAEVhufiqvnK1pifvBA+v1vQrhEz4mmDfqD/5BY
-nCRrC4f9DN9N1hHKc8RbmoLp+mhxh1lpf4JAn+F22fM5o79q+qOCAU4wggFKMA4G
-A1UdDwEB/wQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDAzAdBgNVHQ4EFgQUihNf
-HdNegQqUXxGdVP1pgH22G4AwHwYDVR0jBBgwFoAU39Ppz1YkEZb5qNjpKFWixi4Y
+cm1lZGlhdGUwHhcNMjIxMTE4MDgwMjQwWhcNMjIxMTE4MDgxMjQwWjAAMFkwEwYH
+KoZIzj0CAQYIKoZIzj0DAQcDQgAEOBX0ubvUeRWfN08IfAneAiTmH+0Jf47T5Twf
+NhtHC3zeLtgJyo2Hwye5ejp7mVExD7qDV+d0iwtyXgc6TIp6+6OCAU0wggFJMA4G
+A1UdDwEB/wQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDAzAdBgNVHQ4EFgQUZ6mm
+52qHlbjQKWDUn44x6Xhm8UMwHwYDVR0jBBgwFoAU39Ppz1YkEZb5qNjpKFWixi4Y
 ZD8wJwYDVR0RAQH/BB0wG4EZZGFuaWVsLmJldmVuaXVzQGdtYWlsLmNvbTAsBgor
-BgEEAYO/MAEBBB5odHRwczovL2dpdGh1Yi5jb20vbG9naW4vb2F1dGgwgYsGCisG
-AQQB1nkCBAIEfQR7AHkAdwDdPTBqxscRMmMZHhyZZzcCokpeuN48rf+HinKALynu
-jgAAAYRCUATNAAAEAwBIMEYCIQDLjHRPecK/Q9UP1IsP/Dy5Nyv65TJZSZo1hh2s
-FmLXdwIhAJKluazS9EoSEkM8Quv51WEE2FdAx9j8PWtP+wkqJMDCMAoGCCqGSM49
-BAMDA2cAMGQCMDkY9u32X3pzMmJaCWoPsJbIrulRe9SoAIQlNmyeR1/XeeQkhcG0
-L2rEp7gnIoG+yQIwd+VSyer0EZtORiw1OcAojnWUaS2+CWQomnCIDAlkHCuI2Ntc
-DYOL9ycu6/pVYntj
+BgEEAYO/MAEBBB5odHRwczovL2dpdGh1Yi5jb20vbG9naW4vb2F1dGgwgYoGCisG
+AQQB1nkCBAIEfAR6AHgAdgDdPTBqxscRMmMZHhyZZzcCokpeuN48rf+HinKALynu
+jgAAAYSJwt2uAAAEAwBHMEUCIQDZB0FPXO209VgD3xKK3so0J8ltKk/UyZXCEI+O
+nVr0JAIgIN3yoVkBKG6zoWckJcnnIFbCKgSEZmrjcqzbJFDdRwQwCgYIKoZIzj0E
+AwMDaQAwZgIxAO+waCgYSjjNBF4mO0AB3xWFunhJOtlzI73X4p0z7nsldmIe9qU0
+87rzATciGvts/wIxAN/uq4reVujKsqx1VhPugJlXw+JXgk8NyUOWILRmwAQUQ4Hz
+o2aYGtPDZ5Jk39+7hw==
 -----END CERTIFICATE-----
 
-tlog entry created with index: 6485149
+tlog entry created with index: 7328763
 Bundle wrote in the file firmware.bundle
 Signature wrote in the file firmware.sig
 Certificate wrote in the file firmware.crt
-```
+
 And lets make sure that we can verify this the binary:
 ```console
-$ cosign verify-blob --bundle=firmware.bundle firmware.bin
+$ make verify
+env COSIGN_EXPERIMENTAL=1 cosign verify-blob --bundle=firmware.bundle \
+	firmware.bin
 tlog entry verified offline
 Verified OK
 ```
 
 Now we build an example firmware image:
 ```console
-$ cd drogue-ajour/firmware-project
-$ podman build -f Dockerfile .
+$ make image
+podman build -t firmware-project -f Dockerfile .
+STEP 1/3: FROM scratch
+STEP 2/3: COPY firmware.bin /firmware
+--> Using cache db77fc7243dad74547df0ce57943c544c53765b7c42b418439120dae7fe2e4c7
+--> db77fc7243d
+STEP 3/3: COPY firmware.json /metadata.json
+--> Using cache c0c5aa8c939bf20d6bbfd1424f6bc0e6106e6565ff51b56449740fb914bf5d5d
+COMMIT firmware-project
+--> c0c5aa8c939
+Successfully tagged localhost/firmware-project:latest
+c0c5aa8c939bf20d6bbfd1424f6bc0e6106e6565ff51b56449740fb914bf5d5d
 ```
 
-Then we can push this to the registry we started above:
+Then we can push the firmware.bin, firmware.json, and firmware.bundle to
+the resistry using oras:
 ```console
-$ oras push -v localhost:5000/firmware-bundle:latest firmware-project:application/octet-stream firwmare.bundle:application/json
-Preparing firmware-project
-Uploading cc514a6172b4 firmware-project
+$ make push
+oras push -v localhost:5000/firmware-project:latest \
+       firmware.bin:application/octet-stream \
+       firmware.json:application/octet-stream \
+       firmware.bundle:application/json
+Preparing firmware.bin
+Preparing firmware.json
+Preparing firmware.bundle
+Uploading b8d96f286798 firmware.bin
+Uploading 073c6a85e1ce firmware.json
+Uploading 61f31d217518 firmware.bundle
 Uploading 44136fa355b3 application/vnd.unknown.config.v1+json
-Uploaded  cc514a6172b4 firmware-project
+Uploaded  b8d96f286798 firmware.bin
+Uploaded  073c6a85e1ce firmware.json
 Uploaded  44136fa355b3 application/vnd.unknown.config.v1+json
-Uploading 4d8efc9e414c application/vnd.oci.image.manifest.v1+json
-Uploaded  4d8efc9e414c application/vnd.oci.image.manifest.v1+json
-Pushed localhost:5000/firmware-bundle:latest
-Digest: sha256:4d8efc9e414c892a856215f4f360210c2f5fe29560c9edb3f9997be6885ee0a6
+Uploaded  61f31d217518 firmware.bundle
+Uploading 7089bbcc00ba application/vnd.oci.image.manifest.v1+json
+Uploaded  7089bbcc00ba application/vnd.oci.image.manifest.v1+json
+Pushed localhost:5000/firmware-project:latest
+Digest: sha256:7089bbcc00bab84bb4744a21bf70ac150283059c1513aa16f5fa77ca01f8fa2d
 ```
 
 We can fetch the manifest using:
 ```console
-$  oras manifest fetch localhost:5000/firmware-bundle:latest | jq
+$ make fetch 
+oras manifest fetch localhost:5000/firmware-project:latest | jq
 {
   "schemaVersion": 2,
   "mediaType": "application/vnd.oci.image.manifest.v1+json",
@@ -188,18 +222,24 @@ $  oras manifest fetch localhost:5000/firmware-bundle:latest | jq
   "layers": [
     {
       "mediaType": "application/octet-stream",
-      "digest": "sha256:d0960116cb5e16fe2603c424690d09adbcecd8d69a74f015399dfdf57130efb3",
-      "size": 94808,
+      "digest": "sha256:b8d96f286798d368d00b2a9ebee5efbf4f37b0a4928a0d1e2926c4fd09e4d43d",
+      "size": 122700,
       "annotations": {
-        "io.deis.oras.content.digest": "sha256:cd1ca4e7e885be45b28939aeec9970ef70a46d97eb5465a417ad6722e72b81f9",
-        "io.deis.oras.content.unpack": "true",
-        "org.opencontainers.image.title": "firmware-project"
+        "org.opencontainers.image.title": "firmware.bin"
+      }
+    },
+    {
+      "mediaType": "application/octet-stream",
+      "digest": "sha256:073c6a85e1cef707187e20ad6aafcff2d40c0ccb2c7fc32ce876cafea8170adb",
+      "size": 127,
+      "annotations": {
+        "org.opencontainers.image.title": "firmware.json"
       }
     },
     {
       "mediaType": "application/json",
-      "digest": "sha256:3b091317f2a6ee9d31d3367e8a9f787d834ca7c4eb212a58523c43e9f65d9183",
-      "size": 3886,
+      "digest": "sha256:61f31d217518ab7a6a6a659079cef347d76df241f6fd862c53e2a28334d91464",
+      "size": 3906,
       "annotations": {
         "org.opencontainers.image.title": "firmware.bundle"
       }
@@ -209,8 +249,10 @@ $  oras manifest fetch localhost:5000/firmware-bundle:latest | jq
 ```
 This would make the cosign bundle needed for verification a layer in the image.
 
+### Attaching the bundle to the image
 I've tried to attach the the bundle using oras but running into an issue when
 trying to do this. 
+
 First we push a new image, this time without the firmware.bundle:
 ```console
 $ oras manifest fetch localhost:5000/firmware-bundle3:latest
