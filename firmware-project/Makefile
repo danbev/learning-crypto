@@ -41,14 +41,21 @@ push-single:
 fetch-single:
 	oras manifest fetch localhost:5000/firmware-project-single:latest | jq
 
-
 attach-bundle:
 	oras attach localhost:5000/firmware-project-single:latest \
 	       --artifact-type=application/json firmware.bundle
+
 pull-single: 
 	@${RM} -r pulled-images
 	@mkdir pulled-images
 	oras pull -o pulled-images localhost:5000/firmware-project-single:latest
+	@echo -e "\nPulled images to pulled-images/"
+	@ls pulled-images
+
+pull-attachment:
+	@${RM} -r pulled-images
+	@mkdir pulled-images
+	oras pull -o pulled-images localhost:5000/firmware-project-single@sha256:aefd8d54134812098c8662a6ee971d3d70f6ed9708e3efb2ef7fb268b2530a4d
 	@echo -e "\nPulled images to pulled-images/"
 	@ls pulled-images
 

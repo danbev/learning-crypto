@@ -360,6 +360,24 @@ Digest: sha256:cf2b20c1fcff5f5734c1df31634caa40420ad76b7b619e723509053f37289c68
 Pulled images to pulled-images/
 firmware.bin
 ```
+If we look closer at the output of `oras attach` command above it says it
+attached the attachment to
+```
+Attached to localhost:5000/firmware-project-single@sha256:cf2b20c1fcff5f5734c1df31634caa40420ad76b7b619e723509053f37289c68
+```
+I wonder if we can pull that file using the `Digest`:
+```console
+$ make pull-attachment
+oras pull -o pulled-images localhost:5000/firmware-project-single@sha256:aefd8d54134812098c8662a6ee971d3d70f6ed9708e3efb2ef7fb268b2530a4d
+Downloading 61f31d217518 firmware.bundle
+Downloading b8d96f286798 firmware.bin
+Downloaded  61f31d217518 firmware.bundle
+Downloaded  b8d96f286798 firmware.bin
+Pulled localhost:5000/firmware-project-single@sha256:aefd8d54134812098c8662a6ee971d3d70f6ed9708e3efb2ef7fb268b2530a4d
+Digest: sha256:aefd8d54134812098c8662a6ee971d3d70f6ed9708e3efb2ef7fb268b2530a4d
 
+$ ls pulled-images/
+firmware.bin  firmware.bundle
+```
 
 _work in progress_
