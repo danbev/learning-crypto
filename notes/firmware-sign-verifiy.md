@@ -387,4 +387,43 @@ tlog entry verified offline
 Verified OK
 ```
 
+### Oras Referrer API usage
+First we need to log to `ghcr.io`:
+```console
+$ echo $PAT | podman login ghcr.io --username <github_username> --password-stdin
+```
+Where `PAT` is a personal access token.
+
+And we need to start an registry that has support for ORAS artifacts:
+```console
+$ make start-oras-artifact-support-registry
+```
+After that we can push an image which just contains firmware.bin using:
+```console
+$ make push-single
+```
+
+And then we can push the firmware.bundle using
+```console
+$ make push-reference 
+oras push -v localhost:5000/firmware-project-single:bundle \
+--artifact-type 'signature/example' \
+--subject localhost:5000/firmware-project-single:latest \
+./firmware.bundle:application/json
+Preparing firmware.bundle
+Uploading 61f31d217518 firmware.bundle
+WARN[0000] reference for unknown type: application/json  digest="sha256:61f31d217518ab7a6a6a659079cef347d76df241f6fd862c53e2a28334d91464" mediatype=application/json size=3906
+Pushed localhost:5000/firmware-project-single:bundle
+Digest: sha256:21c44ab9bc8d50b2ac94bd02c371200f9174197c133ac625c79c56dcc3fab4e3
+```
+
+And we can use `oras discover` to see the artifact reference:
+```console
+$ make discover 
+oras discover -o tree localhost:5000/firmware-project-single:latest
+localhost:5000/firmware-project-single:latest
+└── signature/example
+    └── sha256:21c44ab9bc8d50b2ac94bd02c371200f9174197c133ac625c79c56dcc3fab4e3
+```
+
 _work in progress_

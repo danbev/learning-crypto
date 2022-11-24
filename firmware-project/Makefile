@@ -63,12 +63,22 @@ pull-attachment:
 		--bundle=pulled-images/firmware.bundle \
 		pulled-images/firmware.bin
 
+push-reference:
+	oras push -v localhost:5000/firmware-project-single:bundle \
+	--artifact-type 'signature/example' \
+	--subject localhost:5000/firmware-project-single:latest \
+	./firmware.bundle:application/json
+
+start-registry:
+	podman run -d -p 5000:5000 --restart always --name registry registry:2
 
 
+start-oras-artifact-support-registry:
+	podman run -d -p 5000:5000 --restart always --name registry-art-support ghcr.io/oras-project/registry:v0.0.3-alpha
+
+discover:
+	oras discover -o tree localhost:5000/firmware-project-single:latest
 
 .PHONY: clean
 clean: 
 	${RM} firmware.crt firmware.sig firmware.bundle firmware.json
-
-start-registry:
-	podman run -d -p 5000:5000 --restart always --name registry registry:2
