@@ -466,5 +466,6 @@ verify that the firmware binary to be updated passes verification.
 
 ### Questions
 * Can sigstore-rs be used on a embedded device?
+* How can we store [Fulio root cert](https://fulcio.sigstore.dev/api/v1/rootCert)
 
 
