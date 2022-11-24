@@ -49,7 +49,7 @@ pull-single:
 	@${RM} -r pulled-images
 	@mkdir pulled-images
 	oras pull -o pulled-images localhost:5000/firmware-project-single:latest
-	@echo -e "\nPulled images to pulled-images/"
+	@echo -e "\nPulled image to pulled-images/"
 	@ls pulled-images
 
 pull-attachment:
