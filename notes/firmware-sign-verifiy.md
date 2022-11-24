@@ -417,13 +417,29 @@ Pushed localhost:5000/firmware-project-single:bundle
 Digest: sha256:21c44ab9bc8d50b2ac94bd02c371200f9174197c133ac625c79c56dcc3fab4e3
 ```
 
-And we can use `oras discover` to see the artifact reference:
+And we can use `oras discover` to find/show/discover the artifact reference:
 ```console
 $ make discover 
 oras discover -o tree localhost:5000/firmware-project-single:latest
 localhost:5000/firmware-project-single:latest
 └── signature/example
     └── sha256:21c44ab9bc8d50b2ac94bd02c371200f9174197c133ac625c79c56dcc3fab4e3
+```
+
+We can pull a reference by using the above digest:
+```console
+$ make pull-reference 
+
+Digest of reference: sha256:21c44ab9bc8d50b2ac94bd02c371200f9174197c133ac625c79c56dcc3fab4e3
+
+oras pull -a -o ./pulled-ref localhost:5000/firmware-project-single@`oras discover -o json --artifact-type 'signature/example' localhost:5000/firmware-project-single:latest | jq -r ".references[0].digest"`
+
+Downloaded 61f31d217518 firmware.bundle
+Pulled localhost:5000/firmware-project-single@sha256:21c44ab9bc8d50b2ac94bd02c371200f9174197c133ac625c79c56dcc3fab4e3
+Digest: sha256:21c44ab9bc8d50b2ac94bd02c371200f9174197c133ac625c79c56dcc3fab4e3
+
+Ref downloaded to pulled-ref/
+firmware.bundle
 ```
 
 _work in progress_

@@ -79,6 +79,20 @@ start-oras-artifact-support-registry:
 discover:
 	oras discover -o tree localhost:5000/firmware-project-single:latest
 
+discover-json:
+	oras discover -o json localhost:5000/firmware-project-single:latest
+
+pull-reference:
+	@${RM} -r pulled-ref
+	@mkdir pulled-ref
+	@$(eval DIGEST=`oras discover -o json \
+	--artifact-type 'signature/example' \
+	localhost:5000/firmware-project-single:latest | jq -r ".references[0].digest"`)
+	@echo "Digest of reference: ${DIGEST}"
+	oras pull -a -o ./pulled-ref localhost:5000/firmware-project-single@${DIGEST}
+	@echo -e "\nRef downloaded to pulled-ref/"
+	@ls pulled-ref
+
 .PHONY: clean
 clean: 
 	${RM} firmware.crt firmware.sig firmware.bundle firmware.json
