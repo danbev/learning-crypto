@@ -451,5 +451,20 @@ So, as I see it there are at least three ways for making the signing material
 * [Adding the bundle as a reference](#adding-the-bundle-as-a-reference)
 
 
-
 _work in progress_
+
+### Tasks
+* Create a tekton task that can sign the firmware binary using Cosign
+* Create a tekton task that will attach the bundle to the container image that
+holds the firmware binary, or add the bundle as a reference.
+* Update whatever code that is responsible for pulling the image to also pull
+the bundle attachment/reference.
+* Update whatever code that is responsible for sending the data to the firmware
+to be updated to include the bundle. 
+* Update the drogue-device FirmwareManager to be able to recieve the bundle and
+verify that the firmware binary to be updated passes verification.
+
+### Questions
+* Can sigstore-rs be used on a embedded device?
+
+
