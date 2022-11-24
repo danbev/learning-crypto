@@ -387,7 +387,7 @@ tlog entry verified offline
 Verified OK
 ```
 
-### Oras Referrer API usage
+### Adding the bundle as a reference
 First we need to log to `ghcr.io`:
 ```console
 $ echo $PAT | podman login ghcr.io --username <github_username> --password-stdin
@@ -441,5 +441,15 @@ Digest: sha256:21c44ab9bc8d50b2ac94bd02c371200f9174197c133ac625c79c56dcc3fab4e3
 Ref downloaded to pulled-ref/
 firmware.bundle
 ```
+
+### Alternatives
+So, as I see it there are at least three ways for making the signing material
+(like the sigstore/cosing bundle.json above) accociated with an image:
+
+* [Adding the bundle to the container image](#adding-the-bundle-to-the-container-image)
+* [Attaching the bundle to the image](#attaching-the-bundle-to-the-image)
+* [Adding the bundle as a reference](#adding-the-bundle-as-a-reference)
+
+
 
 _work in progress_
