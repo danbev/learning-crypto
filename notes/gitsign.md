@@ -324,3 +324,18 @@ And we can start it manually using:
 ```console
 $ systemctl --user start gitsign.service
 ```
+
+Check that it has started successfully:
+```console
+$ systemctl --user status gitsign.service 
+● gitsign.service - Gitsign Credentials Cache
+     Loaded: loaded (/home/danielbevenius/.config/systemd/user/gitsign.service; enabled; vendor preset: disabled)
+     Active: active (running) since Mon 2022-11-28 11:27:47 CET; 2min 35s ago
+       Docs: https://github.com/sigstore/gitsign
+   Main PID: 177444 (gitsign-credent)
+     CGroup: /user.slice/user-1000.slice/user@1000.service/app.slice/gitsign.service
+             └─ 177444 /home/danielbevenius/go/bin/gitsign-credential-cache
+
+Nov 28 11:27:47 localhost.localdomain systemd[1295]: Started Gitsign Credentials Cache.
+Nov 28 11:27:47 localhost.localdomain gitsign-credential-cache[177444]: /home/danielbevenius/.cache/.sigstore/gitsig>
+```
