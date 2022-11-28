@@ -309,7 +309,7 @@ Restart=on-failure
 [Install]
 WantedBy=default.target 
 ```
-This can then be enabled using:
+This service can then be enabled using:
 ```console
 $ systemctl --user enable gitsign.service 
 Created symlink /home/danielbevenius/.config/systemd/user/default.target.wants/gitsign.service → /home/danielbevenius/.config/systemd/user/gitsign.service.
