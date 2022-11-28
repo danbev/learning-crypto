@@ -340,3 +340,7 @@ $ systemctl --user status gitsign.service
 Nov 28 11:27:47 localhost.localdomain systemd[1295]: Started Gitsign Credentials Cache.
 Nov 28 11:27:47 localhost.localdomain gitsign-credential-cache[177444]: /home/danielbevenius/.cache/.sigstore/gitsig>
 ```
+
+```console
+$ export GITSIGN_CREDENTIAL_CACHE=~/.cache/.sigstore/gitsign/cache.sock
+```
