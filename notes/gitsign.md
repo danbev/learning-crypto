@@ -295,15 +295,21 @@ JmlnFanpQZBtepuu
 
 
 ### gitsign-credential-cache
+First install `gitsign-credential-cache` if it is not already installed:
+```console
+$ go install github.com/sigstore/gitsign/cmd/gitsign-credential-cache@latest
+```
+
 Create a file named `~/.config/systemd/user/gitsign.service`:
 ```console
 [Unit]
 Description=Gitsign Credentials Cache
 Documentation=https://github.com/sigstore/gitsign
-                                                                                                                                                                                                                                        
+
 [Service]
 Type=simple
-ExecStart=%h/bin/gitsign-credential-cache
+ExecStart=%h/go/bin/gitsign-credential-cache
+
 Restart=on-failure
 
 [Install]
