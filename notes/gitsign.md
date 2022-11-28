@@ -317,6 +317,7 @@ WantedBy=default.target
 ```
 This service can then be enabled using:
 ```console
+$ systemctl --user daemon-reload
 $ systemctl --user enable gitsign.service 
 Created symlink /home/danielbevenius/.config/systemd/user/default.target.wants/gitsign.service → /home/danielbevenius/.config/systemd/user/gitsign.service.
 ```
