@@ -71,6 +71,10 @@ policy rules the have defined.
 Policy rules can also be useful when deploying applications in container images
 where one might want to make sure that only supported base images are used etc.
 
+## Build environment
+The environment including the version of the compiler is important as it can
+also be attacked or contains bugs.
+
 ### Definitions in SSCS
 Just terms that were not clear, or needed refreshing.
 
@@ -120,3 +124,9 @@ package manager checks the public repository before a private one. So an
 attacker could find out the name of a private package used and then publish a
 public package with the same name and have their public one included.
 This was discovered in 2021 by Alex Birsan.
+
+Squatting can be useful to prevent these types of attacks which is where the
+company itself creates a public package with the same name which might just
+throw an error of some sort to alert users that they have reached a non-private
+version and a configuration change is probably required for this package to be
+retrieved from the internal repository.
