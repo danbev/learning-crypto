@@ -340,7 +340,9 @@ $ systemctl --user status gitsign.service
 Nov 28 11:27:47 localhost.localdomain systemd[1295]: Started Gitsign Credentials Cache.
 Nov 28 11:27:47 localhost.localdomain gitsign-credential-cache[177444]: /home/danielbevenius/.cache/.sigstore/gitsig>
 ```
-
+And we then need to add the following environment variable:
 ```console
 $ export GITSIGN_CREDENTIAL_CACHE=~/.cache/.sigstore/gitsign/cache.sock
 ```
+After this we should be able to commit a first time and have our credentials
+stored and the following commit should be done without a browser popup.
