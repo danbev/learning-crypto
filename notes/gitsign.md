@@ -293,3 +293,28 @@ JmlnFanpQZBtepuu
 * How can we enforce the that PRs are signed
 * Can we resign ammed commits for users pull requests.
 
+
+### gitsign-credential-cache
+Create a file named `~/.config/systemd/user/gitsign.service`:
+```console
+[Unit]
+Description=Gitsign Credentials Cache
+Documentation=https://github.com/sigstore/gitsign
+                                                                                                                                                                                                                                        
+[Service]
+Type=simple
+ExecStart=%h/bin/gitsign-credential-cache
+Restart=on-failure
+
+[Install]
+WantedBy=default.target 
+```
+This can then be enabled using:
+```console
+$ systemctl --user enable gitsign.service 
+Created symlink /home/danielbevenius/.config/systemd/user/default.target.wants/gitsign.service → /home/danielbevenius/.config/systemd/user/gitsign.service.
+```
+And we can start it manually using:
+```console
+$ systemctl --user start gitsign.service
+```
