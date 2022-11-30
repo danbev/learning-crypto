@@ -216,7 +216,7 @@ the build commands), all of the deps. There is a model in SLSA that needs to be
 followed for these attestations. 
 
 #### Attestation
-An attestation is a json object that and the outermost layer is the Envelope::
+An attestation is a json object that and the outermost layer is the Envelope:
 ```json
 {
   "payloadType": "application/vnd.in-toto+json",

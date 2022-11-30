@@ -55,8 +55,8 @@ json files that contain metadata about how it was built. And we can use
 Now, lets say that another company, or another project, wants to include our
 software in theirs, as a thirdparty dependency. Ours might be one of many
 dependencies that they include in their product and they might have
-requirements/restrictions on what they are allow to use. For example, they might
-require that only certain licences are used. The license information is
+requirements/restrictions on what they are allowed to use. For example, they
+might require that only certain licences are used. The license information is
 hopefully available if the projects have used in-toto, but there is nothing
 available to say that only certain licenses are allowed. This is where
 [Open Policy Agent (OPA)](./opa.md) comes into play. OPA gives us the ability to
