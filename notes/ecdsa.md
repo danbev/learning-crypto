@@ -49,7 +49,7 @@ After reading this [doc](https://learn.microsoft.com/en-us/windows/win32/seccert
  ↓                                                                       
 [42, 134, 72, 206, 61, 2, 1] 
 ```
-So that is way it start with 42.
+So that is why it start with 42.
 The next rule is that if a value is less than or equal to 127 then it will be
 encoded into a single byte. This is not the case for 840 and it will get encoded
 into two bytes like this:
