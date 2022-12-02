@@ -835,31 +835,22 @@ presenting it alongside the artifact and signature. We store this in an OCI
 image automatically, but you can treat it like a normal file and copy it around
 for verification as well.
 ```
-So I think this means that we should be able to add this "stapled inclusion
-proofs" to storage which I think has support for additional metadata, either
-an OCI repository or as [ORAS](https://oras.land/) thingy.
+So I think this means that we should be able to add these "stapled inclusion
+proofs" to some type of storage which could be an layer/attachment/reference 
+in OCI repository.
 
-
-So lets first try signing a binary blob.
-First we generate a keypair:
+So lets first try signing a binary blob. First we generate a keypair:
 ```console
-$ cosign generate-key-pair
-Enter password for private key: 
-Enter password for private key again: 
-Private key written to cosign.key
-Public key written to cosign.pub
+$ echo something > artifact.txt
+$ COSIGN_EXPERIMENTAL=1 cosign sign-blob --bundle=artifact.bundle artifact.txt
 ```
+And we can verify this using:
 ```console
-$ echo "firmware..." > firmware.bin
+$ cosign verify-blob --bundle=artifact.bundle artifact.txt 
+tlog entry verified offline
+Verified OK
 ```
-```console
-$ cosign sign-blob --key cosign.key firmware.bin 
-Using payload from: firmware.bin
-Enter password for private key: 
-MEUCIQC6bGdQq+Y8Cudg7QCQbK8mMMBYLQxtIXqxfx9axNQTgQIgImy4OcK9ERn2Mi6NNcfi0UqS7aO3ei7+pfodI37iz80=
-```
-The output above is the base64-encoded signature.
-
+The following section will go into more details about the Bundle itself.
 
 ### Bundle
 Sigstore/Cosign can create a `bundle`, which contains all the information
@@ -867,7 +858,7 @@ required for stapled inclusion proofs, and this can be saved somewhere.
 
 For example:
 ```console
-COSIGN_EXPERIMENTAL=1 cosign sign-blob --bundle=artifact.bundle artifact.tx
+$ COSIGN_EXPERIMENTAL=1 cosign sign-blob --bundle=artifact.bundle artifact.tx
 ```
 
 The file `artifact.bundle` is file in json format that looks like this:
@@ -938,9 +929,122 @@ $ curl --silent https://rekor.sigstore.dev/api/v1/log/entries?logIndex=4874058 |
   }
 }
 ```
-Now, when we want to verify an artifact using a bundle we provi
+Lets take a look at the `spec.signature.publicKey.content` to see what it is:
+```console
+$ cat artifact.bundle | jq -r '.rekorBundle.Payload.body' | base64 -d - | jq -r '.spec.signature.publicKey.content' | base64 -d -
+-----BEGIN CERTIFICATE-----
+MIICqDCCAi+gAwIBAgIUTPWTfO/1NRaSFdecaAQ/pBDGJp8wCgYIKoZIzj0EAwMw
+NzEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MR4wHAYDVQQDExVzaWdzdG9yZS1pbnRl
+cm1lZGlhdGUwHhcNMjIxMTI1MDczNzEyWhcNMjIxMTI1MDc0NzEyWjAAMFkwEwYH
+KoZIzj0CAQYIKoZIzj0DAQcDQgAEJQQ4W/5XP9m4YbWRBQtHGWwn9uUhae38UpcJ
+pEM3DOs4zW4MIrMfW4WQD0fwp8PUURDXvQ394poqgGEmSkruLqOCAU4wggFKMA4G
+A1UdDwEB/wQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDAzAdBgNVHQ4EFgQUo3Kn
+jJQZ0XfigbD5b0OVNN0xqSowHwYDVR0jBBgwFoAU39Ppz1YkEZb5qNjpKFWixi4Y
+ZD8wJwYDVR0RAQH/BB0wG4EZZGFuaWVsLmJldmVuaXVzQGdtYWlsLmNvbTAsBgor
+BgEEAYO/MAEBBB5odHRwczovL2dpdGh1Yi5jb20vbG9naW4vb2F1dGgwgYsGCisG
+AQQB1nkCBAIEfQR7AHkAdwDdPTBqxscRMmMZHhyZZzcCokpeuN48rf+HinKALynu
+jgAAAYStuBHyAAAEAwBIMEYCIQDM5YSQ/GL6KI5R9Odcn/pSk+qVD6bsL83+Ep9R
+2hWTawIhAK1ji1lZ56DsfuLfX7bBC9nbR3ElxalBhv1zQXMU7tlwMAoGCCqGSM49
+BAMDA2cAMGQCMBK8tsgHeguh+Yhel3PijHQlyJ1Q5K64p0xqDdo7W4fxfoAS9xrP
+s2PKQcdoD9bXwgIwX6zLjybZkNHP5xtBp7vK2FYeZt0OWLRlUllcUDL3T/7JQfwc
+GSq6vVBNwJ00w9HR
+-----END CERTIFICATE-----
 ```
-$ cosign verify-blob --bundle=artifact.bundle artifact.txt
+So that contains a certificate, but which certificate?  
+```console
+$ cat artifact.bundle | jq -r '.rekorBundle.Payload.body' | base64 -d - | jq -r '.spec.signature.publicKey.content' | base64 -d - | openssl x509 -text
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            4c:f5:93:7c:ef:f5:35:16:92:15:d7:9c:68:04:3f:a4:10:c6:26:9f
+        Signature Algorithm: ecdsa-with-SHA384
+        Issuer: O = sigstore.dev, CN = sigstore-intermediate
+        Validity
+            Not Before: Nov 25 07:37:12 2022 GMT
+            Not After : Nov 25 07:47:12 2022 GMT
+        Subject: 
+        Subject Public Key Info:
+            Public Key Algorithm: id-ecPublicKey
+                Public-Key: (256 bit)
+                pub:
+                    04:25:04:38:5b:fe:57:3f:d9:b8:61:b5:91:05:0b:
+                    47:19:6c:27:f6:e5:21:69:ed:fc:52:97:09:a4:43:
+                    37:0c:eb:38:cd:6e:0c:22:b3:1f:5b:85:90:0f:47:
+                    f0:a7:c3:d4:51:10:d7:bd:0d:fd:e2:9a:2a:80:61:
+                    26:4a:4a:ee:2e
+                ASN1 OID: prime256v1
+                NIST CURVE: P-256
+        X509v3 extensions:
+            X509v3 Key Usage: critical
+                Digital Signature
+            X509v3 Extended Key Usage: 
+                Code Signing
+            X509v3 Subject Key Identifier: 
+                A3:72:A7:8C:94:19:D1:77:E2:81:B0:F9:6F:43:95:34:DD:31:A9:2A
+            X509v3 Authority Key Identifier: 
+                keyid:DF:D3:E9:CF:56:24:11:96:F9:A8:D8:E9:28:55:A2:C6:2E:18:64:3F
+
+            X509v3 Subject Alternative Name: critical
+                email:daniel.bevenius@gmail.com
+            1.3.6.1.4.1.57264.1.1: 
+                https://github.com/login/oauth
+            CT Precertificate SCTs: 
+                Signed Certificate Timestamp:
+                    Version   : v1 (0x0)
+                    Log ID    : DD:3D:30:6A:C6:C7:11:32:63:19:1E:1C:99:67:37:02:
+                                A2:4A:5E:B8:DE:3C:AD:FF:87:8A:72:80:2F:29:EE:8E
+                    Timestamp : Nov 25 07:37:12.434 2022 GMT
+                    Extensions: none
+                    Signature : ecdsa-with-SHA256
+                                30:46:02:21:00:CC:E5:84:90:FC:62:FA:28:8E:51:F4:
+                                E7:5C:9F:FA:52:93:EA:95:0F:A6:EC:2F:CD:FE:12:9F:
+                                51:DA:15:93:6B:02:21:00:AD:63:8B:59:59:E7:A0:EC:
+                                7E:E2:DF:5F:B6:C1:0B:D9:DB:47:71:25:C5:A9:41:86:
+                                FD:73:41:73:14:EE:D9:70
+    Signature Algorithm: ecdsa-with-SHA384
+         30:64:02:30:12:bc:b6:c8:07:7a:0b:a1:f9:88:5e:97:73:e2:
+         8c:74:25:c8:9d:50:e4:ae:b8:a7:4c:6a:0d:da:3b:5b:87:f1:
+         7e:80:12:f7:1a:cf:b3:63:ca:41:c7:68:0f:d6:d7:c2:02:30:
+         5f:ac:cb:8f:26:d9:90:d1:cf:e7:1b:41:a7:bb:ca:d8:56:1e:
+         66:dd:0e:58:b4:65:52:59:5c:50:32:f7:4f:fe:c9:41:fc:1c:
+         19:2a:ba:bd:50:4d:c0:9d:34:c3:d1:d1
+-----BEGIN CERTIFICATE-----
+MIICqDCCAi+gAwIBAgIUTPWTfO/1NRaSFdecaAQ/pBDGJp8wCgYIKoZIzj0EAwMw
+NzEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MR4wHAYDVQQDExVzaWdzdG9yZS1pbnRl
+cm1lZGlhdGUwHhcNMjIxMTI1MDczNzEyWhcNMjIxMTI1MDc0NzEyWjAAMFkwEwYH
+KoZIzj0CAQYIKoZIzj0DAQcDQgAEJQQ4W/5XP9m4YbWRBQtHGWwn9uUhae38UpcJ
+pEM3DOs4zW4MIrMfW4WQD0fwp8PUURDXvQ394poqgGEmSkruLqOCAU4wggFKMA4G
+A1UdDwEB/wQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDAzAdBgNVHQ4EFgQUo3Kn
+jJQZ0XfigbD5b0OVNN0xqSowHwYDVR0jBBgwFoAU39Ppz1YkEZb5qNjpKFWixi4Y
+ZD8wJwYDVR0RAQH/BB0wG4EZZGFuaWVsLmJldmVuaXVzQGdtYWlsLmNvbTAsBgor
+BgEEAYO/MAEBBB5odHRwczovL2dpdGh1Yi5jb20vbG9naW4vb2F1dGgwgYsGCisG
+AQQB1nkCBAIEfQR7AHkAdwDdPTBqxscRMmMZHhyZZzcCokpeuN48rf+HinKALynu
+jgAAAYStuBHyAAAEAwBIMEYCIQDM5YSQ/GL6KI5R9Odcn/pSk+qVD6bsL83+Ep9R
+2hWTawIhAK1ji1lZ56DsfuLfX7bBC9nbR3ElxalBhv1zQXMU7tlwMAoGCCqGSM49
+BAMDA2cAMGQCMBK8tsgHeguh+Yhel3PijHQlyJ1Q5K64p0xqDdo7W4fxfoAS9xrP
+s2PKQcdoD9bXwgIwX6zLjybZkNHP5xtBp7vK2FYeZt0OWLRlUllcUDL3T/7JQfwc
+GSq6vVBNwJ00w9HR
+-----END CERTIFICATE-----
+```
+So if I got this right we have a signature that was created using the private
+key (pseudo code):
+```rust
+let sig = private_key.sign(hash(logIndex + body + integratedTime));
+```
+And this signature can be verified using the public key which is in the
+certificate (which binds it to my email address in this case). 
+This certificate need to be checked and for this it is possible to supply a
+root certificate to be use in the verification process. This is something that
+I missed initially as it does not have to be specified as a command line option
+(`--certificate-chain`) and by default will use verified/checked against the
+Fulcio roots. We can get the root certificate using:
+```console
+$ curl -q https://fulcio.sigstore.dev/api/v1/rootCert > downloaded-root.crt
+```
+And then specify the `--certificate-chain` option when verifying:
+```console
+$ cosign verify-blob --bundle=artifact.bundle --certificate-chain=downloaded-root.crt artifact.txt 
 tlog entry verified offline
 Verified OK
 ```
