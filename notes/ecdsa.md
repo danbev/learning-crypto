@@ -17,8 +17,10 @@ The following is in hex, which means that each character is 1 byte
 3081872103013672A8648CE3D21682A8648CE3D31746D306B2114208088D96629582F61625C4BD8FE9DA5D3559D921CB2756038E152EDB81FE82A144342046FD342D3F4D276AA6734516D4D1A19B54AB3C8D58E9A519CBB132E5CE771762EDFFFDECE8A4FCACB394CF6B77C9A75B20FFC9BDDCD0AB83B937BA519A47E1
 ```
 30 is tag for a SEQUENCE which is followed by the byte value for that sequence.
-So we can see 30 as the first digit and then 8 must be the length of this
-sequence?
+So we can see 30 as the first digit and then 8187 must be the length of this
+sequence I think. This is the followed by 02 which is an Integer which and the
+length of it is 1, and the content 00 in this case. Following that we have
+another sequence (30) etc.
 
 ```text
 DER: 308187020100301306072a8648ce3d020106082a8648ce3d030107046d306b020101042032447ff14359b76d0cea62fdc2bb07cb901de6a32288606cf8632ec174a0f5d8a14403420004d166c5b358bd2223b7429d54f954e8664bed0ef0dc39d3af1c367fa1269049ce55b09fe20cabfb51e315312839231f103b20afb1a98bf0680a35177213f75052
