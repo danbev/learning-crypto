@@ -876,7 +876,8 @@ The file `artifact.bundle` is file in json format that looks like this:
 `SignedEntryTimestamp` is a signature of the `logIndex`, `body`, and
 the `integratedTime` time fields created by Rekor.
 
-The signature can be be retrieved from Rekor using the following command:
+We can check that the signature in fact has been stored in Rekor using the
+following command:
 ```console
 $ curl --silent https://rekor.sigstore.dev/api/v1/log/entries?logIndex=4874058 | jq '.[].verification.signedEntryTimestamp'
 "MEQCIAD7UUGDjQPvdOP28REv7Lq/ZGQn3j5u4HVdz6IMDBEHAiAlpXP5BD0Hx5CRkcqcfbRJRIjdpschUGf0XcOC6xuuyw=="
