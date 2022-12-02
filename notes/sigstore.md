@@ -858,7 +858,7 @@ required for stapled inclusion proofs, and this can be saved somewhere.
 
 For example:
 ```console
-$ COSIGN_EXPERIMENTAL=1 cosign sign-blob --bundle=artifact.bundle artifact.tx
+$ COSIGN_EXPERIMENTAL=1 cosign sign-blob --bundle=artifact.bundle artifact.txt
 ```
 
 The file `artifact.bundle` is file in json format that looks like this:
