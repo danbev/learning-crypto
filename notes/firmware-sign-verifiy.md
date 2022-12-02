@@ -12,10 +12,13 @@ a container usually reaches out to transparency log (Rekor) to perform the
 verification process. This is probably not going to work for many types of
 constrained IoT devices and is something we need to take into consideration.
 
-Using "stapled inclusion proofs" we verify that an object is present in the
+Using [stapled inclusion proofs] we verify that an object is present in the
 transparency log without having to contact the transparency log iself. But the
 signer needs to collect the information from the log and present it along with
 the artifact and signature.
+
+[firmware-project](../firmware-project) contains the code for the examples
+mentioned in this document.
 
 ### Firmware Signing
 So we have to create a Sigstore/Cosign `bundle`, which contains all the
@@ -468,4 +471,5 @@ verify that the firmware binary to be updated passes verification.
 * Can sigstore-rs be used on a embedded device?
 * How can we store [Fulio root cert](https://fulcio.sigstore.dev/api/v1/rootCert)
 
+[stapled-inclusion-proofs]: https://www.chainguard.dev/unchained/busting-5-sigstore-myths
 
