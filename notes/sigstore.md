@@ -863,7 +863,7 @@ The output above is the base64-encoded signature.
 
 ### Bundle
 Sigstore/Cosign can create a `bundle`, which contains all the information
-required for "stapled inclusion proofs", and this can be saved somwhere.
+required for stapled inclusion proofs, and this can be saved somewhere.
 
 For example:
 ```console
@@ -937,4 +937,10 @@ $ curl --silent https://rekor.sigstore.dev/api/v1/log/entries?logIndex=4874058 |
     }
   }
 }
+```
+Now, when we want to verify an artifact using a bundle we provi
+```
+$ cosign verify-blob --bundle=artifact.bundle artifact.txt
+tlog entry verified offline
+Verified OK
 ```
