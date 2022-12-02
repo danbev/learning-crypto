@@ -1037,9 +1037,11 @@ And this signature can be verified using the public key which is in the
 certificate (which binds it to my email address in this case). 
 This certificate need to be checked and for this it is possible to supply a
 root certificate to be use in the verification process. This is something that
-I missed initially as it does not have to be specified as a command line option
-(`--certificate-chain`) and by default will use verified/checked against the
-Fulcio roots. We can get the root certificate using:
+I missed initially as it does not have to be specified as a command line
+option, (`--certificate-chain`), and by default will use Fulcio's root
+certificates.
+
+We can get the root certificates using:
 ```console
 $ curl -q https://fulcio.sigstore.dev/api/v1/rootCert > downloaded-root.crt
 ```
