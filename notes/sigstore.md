@@ -384,13 +384,6 @@ Installing `rekor-cli`:
 $ go install -v github.com/sigstore/rekor/cmd/rekor-cli@latest
 ```
 
-Now, Rekor does not store the artifacts that are to be signed which is probably
-a good thing that would require a large storage capacity
-
-```console
-$ COSIGN_EXPERIMENTAL=1 cosign sign-blob --bundle=firmware.bundle --output-certificate=firmware.crt --output-signature=firmware.sig firmware.bin
-```
-
 ### cosign
 Is a signing tool which I think is named after container signing but it can be
 used to sign anything blob of data.
@@ -869,6 +862,15 @@ The output above is the base64-encoded signature.
 
 
 ### Bundle
+Sigstore/Cosign can create a `bundle`, which contains all the information
+required for "stapled inclusion proofs", and this can be saved somwhere.
+
+For example:
+```console
+COSIGN_EXPERIMENTAL=1 cosign sign-blob --bundle=artifact.bundle artifact.tx
+```
+
+The file `artifact.bundle` is file in json format that looks like this:
 ```console
 {
   "SignedEntryTimestamp": "MEUCIQDHiGUesxPpn+qRONLmKlNIVPhl9gBMnwNeIQmRkRmZVQIgRxPpuYQDZR/8lYKcEfiQn5b+7VDoJIC72ZWHO9ZCp1A=",
@@ -880,9 +882,59 @@ The output above is the base64-encoded signature.
   }
 }
 ```
-SignedEntryTimestamp is a signature of the logIndex, body, and integratedTime
-created by Rekor and this can be retrieved from Rekor:
+`SignedEntryTimestamp` is a signature of the `logIndex`, `body`, and
+the `integratedTime` time fields created by Rekor.
+
+The signature can be be retrieved from Rekor using the following command:
 ```console
 $ curl --silent https://rekor.sigstore.dev/api/v1/log/entries?logIndex=4874058 | jq '.[].verification.signedEntryTimestamp'
 "MEQCIAD7UUGDjQPvdOP28REv7Lq/ZGQn3j5u4HVdz6IMDBEHAiAlpXP5BD0Hx5CRkcqcfbRJRIjdpschUGf0XcOC6xuuyw=="
+```
+
+The payload of a `Bundle` contains a base64 encoded string:
+```console
+$ cat artifact.bundle | jq -r '.rekorBundle.Payload.body' | base64 -d - | jq
+```
+Which will produce:
+```json
+{
+  "apiVersion": "0.0.1",
+  "kind": "hashedrekord",
+  "spec": {
+    "data": {
+      "hash": {
+        "algorithm": "sha256",
+        "value": "4bc453b53cb3d914b45f4b250294236adba2c0e09ff6f03793949e7e39fd4cc1"
+      }
+    },
+    "signature": {
+      "content": "MEQCIGp1XZP5zaImosrBhDPCdXn3f8xI9FHGLsGVx6UeRPCgAiAt5GrsdQhOKnZcA3EWecvgJSHzCIjWifFBQkD7Hdsymg==",
+      "publicKey": {
+        "content": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNxRENDQWkrZ0F3SUJBZ0lVVFBXVGZPLzFOUmFTRmRlY2FBUS9wQkRHSnA4d0NnWUlLb1pJemowRUF3TXcKTnpFVk1CTUdBMVVFQ2hNTWMybG5jM1J2Y21VdVpHVjJNUjR3SEFZRFZRUURFeFZ6YVdkemRHOXlaUzFwYm5SbApjbTFsWkdsaGRHVXdIaGNOTWpJeE1USTFNRGN6TnpFeVdoY05Nakl4TVRJMU1EYzBOekV5V2pBQU1Ga3dFd1lICktvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVKUVE0Vy81WFA5bTRZYldSQlF0SEdXd245dVVoYWUzOFVwY0oKcEVNM0RPczR6VzRNSXJNZlc0V1FEMGZ3cDhQVVVSRFh2UTM5NHBvcWdHRW1Ta3J1THFPQ0FVNHdnZ0ZLTUE0RwpBMVVkRHdFQi93UUVBd0lIZ0RBVEJnTlZIU1VFRERBS0JnZ3JCZ0VGQlFjREF6QWRCZ05WSFE0RUZnUVVvM0tuCmpKUVowWGZpZ2JENWIwT1ZOTjB4cVNvd0h3WURWUjBqQkJnd0ZvQVUzOVBwejFZa0VaYjVxTmpwS0ZXaXhpNFkKWkQ4d0p3WURWUjBSQVFIL0JCMHdHNEVaWkdGdWFXVnNMbUpsZG1WdWFYVnpRR2R0WVdsc0xtTnZiVEFzQmdvcgpCZ0VFQVlPL01BRUJCQjVvZEhSd2N6b3ZMMmRwZEdoMVlpNWpiMjB2Ykc5bmFXNHZiMkYxZEdnd2dZc0dDaXNHCkFRUUIxbmtDQkFJRWZRUjdBSGtBZHdEZFBUQnF4c2NSTW1NWkhoeVpaemNDb2twZXVONDhyZitIaW5LQUx5bnUKamdBQUFZU3R1Qkh5QUFBRUF3QklNRVlDSVFETTVZU1EvR0w2S0k1UjlPZGNuL3BTaytxVkQ2YnNMODMrRXA5UgoyaFdUYXdJaEFLMWppMWxaNTZEc2Z1TGZYN2JCQzluYlIzRWx4YWxCaHYxelFYTVU3dGx3TUFvR0NDcUdTTTQ5CkJBTURBMmNBTUdRQ01CSzh0c2dIZWd1aCtZaGVsM1BpakhRbHlKMVE1SzY0cDB4cURkbzdXNGZ4Zm9BUzl4clAKczJQS1FjZG9EOWJYd2dJd1g2ekxqeWJaa05IUDV4dEJwN3ZLMkZZZVp0ME9XTFJsVWxsY1VETDNULzdKUWZ3YwpHU3E2dlZCTndKMDB3OUhSCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K"
+      }
+    }
+  }
+}
+```
+And we can check that this matches the record in Rekor using this command:
+```console
+$ curl --silent https://rekor.sigstore.dev/api/v1/log/entries?logIndex=4874058 | jq -r '."24296fb24b8ad77addfc1725ba17e24520eb3c7899bb4467ffd22396be7aae0366bd1f1574384262".body' | base64 -d - | jq
+{
+  "apiVersion": "0.0.1",
+  "kind": "hashedrekord",
+  "spec": {
+    "data": {
+      "hash": {
+        "algorithm": "sha256",
+        "value": "4f2fb5c9d049ebad8d3d25f55ffdf49b290f7f84f56b89fe3d6663b48b856ad1"
+      }
+    },
+    "signature": {
+      "content": "MEUCIQC81kdqAOdcEEuGA8CIk9ToTJhX8P42N9t59t2zgLfQTQIgfhILgdc5bFmBxayTkabRhOyeUY1fkr0x4GqBTVlixx8=",
+      "publicKey": {
+        "content": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNxVENDQWk2Z0F3SUJBZ0lVQXkvM1haU0xsWmwrUExXZ05DU0VZaXV2Nyswd0NnWUlLb1pJemowRUF3TXcKTnpFVk1CTUdBMVVFQ2hNTWMybG5jM1J2Y21VdVpHVjJNUjR3SEFZRFZRUURFeFZ6YVdkemRHOXlaUzFwYm5SbApjbTFsWkdsaGRHVXdIaGNOTWpJeE1ERXhNRGN5TURBd1doY05Nakl4TURFeE1EY3pNREF3V2pBQU1Ga3dFd1lICktvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVzaEVyNW9LL1hTSkoyaFg4am1ZVE9mYW1oQjM4aDRISEx0R2QKQkE1L3Z1ZUxsVENWTUpnRm1FMXZ3MUJudWljS3R4RjNGaWVjT1JhS3M3TUlmT1RDQ3FPQ0FVMHdnZ0ZKTUE0RwpBMVVkRHdFQi93UUVBd0lIZ0RBVEJnTlZIU1VFRERBS0JnZ3JCZ0VGQlFjREF6QWRCZ05WSFE0RUZnUVVvWjFGClM4Sk1mS3d4M2k4bE9mWW1Uc05GVkJvd0h3WURWUjBqQkJnd0ZvQVUzOVBwejFZa0VaYjVxTmpwS0ZXaXhpNFkKWkQ4d0p3WURWUjBSQVFIL0JCMHdHNEVaWkdGdWFXVnNMbUpsZG1WdWFYVnpRR2R0WVdsc0xtTnZiVEFzQmdvcgpCZ0VFQVlPL01BRUJCQjVvZEhSd2N6b3ZMMmRwZEdoMVlpNWpiMjB2Ykc5bmFXNHZiMkYxZEdnd2dZb0dDaXNHCkFRUUIxbmtDQkFJRWZBUjZBSGdBZGdBSVlKTHdLRkwvYUVYUjBXc25oSnhGWnhpc0ZqM0RPTkp0NXJ3aUJqWnYKY2dBQUFZUEY2aWdSQUFBRUF3QkhNRVVDSVFDK1FCR2swdkRiMjhZcVgzSElXWTBlSElPYW56eFI3Zk9GQmorYQpKQnFxSUFJZ2ZkV21MZGhqYWJuYnZmWmpmcTBlQy95N29NYmxkRzdYZEdSamlwVGd2YTB3Q2dZSUtvWkl6ajBFCkF3TURhUUF3WmdJeEFPb3lXY1J6cU9KZVZJWmx2Q096M1BTb3ZFVnAzZXZ0UU1iZWxpMFFRc1FxNWt2OUFJZUYKYkxOTmdmazk2U1BwRXdJeEFLcTVuQmFOZmpEQnJIOXpQUTdzK1JadkJoMUR1d1RtV1NNdmZZNkYyZnhZallZOApIdFc4L2c3bFhHUTBKdElLUGc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCi0tLS0tQkVHSU4gQ0VSVElGSUNBVEUtLS0tLQpNSUlDR2pDQ0FhR2dBd0lCQWdJVUFMblZpVmZuVTBickphc21Sa0hybi9VbmZhUXdDZ1lJS29aSXpqMEVBd013CktqRVZNQk1HQTFVRUNoTU1jMmxuYzNSdmNtVXVaR1YyTVJFd0R3WURWUVFERXdoemFXZHpkRzl5WlRBZUZ3MHkKTWpBME1UTXlNREEyTVRWYUZ3MHpNVEV3TURVeE16VTJOVGhhTURjeEZUQVRCZ05WQkFvVERITnBaM04wYjNKbApMbVJsZGpFZU1Cd0dBMVVFQXhNVmMybG5jM1J2Y21VdGFXNTBaWEp0WldScFlYUmxNSFl3RUFZSEtvWkl6ajBDCkFRWUZLNEVFQUNJRFlnQUU4UlZTL3lzSCtOT3Z1RFp5UEladGlsZ1VGOU5sYXJZcEFkOUhQMXZCQkgxVTVDVjcKN0xTUzdzMFppSDRuRTdIdjdwdFM2THZ2Ui9TVGs3OThMVmdNekxsSjRIZUlmRjN0SFNhZXhMY1lwU0FTcjFrUwowTi9SZ0JKei85aldDaVhubzNzd2VUQU9CZ05WSFE4QkFmOEVCQU1DQVFZd0V3WURWUjBsQkF3d0NnWUlLd1lCCkJRVUhBd013RWdZRFZSMFRBUUgvQkFnd0JnRUIvd0lCQURBZEJnTlZIUTRFRmdRVTM5UHB6MVlrRVpiNXFOanAKS0ZXaXhpNFlaRDh3SHdZRFZSMGpCQmd3Rm9BVVdNQWVYNUZGcFdhcGVzeVFvWk1pMENyRnhmb3dDZ1lJS29aSQp6ajBFQXdNRFp3QXdaQUl3UENzUUs0RFlpWllEUElhRGk1SEZLbmZ4WHg2QVNTVm1FUmZzeW5ZQmlYMlg2U0pSCm5aVTg0LzlEWmRuRnZ2eG1BakJPdDZRcEJsYzRKLzBEeHZrVENxcGNsdnppTDZCQ0NQbmpkbElCM1B1M0J4c1AKbXlnVVk3SWkyemJkQ2RsaWlvdz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQotLS0tLUJFR0lOIENFUlRJRklDQVRFLS0tLS0KTUlJQjl6Q0NBWHlnQXdJQkFnSVVBTFpOQVBGZHhIUHdqZURsb0R3eVlDaEFPLzR3Q2dZSUtvWkl6ajBFQXdNdwpLakVWTUJNR0ExVUVDaE1NYzJsbmMzUnZjbVV1WkdWMk1SRXdEd1lEVlFRREV3aHphV2R6ZEc5eVpUQWVGdzB5Ck1URXdNRGN4TXpVMk5UbGFGdzB6TVRFd01EVXhNelUyTlRoYU1Db3hGVEFUQmdOVkJBb1RESE5wWjNOMGIzSmwKTG1SbGRqRVJNQThHQTFVRUF4TUljMmxuYzNSdmNtVXdkakFRQmdjcWhrak9QUUlCQmdVcmdRUUFJZ05pQUFUNwpYZUZUNHJiM1BRR3dTNElhanRMazMvT2xucGdhbmdhQmNsWXBzWUJyNWkrNHluQjA3Y2ViM0xQME9JT1pkeGV4Clg2OWM1aVZ1eUpSUStIejA1eWkrVUYzdUJXQWxIcGlTNXNoMCtIMkdIRTdTWHJrMUVDNW0xVHIxOUw5Z2c5MmoKWXpCaE1BNEdBMVVkRHdFQi93UUVBd0lCQmpBUEJnTlZIUk1CQWY4RUJUQURBUUgvTUIwR0ExVWREZ1FXQkJSWQp3QjVma1VXbFpxbDZ6SkNoa3lMUUtzWEYrakFmQmdOVkhTTUVHREFXZ0JSWXdCNWZrVVdsWnFsNnpKQ2hreUxRCktzWEYrakFLQmdncWhrak9QUVFEQXdOcEFEQm1BakVBajFuSGVYWnArMTNOV0JOYStFRHNEUDhHMVdXZzF0Q00KV1AvV0hQcXBhVm8wamhzd2VORlpnU3MwZUU3d1lJNHFBakVBMldCOW90OThzSWtvRjN2WllkZDMvVnRXQjViOQpUTk1lYTdJeC9zdEo1VGZjTExlQUJMRTRCTkpPc1E0dm5CSEoKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+      }
+    }
+  }
+}
 ```
