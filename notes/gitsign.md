@@ -295,6 +295,11 @@ JmlnFanpQZBtepuu
 
 
 ### gitsign-credential-cache
+If one has to perform multiple commits in short succession, or when doing a
+rebase, it can be somewhat frustrating to having the browser open for every
+single commit. For these situations a cache can be used which is can be enabled
+using the instructions in this section.
+
 First install `gitsign-credential-cache` if it is not already installed:
 ```console
 $ go install github.com/sigstore/gitsign/cmd/gitsign-credential-cache@latest
