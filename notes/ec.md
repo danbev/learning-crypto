@@ -422,9 +422,76 @@ For very large numbers (private keys) we can use square-and-multiply but in EC
 the squaring becomes `P+P`, point doubling, so instead of square-and-multiply
 double-and-add.
 
+### Domain parameters
+ECC can use different curves and depending on the curve chosen the cryptological
+strenght of the algoritm is effected. Also the performance of the algorithm is
+also effected by the curve chosen as is the key length. These are called/defined
+as domain parameters:
+* name of the curve
+* key length
+* strength of the algorithm which is normally key-length/2
+* performance 
+
+```
+secp192r1          192 key length
+sect233k1          322 key length
+secp224k1          224 key length
+
+secp256k1          256 key lenth
+curve25519         256 key lenth
+```
+So it it important to know what to choose here.
 
 
+## Standard for Efficient Cryptography Group (SECG)
+[secg](https://secg.org/) was founded in 1998 and this group has produced a
+number of standards, for example:
+
+* [SEC1](https://secg.org/sec1-v2.pdf) Elliptic Curve Cryptography (2.0)
+* [SEC2](https://secg.org/sec2-v2.pdf) Recommened EC Domain parameters (2.0)
+* [SEC4](https://secg.org/sec4-1.0.pdf) EC Qu Implicit Certificate
+
+So notice that SEC1 contains the elliptic curve algoritm 
+
+### SEC1
+This is a standard that includes the ECC schemas, like signature, encryption,
+and key agreement.
+
+### SEC2
+So this spec deals with the domain parameters which can be used with the
+schemas defined in SEC1 (I think).
+This does not mean that the curves are defined in this document but it does
+specify how curves should be used.
 
 
+## NIST P-256 
+
+https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf
+[p-256 domain parameters](https://neuromancer.sk/std/nist/P-256)
+
+
+```
+secp256r1    prime256v1     NIST P-256
+```
+The r in secp256r1 stands for random.
+The k in secp256k1 stands for Koblitz.
+
+
+### EcdsaP256Sha256
+This specified that ECDSA which is specified in
+[SEC1](https://www.secg.org/sec1-v2.pdf) is to be used. And that the domain
+parameters for that algorithm are to be taken from `P-256` which is
+defined in
+[FIPS-186-4](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf#page=111)
+or in [SEC2](https://www.secg.org/sec2-v2.pdf) (under the name `secp256r1`).
+And that the hashing algorithm needs to be SHA-256.
+
+
+### Curve P-256
+This is a curve that is recommended for Federal goverment use.
+
+
+### ANSI x9.62
 
 __wip__
+
