@@ -433,18 +433,6 @@ The we chose values for our private key, which is d, and compute (hop/jump)
 T our public key.
 
 
-### NIST Curves
-These are defined in https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf.
-
-* Curve P-192
-* Curve P-224
-* Curve P-256
-* Curve P-384
-* Curve P-521
-
-TODO: add other curves and talk about the naming of them.
-
-
 ### How hard is it to break ECDLP
 Currently known attacks require about √p steps.
 
@@ -458,46 +446,68 @@ and it is thought that these will remain unbreakable for about 15-20 years. For
 this reason a larger prime number is chosen, perhaps with 196 or 256 bits to
 hopefully be secure for longer than that.
 
-### ECHD
+### ECDH
 So with ECDLP we can now take a look at the Diffie-Hellman key exchange and this
 time use ECDLP for it:
-```text
+
+We have a setup phase where we "create/generate/find" the domain parameters
 Setup phase:
+```text
   E: y² = x³ + ax + b mod p         We chose the curve
-  P = (x_p, y_p)                    We choose the primitive element
+  P = (x_p, y_p)                    We choose the primitive element/generator
 ```
 This could also be done by choosing a standard curve.
-```text
+
 Protocol phase:
+```text
+d = private key (called a and b in this example)
+T = public key (called A and B in this example)
+#E = the number of elements in the group
+
 Alice                                      Bob
+               { random      }                            { random      }
 a = Kpiv = A ∈ {2, 3,...,#E-1}             b = Kpiv = B ∈ {2, 3,...,#E-1}
+(a is an integer)                          (b is an integer)
+
 A = Kpub = aP = (x_A, y_A)                 B = Kpub = bP = (x_B, y_B)
+(A is a point on the curve)                (B is a point on the curve)
+
                                  A
                           ---------------->
                                  B
                           <----------------
 a*B = (x_AB, y_AB)                         b*A = (x_AB, y_AB)
+a = integer, private key                   b = integer, private key
+B = point on the curve, Bob's public key   A = point on the curve, Alice's public key
 ```
-Now they both have a session key which notice is (x_AB, y_AB) which is a point
-on the curve. They can now use either the x or the y value for encryption, for
-example as the key in AES.
+Notice that they both computed the same point on the curve.
+`a*B` will give alice a point on "her" curve. And `b*A` will give bob a point
+on "his" curve. 
 
 Notice that they are both calculating the same thing:
 ```
-a * B = a(b*P) = a*b*p
-b * A = b(a*P) = a*b*p
+a*B = a(bP) = a*b*p
 
+b*A = b(a*P) = a*b*p
 ```
-a and b are the private keys, and A and B are the public keys.
+They can now use either the x or the y value for encryption, for example as the
+key in AES:
+```
 
-Recall that the private key is an integer and the public keys are points on
-the curve. So a*B is a scalar multiplication and not point addition or point
+ C = AES(message, X_AB)   ---------C------> AES⁻¹(C, x_AB) = message
+
+C = cipher text
+```
+
+Recall that the private key is an `integer` and the public keys are `points` on
+the curve. So `a*B` is a scalar multiplication and not point addition or point
 doubling which mentioned earlier in this document.
+
 ```
 a * P                          P = point on curve
 ```
-But there is no such multiplication operator to multiply a scalar by a point.
-This is just a shorthand notation for:
+Recall that `*` in this case is the group operation which is just a shorthand
+notation for:
 ```
 a * P = P + P + P + P (a times)
 ```
@@ -505,26 +515,31 @@ For very large numbers (private keys) we can use square-and-multiply but in EC
 the squaring becomes `P+P`, point doubling, so instead of square-and-multiply
 double-and-add.
 
-### Domain parameters
+## Domain parameters
 ECC can use different curves and depending on the curve chosen the cryptological
 strenght of the algoritm is effected. Also the performance of the algorithm is
-also effected by the curve chosen as is the key length. These are called/defined
-as domain parameters:
+effected by the curve chosen as is the key length. These are called/defined as
+domain parameters:
 * name of the curve
 * key length
 * strength of the algorithm which is normally key-length/2
 * performance 
 
-```
-secp192r1          192 key length
-sect233k1          322 key length
-secp224k1          224 key length
 
-secp256k1          256 key lenth
-curve25519         256 key lenth
-```
-So it it important to know what to choose here.
+## Standard/Named Curves
+Standard curves have been defined by NIST, SECG, and ECC Brainpool.
+These standards define domain parameter for usage.
 
+### National Institute of Standards Technologies (NIST) Curves
+Spec: https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf
+https://neuromancer.sk/std/nist/
+
+Examples:
+```
+P-224
+P-256
+P-512
+```
 
 ## Standard for Efficient Cryptography Group (SECG)
 [secg](https://secg.org/) was founded in 1998 and this group has produced a
@@ -546,18 +561,51 @@ schemas defined in SEC1 (I think).
 This does not mean that the curves are defined in this document but it does
 specify how curves should be used.
 
-
-## NIST P-256 
-
-https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf
-[p-256 domain parameters](https://neuromancer.sk/std/nist/P-256)
-
-
+https://neuromancer.sk/std/secg/
+Examples:
 ```
-secp256r1    prime256v1     NIST P-256
-```
+secp192r1          192 key length
+sect233k1          322 key length
+secp224k1          224 key length
+secp256k1          256 key length
+
 The r in secp256r1 stands for random.
 The k in secp256k1 stands for Koblitz.
+```
+The difference between random and Koblitz is that there the Koblitz domain
+paremeteres have some special properties that allows the group operation to be
+implemented in a more performat manner. The actual curve is in the same form for
+both of these but it is the cooffients that are the following:
+Koblitz:
+```
+a = 0
+b = 7
+```
+Random:
+```
+a = FFFFFFFF 00000001 00000000 00000000 00000000 FFFFFFFF FFFFFFFF FFFFFFFC
+b = 5AC635D8 AA3A93E7 B3EBBD55 769886BC 651D06B0 CC53B0F6 3BCE3C3E 27D2604B
+```
+Apparently there are concerns that the random values might actually provide a
+a backdoor.
+Bitcoin chose Koblitz for performance.
+
+## ECC Brainpool
+https://tools.ietf.org/html/rfc5639
+https://neuromancer.sk/std/brainpool/
+
+Examples:
+```
+brainpoolP512t1
+```
+
+## ANSI x9.62
+https://neuromancer.sk/std/x962/
+
+Examples:
+```
+prime256v1      (which is the same as P-256 and sepc256r1)
+```
 
 
 ### EcdsaP256Sha256
@@ -568,13 +616,6 @@ defined in
 [FIPS-186-4](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf#page=111)
 or in [SEC2](https://www.secg.org/sec2-v2.pdf) (under the name `secp256r1`).
 And that the hashing algorithm needs to be SHA-256.
-
-
-### Curve P-256
-This is a curve that is recommended for Federal goverment use.
-
-
-### ANSI x9.62
 
 __wip__
 
