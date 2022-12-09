@@ -118,14 +118,14 @@ for asymmetric keys cryptography.
 Sender ----> (x, y) ------> Receiver            true, if y is valid
                             ver(x, y, pub_k) = {false, if y is invalid 
 ```
-In this case Alice uses here private key to generate the signature and the
-receiver can use here public key to verify the signature. Only Alice knows the
+In this case Alice uses her private key to generate the signature and the
+receiver can use her public key to verify the signature. Only Alice knows the
 private key so only Alice is capable of signing the document which is what we
-want. And in this case the reciever cannot generate the signature them selves
+want. And in this case the reciever cannot generate the signature themselves
 either which was possible with symmetric keys.
 
 Using symmetric keys are still useful and do provide message integrity and is
-used for message authentication codes (MAC).
+used for `message authentication codes (MAC)`.
 
 ### RSA Digital Signatures
 ```
