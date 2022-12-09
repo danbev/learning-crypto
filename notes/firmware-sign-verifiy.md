@@ -76,7 +76,7 @@ Signature wrote in the file firmare.sig
 Certificate wrote in the file firmware.crt
 ```
 
-And to make verify using this information:
+And to verify using the bundle we can use the following command:
 ```console
 $ cosign verify-blob --bundle=firmware.bundle firmware.txt
 tlog entry verified offline
