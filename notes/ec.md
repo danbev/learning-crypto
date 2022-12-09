@@ -1,4 +1,4 @@
-### Elliptic Curve Cryptography (EC)
+## Elliptic Curve Cryptography (EC)
 
 The main motivation for using/developing EC, remember that we already have
 algorithms that use the discrete logarithm problem. Well it turns out that with
@@ -12,7 +12,7 @@ and CPU time).
 We can do public key exchange, encryption, and digital signatures with EC.
 
 The idea is to find another cyclic group where the discrete logarithm problem
-is difficult, preferrably more difficult than the cyclic group of Zp^*.
+is difficult, preferrably more difficult than the cyclic group of `Zp^*`.
 
 Lets start with the following polynomial, which is a circle:
 ```
@@ -27,7 +27,7 @@ Now, if we add cofficients to x and y we get an ellipse:
   ax² + by² = r²
 ```
 The two examples above deal with real numbers.
-For crypto we need to consider polynomials in Z_p.
+For crypto we need to consider polynomials in `Z_p`.
 
 ### Definition
 ```
@@ -46,7 +46,7 @@ You can try this out at https://www.desmos.com/calculator/ialhd71we3
 
 ![Elliptic curve](./ec.png)
 
-And get the value of y then we square:
+And to get the value of y we square:
 ```
 y² = x³ + ax + b
       ____________
@@ -67,20 +67,27 @@ And if we look at the graph we can see that (1, 1) and (1, -1) are both valid
 points on the curve. The `+-` shows the symmetry of the curve, the points are
 reflected.
 
-Now, we need a cyclic group for the descrete logarithm problem.
-The set of `group elements` are the `points` on the curve and we need to be able
-to compute with these elements, much like we computed with integers earlier.
+Now, we need a `cyclic` group for the descrete logarithm problem.
+The set of `group elements` are the `points` on the curve, and we need to be
+able to compute with these elements, much like we computed with integers earlier.
 This is the group operation and previously we used multiplication.
 
-We need to be able to `add` points together which is the group operation.
+So for a group we need:
+* a set of elements. These are the points on the curve.
+* a group operation (+).
+* the group operation must be closed (can't add points and suddenly have a points
+that is off the curve.
+* the group operation must be associative.
+* there must be a element called the neutral/identity element.
+* for each element in the group thre must be an inverse of each element.
 
 ### Group operation
-This is the addition of points, the group elememts, on the curve.
+This is the addition of points (group elememts) on the curve.
 
-So how do we add points:
+So we want to be able to add points together.
 ```
-P =  (point on the curve)
-Q =  (point on the curve)
+P =  (point on the curve which will have an x and y coordinate)
+Q =  (point on the curve which will have an x and y coordinate)
 
 P + Q = ?
 ```
@@ -150,38 +157,64 @@ x₃ = x² - x₁ - x₂ mod p
 y₃ = x(x₁ - x₃) - y₁ mod p
 ```
 
+We can avoid division to calculate the slope by using:
 ```
  y₂ - y₁
  -------  mod p     -> (y₂ - y₁)(x₂ - x₁)⁻¹ mod p
  x₂ - x₁
 ```
+Which is the extended Euclidean algorithm.
 
 To be a group we need to fulfill the requirements that the group operation
-is closed, associative. 
+is closed, associative. This is done using the modulo operation.
 
-There also has to be an identity element such that a + 1 = 1 + a = a. What is
+### Identity element
+There also has to be an `identity` element such that a + 1 = 1 + a = a. What is
 this identity value of this group?  
 
-So P + (some point) = P
+So we need something to fullfill:
+```
+P + (some point) = P
+```
+With natural numbers we would have 0 as this identity element, but remeber that
+the addition operation is very different in this case. We have to choose a
+second point on the curve, then "draw" a line to the that point, invert that
+point, and that is supposed to land on the original point.
+
 It turns out that there is no point that we can calculate using the above steps
-and get this 0/NUll point, instead one has been defined.
-This is "point at infinity" which uses the symbol ó.
+and get this 0/NUll point, instead one has been `defined` (artifically made up).
+This is "point at infinity" which uses the symbol `ó`.
+
+Group identity:
 ```
 P + ó = P
 ```
-The negative (opposite) of `P` is:
+To try to visualize this think that the point is on the curve (look at the curve
+above, the image) and lets say the point in the at (-1, 2). So then imaging
+the point of inifity as going straight down to (-1, -2) which is then our second
+point. If we now reflect that back it will end up at (-1, 2)  which is our
+original point.
+
+
+The negative/inverse (opposite) of `P` is:
 ```
 -P  of P(x, y) is -P = (x, -y)
+                  ↑        ↑
+                  |        normal `-`, so just the negative y value
+                  |
+                 Not the normal `-`, this is the negative/inverse of the group operation
 ```
 
 ### EC Discrete Logarithm Problem (EC-DLP)
-Elliptic curve as a cyclic group (not all curves form a cyclic group, for
+Elliptic curve as a cyclic group (not all curves form a cyclic group), for
 example:
 ```
 E: y² = x³ +2x + 2 mod 17
 ```
-For the group to be cyclic we need a generator/primitive element which can
-generate points on the curve. An example of a generator/primitive element is:
+For the group to be cyclic we need a `generator/primitive` element which can
+generate points on the curve.
+
+An example of a generator/primitive element is:
 ```
 Primitive Element P = (5, 1)    // (x, y)
 
@@ -314,17 +347,36 @@ And the gives us (x₃, y₃) = (6, 3)
 ### Elliptic Curve Discrete Logarithm Problem (ECDLP)
 We have an eliptic curve and a primitive element (generator), and remember that
 this is required for a cyclic group, and we have another element T.
-The generator is able to generate all points in the group/curve which includes
-the element T, so T can be expressed as:
+
+The generator is able to generate all points in the group/curve. So T is one
+of those points that can gotten to by performing the group operation on the
+generator a specific number.
+
 ```text
-    [ d number of times]
+    [ d number of times we use the group operator `+`]
 T = P + P + ... + P      = dP 
+
+T = element in the group/set
+P = generator element
+d = number of times we perform the group operation to generate/get T.
 ```
-Now the DL problem is about finding the value of `d`, the number of times we
-did `P + P` to get to `T`. So we would know `P` and `T` and want to find out how
-many times `P` was added to get to `T`.
-`T` is the public key in crypto, and `d`, the number of jumps, group operations,
-on the curve is the private key.
+
+Now the DL problem is given P, find the value of `d`, the number of times we
+did `P + P` to get to `T`.
+
+So we would know `P` and `T`, and want to find out how many times `P` was added
+to get to `T`.
+
+To visualize this we are given the starting point, the generator. And we are
+also given T which is destination/final point. And d is the number of hops to
+get there.
+
+So to generate a the T, the public key, it looks like we only need to perform
+`dP`.
+
+`T` is the `public key` in crypto, and `d`, the number of jumps,
+group operations, on the curve is the `private key`.
+
 ```text
 P = (5, 1)                  primitive element/generator
 T = (16, 4) = d * P         there exists an integer d that produces (16, 4)
@@ -332,20 +384,25 @@ T = (16, 4) = d * P         there exists an integer d that produces (16, 4)
 ```
 In this case `d` is 13 but that was by looking at the table above in this doc:
 ```text
-13P = (16, 4)
+13*P = (16, 4)
 ```
 So the private key, `d` is just a simple integer which is the number of
 hops/jumps/group operations. This is true for all DL problems regardless of the
-group used. In contrast `T`, the public key, is a point on the curve
-(group element) and in general for any DL `T` is the type of the group element
-type.
+group used.
 
+In contrast `T`, the public key, is a point on the curve (group element) and in
+general for any DL `T` is the type of the group element type. This is also the
+case for all DLPs that the public key is of the same type as the element of the
+group, but again the private key is just an integer.
+
+### Cardinality
 The number of elements in the group is called the cardinality/order of the
-group.
-In our example we have 18 actual points, but the cardinatlity is 19 which is
-written as `#E=19`. The additional point is the point of infinity.
+group. Is written as `#En`.
 
-Hasses theorem gives as an upper and lower bound for `E`.
+In our example we have 18 actual points, but the cardinatlity is 19 which is
+written as `#E=19`. `The additional point is the point of infinity`.
+
+Hasses theorem (bound) gives as an upper and lower bound for `E`.
 ```text
 #E ≈ p
 
@@ -357,25 +414,51 @@ p |                       |
   +-----------------------+
            ||             |
             +-------------+
-           1 +   80 bits
+           1 +   80 bits (√180)
+          (2 time a number adds one bit)
 ```
-This is an approximation and  is helpful but to get the exact value the
+This is an approximation and is helpful but to get the exact value the
 computation is quite complex/expensive. This is one reason that standard curves
-are defind. For exaple NIST defines standard curves and these specify the number
-of points on the curve as part of the standard.
+are defind. For example, NIST defines standard curves and these specify the
+number of points on the curve as part of the standard.
 
-How hard is it to break ECDLP?  
+
+## Standard Curves
+Standard curves provide different curves equations, and also specify the
+generator element, and the cooficients `a` and `b`.
+```
+   y² = x³ + ax + b mod p
+```
+The we chose values for our private key, which is d, and compute (hop/jump)
+T our public key.
+
+
+### NIST Curves
+These are defined in https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-4.pdf.
+
+* Curve P-192
+* Curve P-224
+* Curve P-256
+* Curve P-384
+* Curve P-521
+
+TODO: add other curves and talk about the naming of them.
+
+
+### How hard is it to break ECDLP
 Currently known attacks require about √p steps.
+
 For example:
 ```text
 p ≈ 2¹⁶⁰
 √2¹⁶⁰ = 2¹⁶⁰/² = 2⁸⁰
 ```
 2⁸⁰ is estimated to take 1 million years with the currently existing computers,
-and it is though that these will remain unbreakable for about 15-20 years. For
-this reason a larger prime number is choses, perhaps with 196 or 256 bits to
-me hopefully be secure for longer than that.
+and it is thought that these will remain unbreakable for about 15-20 years. For
+this reason a larger prime number is chosen, perhaps with 196 or 256 bits to
+hopefully be secure for longer than that.
 
+### ECHD
 So with ECDLP we can now take a look at the Diffie-Hellman key exchange and this
 time use ECDLP for it:
 ```text
