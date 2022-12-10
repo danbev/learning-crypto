@@ -541,6 +541,9 @@ P-256
 P-512
 ```
 
+Note that NIST has approved a number of SECG curves so there are some
+overlapping curves.
+
 ## Standard for Efficient Cryptography Group (SECG)
 [secg](https://secg.org/) was founded in 1998 and this group has produced a
 number of standards, for example:
