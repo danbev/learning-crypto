@@ -610,6 +610,14 @@ Examples:
 prime256v1      (which is the same as P-256 and sepc256r1)
 ```
 
+### Point Compression
+As mentioned earlier the public key is a point on the curve, calculated by using
+the generator/base element times the private key (integer). Being a point means
+that it has an x and y coordinate. Instead of sending both the x and y
+coordinate only one can be sent, and the other can be solved for. My
+understanding is that the x coordinate is sent and a bit that specifies if the
+y coordinate is positive or negative. The receiver can then solve for y and will
+get two valid values for y but knows by inspecting the bit which it should use.
 
 ### EcdsaP256Sha256
 This specified that ECDSA which is specified in
