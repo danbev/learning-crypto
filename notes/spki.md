@@ -74,3 +74,4 @@ $ openssl asn1parse -in ec.pub.der -inform der -i
    13:d=2  hl=2 l=   8 prim:   OBJECT            :prime256v1
    23:d=1  hl=2 l=  66 prim:  BIT STRING
 ```
+So when we see `spki`.
