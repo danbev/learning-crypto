@@ -163,7 +163,6 @@ $ od -t u1 ec-private.pem
 0000340  45  45  10
 0000343
 ```
-So this is 
 
 We can take the base64 encoded key, which are the characters between the header
 and the footer, and base64 decode that and store it in a file:
@@ -188,3 +187,6 @@ pub:
 ASN1 OID: prime256v1
 NIST CURVE: P-256
 ```
+
+## Rust example
+An example of parsing EC keys can be found in [ec-parse.rs](https://github.com/danbev/learning-rust/blob/master/crypto/src/ec-parse.rs)
