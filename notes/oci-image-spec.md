@@ -11,15 +11,15 @@ Think about a file path on a file system. We can use /home/danbev/report.txt
 to refer to this file. If the file is updated the path does not change but the
 contents does. This is pretty obvious, but when we think about images, which are
 immutable, having paths like this does not really make sense. Instead we
-identify content using a digest (hash the content) of the content. When the
-content changes so does the digest. So we will see these hashes/digests instead
-of file names/paths. Content is specified using
+identify content using a digest (hash) of the content. When the content changes
+so does the digest. So we will see these hashes/digests instead of file
+names/paths. Content is specified using
 [Content Descriptors](#content-descriptors).
 
 ### Content Descriptors
 These are unique pointers to a particular content of an image.
-These include the type of the content, digest which identifies the content , and
-it has a size.
+These include the `type` of the content, `digest` which identifies the content
+, and it has a `size`.
 
 * The type is specified using the `mediaType` property.
 * The digest is specified using the digest property.
@@ -35,8 +35,7 @@ Example of a decriptor:
 ```
 
 #### Digest
-The digest is specified in an as which is part of the descriptor are specified
-using the following format:
+The digest is part of the descriptor are specified using the following format:
 ```
 algorithm ':' encoded hash
 ```
@@ -109,17 +108,20 @@ For example:
 So at the top level of the object we have a mediaType and a version of this
 manifest, followed by a config object, and the a layers array.
 
-OCI used application/vnd.oci.image.config.v1+json for the config, and
-application/vnd.oci.image.layer.v1.tar+gzip for the layers.
+OCI uses `application/vnd.oci.image.config.v1+json` for the config, and
+`application/vnd.oci.image.layer.v1.tar+gzip` for the layers.
 The config type is reserved.
 
 The contents of the config and layers is up to the creator and can be pretty
 much anything. You can use the mediatype to specify what the data is.
 
-### Artifacts minifest
+The config is used by a container runtime, as are the layers which are used to
+create a bundle.
+
+### Artifacts manifest
 Simliar to image manifest described in the previous section but instead of
 describing the components that are destined to be run in by a container runtime
-the componets that an artifact manifest describe are not meant to be run by
+the components that an artifact manifest describe are not meant to be run by
 a container image.
 
 The spec tries to make the registry format more generic so that any types of
@@ -129,15 +131,15 @@ The [manifest](https://github.com/opencontainers/image-spec/blob/main/artifact.m
 has the following properties:
 * mediaType
 * artifactType contains the mediaType of the referenced artifact.
-* blobs is an array of descriptors
+* blobs is an array of descriptors (similar to layers)
 * subject is a descriptor of another manifest and used to specify a relationship
 to that manifest. This is used in the [referrers api](https://github.com/opencontainers/distribution-spec/blob/main/spec.md#listing-referrers)
 * annotations can contain any additional metadata in key-value pairs
 
-Notice that we don't have a config property as these types of not destined to
+Notice that we don't have a config property as these types are not destined to
 be run by a container runtime.
 
-
+Example:
 ```
 {
   "mediaType": "application/vnd.oci.artifact.manifest.v1+json",
