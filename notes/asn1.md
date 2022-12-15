@@ -16,9 +16,21 @@ in-mem data structures.
 Distinguished Encoding Rules (DER) is used which is a variant of Basic Encoding
 Rules (BER) but with restrictions that force the serialization to be identical
 for certain types. For example a Boolean value in BER could be any of 255 non
-zero values would be considered a true value and DER would only allow one
+zero values and would be considered a true value, but DER would only allow one
 value. This is especially important for crypto where things like digital
 signatures.
+
+This uses type-length-value encoding:
+```
+  +------+--------+-------+
+  | type | length | value |
+  +------+--------+-------+
+```
+The type, or tag, defines what the information in value is and will be one of
+the types defined by asn1 (see below for some of the types). And the length is
+used to know how much to read (there is no null byte atleast usually, I read
+somewhere that if the lenght is all zeros that means that there will be null
+terminating byte following the data in the value).
 
 The DER encoded data format is often encoded as base64 which is called PEM.
 
@@ -33,14 +45,17 @@ Strings can be Character strings "bajja", Binary strings '1010'B or
 Hexadecimal strings '1a'H.
 
 
-#### INTEGER
+#### Integer (02)
 Just like normal integers but they can be any size which is great for things
 like RSA keys.
 
-#### Strings
-There are many types of strings. These are not null terminated.
+#### Bit string (03)
 
-#### OBJECT IDENTIFIERS
+#### Octet string (04)
+
+#### Null (05)
+
+#### OBJECT IDENTIFIERS (06)
 Are globally unique sequences of integers and are mostly used to identify
 standards, algoritms, certificate extensions, orgs, etc.
 For example:
@@ -50,7 +65,13 @@ For example:
 There is an online service that can be used to look up what an OID identifies:
 http://oid-info.com/get/1.3.6.1.4.1.11129.
 
-#### SEQUENCE
+#### Utf8String (12)
+
+#### PrintableString (13)
+
+#### IA5String (
+
+#### SEQUENCE (30)
 This is like struct in c.
 
 #### SEQUENCE OF
@@ -113,6 +134,11 @@ Tag:
 1A = VisibleString
 ```
 In OpenSSL these values can be found in include/openssl/asn1.h.
+
+#### BIT STRING
+When parsing a EC bit string the first octet is not part of the private key
+octets but instead is there to specify if point compression is in use. So this
+needs to be taking into account when parsing this field.
 
 #### Module
 A module is the top level container
