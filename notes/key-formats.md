@@ -46,12 +46,12 @@ AlgorithmIdentifier ::= SEQUENCE {
 }
 ```
 The version is `00` which the spec says must be 0 for this version.
-The PrivateKeyAlgorithmIdentifier is expaneded to something that identifies the
+The PrivateKeyAlgorithmIdentifier is expanded to something that identifies the
 type of private key in this sequence/struct. pkcs8 can be used with many
 different types of private keys which is why this is here.
 
-I think that `id-ecPublicKey` is actually an identifier/name for the Object
-Identifier 1.2.840.10045.2.1.
+The `id-ecPublicKey` is  an identifier/name for the Object Identifier
+1.2.840.10045.2.1.
 
 We can inspect this key using:
 ```console
