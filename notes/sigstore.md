@@ -17,6 +17,11 @@ revocation.
 $ go install github.com/sigstore/cosign/cmd/cosign@latest
 ```
 
+Install crane which is needed for some commands:
+```
+go install github.com/google/go-containerregistry/cmd/crane@latest
+```
+
 ### Example command
 The following section discuss and show output from running the following cosign
 command:
@@ -398,6 +403,142 @@ Signing steps:
 * The keypair used are deleted
 * The signed artifact can be published.
 
+### Continer image signing
+So first we start by creating a container image:
+```console
+$ make container-image 
+podman build -t ttl.sh/danbev-simple-container:2h .
+STEP 1/2: FROM scratch
+STEP 2/2: CMD ["echo "something"]
+--> Using cache ad48f6de0a4343b0cd92991120e973782862e70040e47ba60612d38d5ed920d4
+COMMIT ttl.sh/danbev-simple-container:2h
+--> ad48f6de0a4
+Successfully tagged ttl.sh/danbev-simple-container:2h
+Successfully tagged localhost/simple-container:latest
+ad48f6de0a4343b0cd92991120e973782862e70040e47ba60612d38d5ed920d4
+```
+We can list it to see the repository, tag, and image id:
+```console
+$ podman images
+REPOSITORY                      TAG         IMAGE ID      CREATED        SIZE
+ttl.sh/danbev-simple-container  2h          ad48f6de0a43  4 minutes ago  1.12 kB
+$ cd sigstore/container-image
+$ podman build -t simple-container .
+```
+
+Then we can push this container image to a registry:
+```console
+$ make push
+podman push "ttl.sh/danbev-simple-container:2h"
+Getting image source signatures
+Copying config ad48f6de0a done  
+Writing manifest to image destination
+Storing signatures
+```
+So now we have an image that is in a container registry. We can now sign it
+using cosign. First we create a key pair to use when signing:
+```console
+$ make keys
+```
+I've left the password empty.
+
+Now, we can sign the image using:
+```console
+$ make sign 
+cosign sign -key cosign.key "ttl.sh/danbev-simple-container:2h"
+Pushing signature to: ttl.sh/danbev-simple-container
+```
+
+We can use crane to get the digest of the image:
+```console
+$ make digest 
+crane digest "ttl.sh/danbev-simple-container:2h"
+sha256:96d13e1500053d6f21aee389b74c5826b3192cda9dd226a6026cef0474a351da
+```
+So that is the hash of the image, which uses sha256. This is a hash of the
+manifest of the image:
+```console
+$ make manifest 
+crane manifest "ttl.sh/danbev-simple-container:2h" | jq
+{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.oci.image.manifest.v1+json",
+  "config": {
+    "mediaType": "application/vnd.oci.image.config.v1+json",
+    "digest": "sha256:ad48f6de0a4343b0cd92991120e973782862e70040e47ba60612d38d5ed920d4",
+    "size": 433
+  },
+  "layers": [],
+  "annotations": {
+    "org.opencontainers.image.base.digest": "",
+    "org.opencontainers.image.base.name": ""
+  }
+}
+```
+And we can verify this using by passing the manifest file to `sha256sum`:
+```console
+$ make digest-manifest 
+crane manifest "ttl.sh/danbev-simple-container:2h" | sha256sum
+96d13e1500053d6f21aee389b74c5826b3192cda9dd226a6026cef0474a351da  -
+```
+This produces the same output as crane digest.
+
+Now, sigstore will use this hash to push an image using the hash as part of 
+its name. The name of this image can be retrieved using:
+```console
+$ make triangulate
+cosign triangulate "ttl.sh/danbev-simple-container:2h"
+ttl.sh/danbev-simple-container:sha256-96d13e1500053d6f21aee389b74c5826b3192cda9dd226a6026cef0474a351da.sig
+```
+Notice that this tag here is the same as the output of the digest command above.
+
+We can use `crane manifest` to see the manifest of this signature image:
+```console
+$ crane manifest ttl.sh/danbev-simple-container:sha256-96d13e1500053d6f21aee389b74c5826b3192cda9dd226a6026cef0474a351da.sig | jq
+{
+  "schemaVersion": 2,
+  "mediaType": "application/vnd.oci.image.manifest.v1+json",
+  "config": {
+    "mediaType": "application/vnd.oci.image.config.v1+json",
+    "size": 248,
+    "digest": "sha256:fca11d85342bd4bde3708cd2712dec318322852e5d1e220729356e0c6478a5bd"
+  },
+  "layers": [
+    {
+      "mediaType": "application/vnd.dev.cosign.simplesigning.v1+json",
+      "size": 246,
+      "digest": "sha256:754122687a83f6ed95dfd06e354238ec7c3805d5910f77fee0469d624d0abe81",
+      "annotations": {
+        "dev.cosignproject.cosign/signature": "MEUCIDF7Q/9GP7PxzcWL0C5V0ocu4LHRhBBAWYKVitwMfhyBAiEA2yKFfyva7aSuq5zuAvoDOrsF0PNjtZzwoJVm4Wn2Usg="
+      }
+    }
+  ]
+}
+```
+Cosign uses SimpleSigning so it will take some of the information above
+and create a json document that looks something like this:
+```json                                                                         
+{                                                                               
+    "critical": {                                                               
+           "identity": {                                                        
+               "docker-reference": ""                           
+           },                                                                   
+           "image": {                                                           
+               "Docker-manifest-digest": "sha256-96d13e1500053d6f21aee389b74c5826b3192cda9dd226a6026cef0474a351da"
+           },                                                                   
+           "type": "cosign container signature"                                 
+    },                                                                          
+    "optional": {                                                               
+    }                                                                           
+}                                                                               
+```
+I think that this will be canonicalized and then signed, and then base64 encoded
+and addes to the annotations object with the key
+`dev.cosignproject.cosign/signature`.
+
+To verify an image, the image it self need to be fetched, and also the signature
+image. The value of the `Docker-manifest-digest` needs to match the signature
+of image that we fetched. 
 
 #### Blob signing
 Even though cosign "has container in its name" it can be used to store other
@@ -883,7 +1024,7 @@ $ curl --silent https://rekor.sigstore.dev/api/v1/log/entries?logIndex=4874058 |
 "MEQCIAD7UUGDjQPvdOP28REv7Lq/ZGQn3j5u4HVdz6IMDBEHAiAlpXP5BD0Hx5CRkcqcfbRJRIjdpschUGf0XcOC6xuuyw=="
 ```
 
-The payload of a `Bundle` contains a base64 encoded string:
+The Payload of a `Bundle` contains a base64 encoded string:
 ```console
 $ cat artifact.bundle | jq -r '.rekorBundle.Payload.body' | base64 -d - | jq
 ```
