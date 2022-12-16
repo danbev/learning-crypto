@@ -19,7 +19,7 @@ digest:
 	crane digest ${IMAGE_NAME}
 
 digest-manifest:
-	crane manifest "ttl.sh/danbev-simple-container:2h" | sha256sum
+	crane manifest ${IMAGE_NAME} | sha256sum
 
 manifest:
 	crane manifest ${IMAGE_NAME} | jq
