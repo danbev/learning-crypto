@@ -404,6 +404,9 @@ Signing steps:
 * The signed artifact can be published.
 
 ### Continer image signing
+The examples in this section can be found in the
+[container-image](../sigstore/container-image/) directory.
+
 So first we start by creating a container image:
 ```console
 $ make container-image 
@@ -533,7 +536,7 @@ and create a json document that looks something like this:
 }                                                                               
 ```
 I think that this will be canonicalized and then signed, and then base64 encoded
-and addes to the annotations object with the key
+and added to the annotations object with the key
 `dev.cosignproject.cosign/signature`.
 
 To verify an image, the image it self need to be fetched, and also the signature
@@ -1071,6 +1074,10 @@ $ curl --silent https://rekor.sigstore.dev/api/v1/log/entries?logIndex=4874058 |
   }
 }
 ```
+Notice the `signature` elemnent above, which contains a content. Could this
+be the signature of the content?
+
+
 Lets take a look at the `spec.signature.publicKey.content` to see what it is:
 ```console
 $ cat artifact.bundle | jq -r '.rekorBundle.Payload.body' | base64 -d - | jq -r '.spec.signature.publicKey.content' | base64 -d -
