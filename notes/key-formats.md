@@ -188,5 +188,30 @@ ASN1 OID: prime256v1
 NIST CURVE: P-256
 ```
 
+### EC Subject Public Key Information (spki)
+
+
 ## Rust example
 An example of parsing EC keys can be found in [ec-parse.rs](https://github.com/danbev/learning-rust/blob/master/crypto/src/ec-parse.rs)
+
+### Encrypted EC Private Key
+When private keys are stored on disk it is advisable to encrypt them.
+As an example, when using cosign's generate-key-pair command the private key
+will be in pkcs8 der format, which is then encrypted using
+[nacl/secretbox](./naci_secretbox.md) and a passphrase scrypt for the key
+derivation function. This is then placed in a file using the PEM format:
+```
+$ cat cosign.key 
+-----BEGIN ENCRYPTED COSIGN PRIVATE KEY-----
+eyJrZGYiOnsibmFtZSI6InNjcnlwdCIsInBhcmFtcyI6eyJOIjozMjc2OCwiciI6
+OCwicCI6MX0sInNhbHQiOiJYUXUxU2s0ZHVadU1zQ3JqU3Y5aGZpc3EzZXNoZC9Z
+SC9JMW9FaUNiNHU0PSJ9LCJjaXBoZXIiOnsibmFtZSI6Im5hY2wvc2VjcmV0Ym94
+Iiwibm9uY2UiOiJFaVI1Wko2SThNbVRESjJPeVdBZXRZT3MvQmN6TnVTRiJ9LCJj
+aXBoZXJ0ZXh0IjoiZG11TW1oOSs2cW4wQ1JzK3huRlp0TE9tOGtkVEtIVUVMbzZC
+NElUakJJb2QwdWVHb3RLSW9VeDdTNGh0Vk5zNkRudmF1MmFGblJQVGpNN3pyVERT
+SlYvZ05SVS80UHV0czlVZ04xc011bjRDdWUydnVFeEFxNmRTVmQ1dHhSTzIwVkE0
+MEE5S3RBMlJPUUUrVTlPYUIzY0R0Y0x4THFxN2ljMndJR2FSQXlmSU1JTmJFVGFk
+OC9qeE1BNTBwajZyTUtZdDRDQlpjcmRNcmc9PSJ9
+-----END ENCRYPTED COSIGN PRIVATE KEY-----
+```
+
