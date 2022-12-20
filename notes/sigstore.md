@@ -486,14 +486,14 @@ crane manifest "ttl.sh/danbev-simple-container:2h" | sha256sum
 ```
 This produces the same output as crane digest.
 
-Now, sigstore will use this hash to push an image using the hash as part of 
+Now, sigstore will use this hash to push an image using that hash as part of 
 its name. The name of this image can be retrieved using:
 ```console
 $ make triangulate
 cosign triangulate "ttl.sh/danbev-simple-container:2h"
 ttl.sh/danbev-simple-container:sha256-96d13e1500053d6f21aee389b74c5826b3192cda9dd226a6026cef0474a351da.sig
 ```
-Notice that this tag here is the same as the output of the digest command above.
+Notice that the tag here is the same as the output of the digest command above.
 
 We can use `crane manifest` to see the manifest of this signature image:
 ```console
@@ -539,9 +539,9 @@ I think that this will be canonicalized and then signed, and then base64 encoded
 and added to the annotations object with the key
 `dev.cosignproject.cosign/signature`.
 
-To verify an image, the image it self need to be fetched, and also the signature
-image. The value of the `Docker-manifest-digest` needs to match the signature
-of image that we fetched. 
+To verify an image, the image itself needs to be fetched, and also the signature
+image (the one with the .sig suffic). The value of the `Docker-manifest-digest`
+needs to match the signature of image that we fetched. 
 
 #### Blob signing
 Even though cosign "has container in its name" it can be used to store other
@@ -1007,16 +1007,26 @@ $ COSIGN_EXPERIMENTAL=1 cosign sign-blob --bundle=artifact.bundle artifact.txt
 
 The file `artifact.bundle` is file in json format that looks like this:
 ```console
+$ cat artifact.bundle | jq
 {
-  "SignedEntryTimestamp": "MEUCIQDHiGUesxPpn+qRONLmKlNIVPhl9gBMnwNeIQmRkRmZVQIgRxPpuYQDZR/8lYKcEfiQn5b+7VDoJIC72ZWHO9ZCp1A=",
-  "Payload": {
-    "body": "eyJhcGlWZXJzaW9uIjoiMC4wLjEiLCJzcGVjIjp7ImRhdGEiOnsiaGFzaCI6eyJhbGdvcml0aG0iOiJzaGEyNTYiLCJ2YWx1ZSI6ImE0NDkyYjBlYWJkZDIzMTJmMDYzMjkwYWJkNzk3ZDlkNzFhM2FiMjhiZDY1YTJjMTg5YjBkZjBkMzliOGMzYjkifX0sInNpZ25hdHVyZSI6eyJjb250ZW50IjoiTUVRQ0lDTmRYeTNiWHAxRE1PTDZOUGZYMzVnSjI3YnpsZHdTdkNBTnd5ZE9RVWlqQWlCQWg5WlJwQ3AzYlg5eE9UbEhTR2w0cFVGd0ZtUFJJWGZpY09pRTBHM1Vzdz09IiwiZm9ybWF0IjoieDUwOSIsInB1YmxpY0tleSI6eyJjb250ZW50IjoiTFMwdExTMUNSVWRKVGlCRFJWSlVTVVpKUTBGVVJTMHRMUzB0Q2sxSlNVTmxla05EUVdkRFowRjNTVUpCWjBsVVZISk9aa013YkZSSmRWSXZWR0UyWm14MWFtdFFOWHBaTDFSQlMwSm5aM0ZvYTJwUFVGRlJSRUY2UVhFS1RWSlZkMFYzV1VSV1VWRkxSWGQ0ZW1GWFpIcGtSemw1V2xNMWExcFlXWGhGVkVGUVFtZE9Wa0pCVFZSRFNFNXdXak5PTUdJelNteE5RalJZUkZSSmVBcE5SRmw1VFdwSmVFMUVaM2RPUm05WVJGUkplRTFFV1hsTmFrbDRUV3BuZDAweGIzZEJSRUphVFVKTlIwSjVjVWRUVFRRNVFXZEZSME5EY1VkVFRUUTVDa0YzUlVoQk1FbEJRazFGV1M4ck4yRktjRmRLVFhjNWVrTmljMDFrT0hOQlRUTmxSbk5OTjBSbFpFZGlXRzlNUjJ4YUwyZHBNR2h5WTBaU1NWVTRiM2NLUzBKeU1ISkVTRE5QVkZaSWJVdFVZMkV2SzIweGQxQjNTVzlZTTFGUVYycG5aMFYwVFVsSlFrdFVRVTlDWjA1V1NGRTRRa0ZtT0VWQ1FVMURRalJCZHdwRmQxbEVWbEl3YkVKQmQzZERaMWxKUzNkWlFrSlJWVWhCZDAxM1JFRlpSRlpTTUZSQlVVZ3ZRa0ZKZDBGRVFXUkNaMDVXU0ZFMFJVWm5VVlZ5WVRoTENuSnJaMjAzVGtsNFRrNXBVMkpZVG00eFdFVkxhRzFyZDBoM1dVUldVakJxUWtKbmQwWnZRVlY1VFZWa1FVVkhZVXBEYTNsVlUxUnlSR0UxU3pkVmIwY0tNQ3QzZDJkWk1FZERRM05IUVZGVlJrSjNSVUpDU1VkQlRVZzBkMlpCV1VsTGQxbENRbEZWU0UxQlMwZGpSMmd3WkVoQk5reDVPWGRqYld3eVdWaFNiQXBaTWtWMFdUSTVkV1JIVm5Wa1F6QXlUVVJPYlZwVVpHeE9lVEIzVFVSQmQweFVTWGxOYW1OMFdXMVpNMDVUTVcxT1Ixa3hXbFJuZDFwRVNUVk9WRkYxQ21NelVuWmpiVVp1V2xNMWJtSXlPVzVpUjFab1kwZHNla3h0VG5aaVV6bHFXVlJOTWxsVVJteFBWRmw1VGtSS2FVOVhXbXBaYWtVd1RtazVhbGxUTldvS1kyNVJkMHBCV1VSV1VqQlNRVkZJTDBKQ2IzZEhTVVZYWTBoS2NHVlhSak5aVjFKdlpESkdRVm95T1haYU1uaHNURzFPZG1KVVFVdENaMmR4YUd0cVR3cFFVVkZFUVhkT2NFRkVRbTFCYWtWQk1UQlVSR015Wm1oUFZrRlVNWFJzZFM4MmMzWnhSbEZ1YkRaWU9YZGhNbXRUU2t0RGJqUkZZbFJFYTNwYVJYb3lDblppUWtwb2FFZ3ZjbWRXUjFKMU5tWkJha1ZCYkhsb05uUmhZelJZVFRaS2IzVlZlRWtyTjFnelFtUTFXVXR5WlRGS1dFOWhia0ZaYW1adldHNTVUSFFLZDNCSVFWb3paVzFhY0VWa00yeHFTVEF3Vm04S0xTMHRMUzFGVGtRZ1EwVlNWRWxHU1VOQlZFVXRMUzB0TFFvPSJ9fX0sImtpbmQiOiJyZWtvcmQifQ==",
-    "integratedTime": 1624396085,
-    "logIndex": 5179,
-    "logID": "c0d23d6ad406973f9559f3ba2d1ca01f84147d8ffc5b8445c224f98b9591801d"
+  "base64Signature": "MEUCIEwujBWM+kBZkNPlVZ4tclosmQUNCSNrhBrGOnf8lZv+AiEAv/VRaBGk1tN6jMvl7M9XbxwyDi86tD+Nc+tvrI4GaOU=",
+  "cert": "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFL1lKVGs0M2RGOUJZWUlKV1BKWDlSYytCSGhQNgpHRVJaNFRqa2tCOWwvdnBIVTZSRTJnU1QxcnpBcEUyN3pCWEVXTWVyZzRGNHdsTXA4WjNxbXdsdDlnPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==",
+  "rekorBundle": {
+    "SignedEntryTimestamp": "MEQCIAPZVWW0hqsRsy/oymge/6FSJz5ghL++h7kx3Hx0ERysAiB4ydjcdx888b2M9g2IkoEIY+37l8eUSVTUCYNp5uJoEQ==",
+    "Payload": {
+      "body": "eyJhcGlWZXJzaW9uIjoiMC4wLjEiLCJraW5kIjoiaGFzaGVkcmVrb3JkIiwic3BlYyI6eyJkYXRhIjp7Imhhc2giOnsiYWxnb3JpdGhtIjoic2hhMjU2IiwidmFsdWUiOiI0YmM0NTNiNTNjYjNkOTE0YjQ1ZjRiMjUwMjk0MjM2YWRiYTJjMGUwOWZmNmYwMzc5Mzk0OWU3ZTM5ZmQ0Y2MxIn19LCJzaWduYXR1cmUiOnsiY29udGVudCI6Ik1FVUNJRXd1akJXTStrQlprTlBsVlo0dGNsb3NtUVVOQ1NOcmhCckdPbmY4bFp2K0FpRUF2L1ZSYUJHazF0TjZqTXZsN005WGJ4d3lEaTg2dEQrTmMrdHZySTRHYU9VPSIsInB1YmxpY0tleSI6eyJjb250ZW50IjoiTFMwdExTMUNSVWRKVGlCUVZVSk1TVU1nUzBWWkxTMHRMUzBLVFVacmQwVjNXVWhMYjFwSmVtb3dRMEZSV1VsTGIxcEplbW93UkVGUlkwUlJaMEZGTDFsS1ZHczBNMlJHT1VKWldVbEtWMUJLV0RsU1l5dENTR2hRTmdwSFJWSmFORlJxYTJ0Q09Xd3ZkbkJJVlRaU1JUSm5VMVF4Y25wQmNFVXlOM3BDV0VWWFRXVnlaelJHTkhkc1RYQTRXak54Ylhkc2REbG5QVDBLTFMwdExTMUZUa1FnVUZWQ1RFbERJRXRGV1MwdExTMHRDZz09In19fX0=",
+      "integratedTime": 1671439882,
+      "logIndex": 9394536,
+      "logID": "c0d23d6ad406973f9559f3ba2d1ca01f84147d8ffc5b8445c224f98b9591801d"
+    }
   }
 }
 ```
+`base64Signature` is the signature of created by cosign and is the same as will
+be in the output of the `cosign sign-blob` command.
+`cert` will be the certificate for the private key that was used create the
+signature.
+
 `SignedEntryTimestamp` is a signature of the `logIndex`, `body`, and
 the `integratedTime` time fields created by Rekor.
 
