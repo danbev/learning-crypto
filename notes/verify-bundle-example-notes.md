@@ -190,7 +190,7 @@ A VerificationConstraint can be added to a VerificationConstraintVec like this:
     let mut verification_constraints: VerificationConstraintVec = Vec::new();
     verification_constraints.push(Box::new(bundle_verifier));
 ```
-So the verification constraint will be passed a SignatureLayer which which it
+So the verification constraint will be passed a SignatureLayer which it
 can use to verify. 
 
 ### Offline blob verification
@@ -218,8 +218,16 @@ $ cat artifact.bundle | jq
   }
 }
 ```
-Now, the `base64Signature` is a signature of the bundle itself, and the `cert`
-field can be used to verify this signature:
+`base64Signature` is the same as the signature in the rekor.Payload.body. This
+is something that I missed initially that the bundle64Sigature field and the
+signature in the payload content are the same:
+```console
+$ cat artifact.bundle | jq '.base64Signature'
+"MEUCIEwujBWM+kBZkNPlVZ4tclosmQUNCSNrhBrGOnf8lZv+AiEAv/VRaBGk1tN6jMvl7M9XbxwyDi86tD+Nc+tvrI4GaOU="
+$ cat artifact.bundle | jq -r '.rekorBundle.Payload.body' | base64 -d - | jq '.spec.signature.content'
+"MEUCIEwujBWM+kBZkNPlVZ4tclosmQUNCSNrhBrGOnf8lZv+AiEAv/VRaBGk1tN6jMvl7M9XbxwyDi86tD+Nc+tvrI4GaOU="
+```
+We can check the cert field using:
 ```console
 $ cat artifact.bundle | jq  -r '.cert' | base64 -d -
 -----BEGIN PUBLIC KEY-----
@@ -701,6 +709,8 @@ The `bundleHash` is then compared with the `payloadHash`:
 I'm not exactly sure where the bundleHash is encoded from hex to string, but it
 looks like that must be happening. Perhaps this is part of the marshalling into
 a Record.
+
+So we know that we need sha256sum of the blob.
 
 _wip_
 
