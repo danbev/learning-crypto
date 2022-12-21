@@ -1022,10 +1022,15 @@ $ cat artifact.bundle | jq
   }
 }
 ```
-`base64Signature` is the signature of created by cosign and is the same as will
-be in the output of the `cosign sign-blob` command.
-`cert` will be the certificate for the private key that was used create the
-signature.
+`base64Signature` is the same as the signature in the rekor.Payload.body. This
+is something that I missed initially that the bundle64Sigature field and the
+signature in the payload content are the same:
+```console
+$ cat artifact.bundle | jq '.base64Signature'
+"MEUCIEwujBWM+kBZkNPlVZ4tclosmQUNCSNrhBrGOnf8lZv+AiEAv/VRaBGk1tN6jMvl7M9XbxwyDi86tD+Nc+tvrI4GaOU="
+$ cat artifact.bundle | jq -r '.rekorBundle.Payload.body' | base64 -d - | jq '.spec.signature.content'
+"MEUCIEwujBWM+kBZkNPlVZ4tclosmQUNCSNrhBrGOnf8lZv+AiEAv/VRaBGk1tN6jMvl7M9XbxwyDi86tD+Nc+tvrI4GaOU="
+```
 
 `SignedEntryTimestamp` is a signature of the `logIndex`, `body`, and
 the `integratedTime` time fields created by Rekor.
@@ -1086,7 +1091,6 @@ $ curl --silent https://rekor.sigstore.dev/api/v1/log/entries?logIndex=4874058 |
 ```
 Notice the `signature` elemnent above, which contains a content. Could this
 be the signature of the content?
-
 
 Lets take a look at the `spec.signature.publicKey.content` to see what it is:
 ```console
