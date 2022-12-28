@@ -619,6 +619,15 @@ understanding is that the x coordinate is sent and a bit that specifies if the
 y coordinate is positive or negative. The receiver can then solve for y and will
 get two valid values for y but knows by inspecting the bit which it should use.
 
+
+### Prime order groups
+Are groups with a prime number of elements. Every element can generate/reach
+all the other elements in the group, except zero.
+
+### Cofactor
+TODO:
+
+
 ### EcdsaP256Sha256
 This specified that ECDSA which is specified in
 [SEC1](https://www.secg.org/sec1-v2.pdf) is to be used. And that the domain
@@ -630,3 +639,17 @@ And that the hashing algorithm needs to be SHA-256.
 
 __wip__
 
+### ecPublicKey
+Is the name/description of the asymmetric encryption algorithm for ECC which
+has the following object identifier:
+```
+1.2.840.10045.2.1 
+```
+### Weirstrass curve/form
+```
+^
+y² = x³ + ax + b
+```
+
+### Montgomery curve
+Was published in 1987 by Peter L. Montgomery
