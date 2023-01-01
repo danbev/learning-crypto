@@ -614,7 +614,7 @@ prime256v1      (which is the same as P-256 and sepc256r1)
 As mentioned earlier the public key is a point on the curve, calculated by using
 the generator/base element times the private key (integer). Being a point means
 that it has an x and y coordinate. Instead of sending both the x and y
-coordinate only one can be sent, and the other can be solved for. My
+coordinate only one of them can be sent, and the other can be solved for. My
 understanding is that the x coordinate is sent and a bit that specifies if the
 y coordinate is positive or negative. The receiver can then solve for y and will
 get two valid values for y but knows by inspecting the bit which it should use.
@@ -624,8 +624,13 @@ get two valid values for y but knows by inspecting the bit which it should use.
 Are groups with a prime number of elements. Every element can generate/reach
 all the other elements in the group, except zero.
 
+### Order
+Order refers to the number of elements in a group, but order is also used when
+talking about how many elements a given element can generate/reach.
+
 ### Cofactor
-TODO:
+Now, what we would like is to have a group which as an order or a large prime,
+but the simpler and more efficient EC curves don't provide that.k
 
 
 ### EcdsaP256Sha256
