@@ -1,9 +1,9 @@
 ## Subject Public Key Info I (SPKI)
 In section [Section 4.1.2.7](https://datatracker.ietf.org/doc/html/rfc5280#section-4-1-2-7)
 we can find out that this is a type that contains the public key and the
-algorithm used the key is use with. This can be RSA, DSA, DH.
+algorithm the key is to be used with. This can be RSA, DSA, DH.
 
-
+ASN1 definition:
 ```
 SubjectPublicKeyInfo ::= SEQUENCE {
   algorithm AlgorithmIdentifier,

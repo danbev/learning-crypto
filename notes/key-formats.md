@@ -190,6 +190,9 @@ NIST CURVE: P-256
 
 ### EC Subject Public Key Information (spki)
 
+### BEGIN PUBLIC KEY
+If a public key starts with this is is of type X.509 SubjectPublicKeyInfo. 
+See [spki.md](./spki.md) form more information.
 
 ## Rust example
 An example of parsing EC keys can be found in [ec-parse.rs](https://github.com/danbev/learning-rust/blob/master/crypto/src/ec-parse.rs)
