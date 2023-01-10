@@ -78,7 +78,7 @@ So for a group we need:
 * the group operation must be closed (can't add points and suddenly have a points
 that is off the curve.
 * the group operation must be associative.
-* there must be a element called the neutral/identity element.
+* there must be an element called the neutral/identity element.
 * for each element in the group thre must be an inverse of each element.
 
 ### Group operation
@@ -206,10 +206,10 @@ The negative/inverse (opposite) of `P` is:
 ```
 
 ### EC Discrete Logarithm Problem (EC-DLP)
-Elliptic curve as a cyclic group (not all curves form a cyclic group), for
+Elliptic curve has a cyclic group (not all curves form a cyclic group), for
 example:
 ```
-E: y² = x³ +2x + 2 mod 17
+E: y² = x³ + 2x + 2 mod 17
 ```
 For the group to be cyclic we need a `generator/primitive` element which can
 generate points on the curve.
@@ -349,19 +349,19 @@ We have an eliptic curve and a primitive element (generator), and remember that
 this is required for a cyclic group, and we have another element T.
 
 The generator is able to generate all points in the group/curve. So T is one
-of those points that can gotten to by performing the group operation on the
-generator a specific number.
+of those points that can reached by performing the group operation on the
+generator a specific number of times.
 
 ```text
     [ d number of times we use the group operator `+`]
-T = P + P + ... + P      = dP 
+T = P + P +                                   ... + P  = dP 
 
 T = element in the group/set
 P = generator element
 d = number of times we perform the group operation to generate/get T.
 ```
 
-Now the DL problem is given P, find the value of `d`, the number of times we
+Now the DL problem is: given P, find the value of `d`, the number of times we
 did `P + P` to get to `T`.
 
 So we would know `P` and `T`, and want to find out how many times `P` was added
@@ -371,8 +371,7 @@ To visualize this we are given the starting point, the generator. And we are
 also given T which is destination/final point. And d is the number of hops to
 get there.
 
-So to generate a the T, the public key, it looks like we only need to perform
-`dP`.
+So to generate T, the public key, it looks like we only need to perform `dP`.
 
 `T` is the `public key` in crypto, and `d`, the number of jumps,
 group operations, on the curve is the `private key`.
@@ -422,14 +421,13 @@ computation is quite complex/expensive. This is one reason that standard curves
 are defind. For example, NIST defines standard curves and these specify the
 number of points on the curve as part of the standard.
 
-
 ## Standard Curves
 Standard curves provide different curves equations, and also specify the
 generator element, and the cooficients `a` and `b`.
 ```
    y² = x³ + ax + b mod p
 ```
-The we chose values for our private key, which is d, and compute (hop/jump)
+Then we chose values for our private key, which is d, and compute (hop/jump)
 T our public key.
 
 
@@ -471,6 +469,7 @@ a = Kpiv = A ∈ {2, 3,...,#E-1}             b = Kpiv = B ∈ {2, 3,...,#E-1}
 
 A = Kpub = aP = (x_A, y_A)                 B = Kpub = bP = (x_B, y_B)
 (A is a point on the curve)                (B is a point on the curve)
+(P is the generator)                       (P is the generator)
 
                                  A
                           ---------------->
@@ -490,8 +489,8 @@ a*B = a(bP) = a*b*p
 
 b*A = b(a*P) = a*b*p
 ```
-They can now use either the x or the y value for encryption, for example as the
-key in AES:
+They can now use either the `x` or the `y` value for encryption, for example as
+the key in AES:
 ```
 
  C = AES(message, X_AB)   ---------C------> AES⁻¹(C, x_AB) = message
@@ -552,15 +551,15 @@ number of standards, for example:
 * [SEC2](https://secg.org/sec2-v2.pdf) Recommened EC Domain parameters (2.0)
 * [SEC4](https://secg.org/sec4-1.0.pdf) EC Qu Implicit Certificate
 
-So notice that SEC1 contains the elliptic curve algoritm 
+Notice that SEC1 contains the elliptic curve algoritm.
 
 ### SEC1
 This is a standard that includes the ECC schemas, like signature, encryption,
 and key agreement.
 
 ### SEC2
-So this spec deals with the domain parameters which can be used with the
-schemas defined in SEC1 (I think).
+This spec deals with the domain parameters which can be used with the schemas
+defined in SEC1 (I think).
 This does not mean that the curves are defined in this document but it does
 specify how curves should be used.
 
@@ -575,8 +574,8 @@ secp256k1          256 key length
 The r in secp256r1 stands for random.
 The k in secp256k1 stands for Koblitz.
 ```
-The difference between random and Koblitz is that there the Koblitz domain
-paremeteres have some special properties that allows the group operation to be
+The difference between random and Koblitz is that the Koblitz domain
+parameters have some special properties that allows the group operation to be
 implemented in a more performat manner. The actual curve is in the same form for
 both of these but it is the cooffients that are the following:
 Koblitz:
@@ -590,8 +589,7 @@ a = FFFFFFFF 00000001 00000000 00000000 00000000 FFFFFFFF FFFFFFFF FFFFFFFC
 b = 5AC635D8 AA3A93E7 B3EBBD55 769886BC 651D06B0 CC53B0F6 3BCE3C3E 27D2604B
 ```
 Apparently there are concerns that the random values might actually provide a
-a backdoor.
-Bitcoin chose Koblitz for performance.
+a backdoor.  Bitcoin chose Koblitz for performance.
 
 ## ECC Brainpool
 https://tools.ietf.org/html/rfc5639
