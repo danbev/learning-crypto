@@ -33,7 +33,7 @@ pub trait VerificationConstraint: std::fmt::Debug {
    fn verify(&self, signature_layer: &SignatureLayer) -> Result<bool>;
 }
 ```
-So the verifies something that is a SignatureLayer, lets take a closer look at
+So this verifies something that is a SignatureLayer, lets take a closer look at
 it. This is a struct defined in `src/cosign/signature_layers.rs`
 ```rust
 pub struct SignatureLayer {
@@ -47,6 +47,7 @@ pub struct SignatureLayer {
 ```
 `SimpleSigning` is a rust implementation of Red Hat's
 [Simple Signing Spec](https://www.redhat.com/en/blog/container-image-signing).
+
 So each signature will have a SimpleSigning which in json format looks like
 this:
 ```json
@@ -127,15 +128,16 @@ In the existing verify example the image name will be passed to triangulate:
     let (cosign_signature_image, source_image_digest) = client.triangulate(image, auth).await?;
 ```
 This function is what provides the image manifest digest (source_image_digest)
-mentioned previously, and also the `cosign_signature_image` is the image that
-holds the signature created by cosign. For more details about how this works see
-[Container Image Signing](https://github.com/danbev/learning-crypto/blob/main/notes/sigstore.md#continer-image-signing). So that will reach out to the OCI registry and get
-cosgin_signature_image which is the image that contains the signature, and the
-source_image_digest is the digest of the container to be verified I think.
+mentioned previously, and also the `cosign_signature_image` which is the image
+that holds the signature created by cosign. For more details about how this
+works see [Container Image Signing](https://github.com/danbev/learning-crypto/blob/main/notes/sigstore.md#continer-image-signing).
+So that will reach out to the OCI registry and get `cosign_signature_image`,
+which is the image that contains the signature, and the `source_image_digest` is
+the digest of the container (a manifest) to be verified I think.
 
 So back to SignatureLayer, after the simple_signing field we have an oci_digest
-then an optional cerfificate_signature, an optional bundle, and optional
-signature, and finally raw_data.
+then an optional certificate_signature, an optional bundle, and optional
+signature, and finally a raw_data field.
 
 This data is then passed to:
 ```rust
@@ -219,7 +221,7 @@ $ cat artifact.bundle | jq
 }
 ```
 `base64Signature` is the same as the signature in the rekor.Payload.body. This
-is something that I missed initially that the bundle64Sigature field and the
+is something that I missed initially that the bundle64Signature field and the
 signature in the payload content are the same:
 ```console
 $ cat artifact.bundle | jq '.base64Signature'
@@ -390,8 +392,8 @@ s2PKQcdoD9bXwgIwX6zLjybZkNHP5xtBp7vK2FYeZt0OWLRlUllcUDL3T/7JQfwc
 GSq6vVBNwJ00w9HR
 -----END CERTIFICATE-----
 ```
-The process of verifying need to verify the signature of the bundle using
-the base64Signature and cert fields. And it also need to verify signature of
+The process of verifying needs to verify the signature of the bundle using
+the base64Signature and cert fields. And it also need to verify the signature of
 the Payload using the certificate in the payload.
 
 So to sign a blob offline do we really have to go through the process of
@@ -405,7 +407,7 @@ $ cosign verify-blob --bundle=artifact.bundle artifact.txt
 So we are passing in the bundle and the blob (which is just a text file in
 this case).
 
-VerifyBlobCmd first extracts the base64Signature from the bundle:
+`VerifyBlobCmd` first extracts the `base64Signature` from the bundle:
 ```go
 func (c *VerifyBlobCmd) Exec(ctx context.Context, blobRef string) error {
   ...
@@ -441,7 +443,7 @@ And recall that this is the signature of the bundle and not the signature of the
 the bundle payload, the actual blob. I initially got this mixed up and is the
 reason for stating this several times).
 
-LocalSignedPayload is the equivalent of SignedArtifactBundle in sigstore-rs.
+`LocalSignedPayload` is the equivalent of SignedArtifactBundle in sigstore-rs.
 And notice the field `base64Signature` is what is being returned here. So, `sig`
 is that field when we return to `VerifyBlobCmd`:
 ```go
@@ -475,8 +477,8 @@ if c.BundlePath != "" {
   opts = append(opts, static.WithBundle(b.Bundle))
 }
 ```
-This is parsing the `cert` fields which can be  public key or a certificate with
-A public key and can be used for verifying the bundle's signature
+This is parsing the `cert` fields which can be a public key or a certificate
+with a public key, and can be used for verifying the bundle's signature
 (base64Signature).
 
 Notice that this is again marshalling a LocalSignedPayload: TODO: could this
@@ -553,8 +555,8 @@ func verifyOCISignature(ctx context.Context, verifier signature.Verifier, sig pa
                                     options.WithContext(ctx))
 }
 ```
-But that function is not executed yet, only the pointer to it is passed to
-`verifyInternal`:
+But that function is not executed yet, only the pointer to the function is
+passed to `verifyInternal`:
 ```go
 func verifyInternal(ctx context.Context, sig oci.Signature, h v1.Hash,
 	verifyFn signatureVerificationFn, co *CheckOpts) (
@@ -627,7 +629,7 @@ $ cat artifact.bundle | jq '.base64Signature'
 $ cat artifact.bundle | jq -r '.rekorBundle.Payload.body' | base64 -d - | jq '.spec.signature.content'
 "MEUCIEwujBWM+kBZkNPlVZ4tclosmQUNCSNrhBrGOnf8lZv+AiEAv/VRaBGk1tN6jMvl7M9XbxwyDi86tD+Nc+tvrI4GaOU="
 ```
-When the blob is signed and signature is [attached](https://github.com/sigstore/cosign/blob/3bbdf16c7ec69562edb94a4b3114f441179c8c21/cmd/cosign/cli/sign/sign_blob.go#L124) to the
+When the blob is signed and the signature is [attached](https://github.com/sigstore/cosign/blob/3bbdf16c7ec69562edb94a4b3114f441179c8c21/cmd/cosign/cli/sign/sign_blob.go#L124) to the
 LocalSignedPayload which is the serialized and written to disk:
 ```go
 // if bundle is specified, just do that and ignore the rest
