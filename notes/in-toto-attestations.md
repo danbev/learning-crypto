@@ -46,6 +46,24 @@ provides a way to knowing how to interpret the predicate field.
 Examples of predicate types are `SLSA Provenance`, `Link` from in-toto 0.9, or
 a `SPDX` document type.
 
+NPM also uses this for it publish attestation:
+```json
+{
+  "_type": "https://in-toto.io/Statement/v0.1",
+  "subject": [{
+    "name": "pkg:npm/@scope/package-foo@1.4.3",
+    "digest": { "sha512": "41o0P/CEffYGDqvo2pHQXRBOfFOxvYY3WkwkQTy..." }
+  }],
+  "predicateType": "https://github.com/npm/attestation/tree/main/specs/publish/v0.1",
+  "predicate": {
+    "name": "@scope/package-foo",
+    "version": "1.4.3",
+    "registry": "https://registry.npmjs.org",
+  }
+}
+```
+The `digest` in this case is the sha512sum of the published tar file.
+
 Just keep in mind that the predicate is part of the Statement, which is base64
 encoded, and then included in the `payload` field of the Envelope.
 
