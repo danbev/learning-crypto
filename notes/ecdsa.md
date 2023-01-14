@@ -4,6 +4,117 @@ used with DSA.
 
 For some background on DSA see [dsa.md](./dsa.md).
 
+```
+Elliptic curve                    : y² = x³ + ax + b (mod p) 
+Base point/Generator on the Curve : G
+Private key                       : k  (integer)
+Public key                        : Gᵏ (group '+' operation, so G + G + G + ... k times)
+                                    This is a point on the curve, (x, y)
+```
+
+The actual parameters to be used can be one of many which means that there are
+different values for the following parameters:
+* a (which is one the cooffients of the ellipse curve)
+* b (which is one the cooffients of the ellipse curve)
+* n (which is the total number of points on the curve, this used for mod n)
+* prime number
+
+For secp256k1 the values would be:
+```
+a = 0
+b = 7
+So those values get plugged into:
+  y² = x³ + ax + b (mod p) 
+
+n = 115792089237316195423570985008687907852837564279074904382605163141518161494337 (prime number)
+    (order of the curve)
+
+Generator point G
+{
+  x = 55066263022277343669578718895168534326250603453777594175500187360389116729240,
+  y = 32670510020758816978083085130507043184471273380659243275938904335757337482424
+}
+```
+### Key generation
+The key generation will look like this:
+```
+private key (integer): random value in [0..n-1]. 32 bytes, 256 bits
+
+public key: private key * G  (G + G + G + ... n times)
+            So the public key will be a point on the curve.
+```
+The public key can be compressed to just on coordinate, either x or y + a
+parity bit.
+
+### Signing
+So lets take a look at signing
+```
+// signature consist of two values, r and s
+let (r, s) = sign(message, private_key);
+```
+Where `r` and `s` are integers. More about these values can be found below.
+
+Lets say we have our message, the first thing we do is to get a hash value of
+the message using the hashing algorithm for the curve in question:
+```
+let h = hash(message);
+```
+Next, we generate a random value `k`:
+```
+let k = [1..n-1] | h + private_key;
+```
+The second option is called deterministic ECDSA (or something like that).
+TODO: read up on deterministic ECDSA.
+Notice that this is similar to the private key, but the range here does not
+include 0.
+
+Next we calculate a random point R on the curve:
+```
+let R = k * G;
+```
+Notice that this is very simliar to how we calculate the public key, but instead
+of using the private_key as the scalar the random `k` value is used.
+R, like the public key, will be a point on the curve. In this case we only take
+the x coordinate value and save that as r:
+```
+let r = R.x;
+```
+
+Next, we calculate the signature proof:
+```
+let s = k⁻¹ * (h + r * private_key) (mod n)
+```
+_wip_
+
+So we find the inverse of the random value k that we generated before. And this
+step is using the hash `h` so it is including knowledge of the hash value. The
+private key is also used which proves that the signer had the private key.
+
+And the the signature is the value of r and s which are then returned.
+The values r and s are integers both within the group, so in the range [1..n-1].
+
+To verify the signature we go through the following steps:
+```
+ let valid: bool = verify(message, Signature {r, s}, public_key);
+```
+First verify calculates the hash of the message:
+```
+let hash = sha256sum(message);
+```
+```
+let s¹ = s⁻¹ (mod 1)
+```
+```
+  let r′ = (hash * s¹) * G + (r * s1) * public_key
+  // r′ will be a point on the curve, {x,y}
+  if r′ == r {
+     Ok(true)
+  } else {
+     Ok(false)
+  }
+```
+
+
 
 ### asn.1 format
 The following is in hex, which means that each character is 1 byte
