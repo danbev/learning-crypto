@@ -84,6 +84,146 @@ Next, we calculate the signature proof:
 ```
 let s = k⁻¹ * (h + r * private_key) (mod n)
 ```
+Notice what goes into this integer `s`, we have the hash `h`, the x coordinate
+of the random point on the curve we generate using `k`, and we have the
+private key (which like `k` is an integer).
+
+Finally, (r,s) is returned as the output of the signature function and this
+is the signature.
+```console
+$ openssl ecparam -name secp256k1 -genkey -noout -out ec-secp256k1-priv-key.pem
+```
+Lets take a closer look at the private key:
+```console
+$ cat ec-secp256k1-priv-key.pem 
+-----BEGIN EC PRIVATE KEY-----
+MHQCAQEEIMyUMS/Dr2gId03jsdbjYPx0aS06OBVhSAbGA2CbtRMAoAcGBSuBBAAK
+oUQDQgAEbDBmX6Eq+xGna0+dIKD3ighEbWFRDITBrTaxT0T4oKBcz01LK0sHKP3F
+VljanOa/ECwwia9DaMbu8TIquM9N7g==
+-----END EC PRIVATE KEY-----
+```
+So this is a structure that holds the actual key and we can parse this into
+its ASN1 format using:
+```console
+$ openssl asn1parse -i -in ec-secp256k1-priv-key.pem 
+    0:d=0  hl=2 l= 116 cons: SEQUENCE          
+    2:d=1  hl=2 l=   1 prim:  INTEGER           :01
+    5:d=1  hl=2 l=  32 prim:  OCTET STRING      [HEX DUMP]:CC94312FC3AF6808774DE3B1D6E360FC74692D3A3815614806C603609BB51300
+   39:d=1  hl=2 l=   7 cons:  cont [ 0 ]        
+   41:d=2  hl=2 l=   5 prim:   OBJECT            :secp256k1
+   48:d=1  hl=2 l=  68 cons:  cont [ 1 ]        
+   50:d=2  hl=2 l=  66 prim:   BIT STRING 
+```
+Notce that the octet string contains 32 hex values:
+```
+CC 94 31 2F C3 AF 68 08 77 4D E3 B1 D6 E3 60 FC 74 69 2D 3A 38 15 61 48 06 C6 03 60 9B B5 13 00
+```
+And the decimal value of that is:
+```console
+$ echo "ibase=16;CC94312FC3AF6808774DE3B1D6E360FC74692D3A3815614806C603609BB51300" | env BC_LINE_LENGTH=0 bc -l
+92533653949870085077092314185110289550130387703853847228490949558700703290112
+```
+And using the private key we can generate the public key using:
+```console
+$ openssl ec -in ec-secp256k1-priv-key.pem -pubout > ec-secp256k1-pub-key.pem
+```
+```console
+$ cat ec-secp256k1-pub-key.pem 
+-----BEGIN PUBLIC KEY-----
+MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEbDBmX6Eq+xGna0+dIKD3ighEbWFRDITB
+rTaxT0T4oKBcz01LK0sHKP3FVljanOa/ECwwia9DaMbu8TIquM9N7g==
+-----END PUBLIC KEY-----
+```
+And looking at this we can/might be able to see that this is a general format,
+there is not indication about what type of public key this is.
+```console
+$ openssl asn1parse -i  -in ec-secp256k1-pub-key.pem 
+    0:d=0  hl=2 l=  86 cons: SEQUENCE          
+    2:d=1  hl=2 l=  16 cons:  SEQUENCE          
+    4:d=2  hl=2 l=   7 prim:   OBJECT            :id-ecPublicKey
+   13:d=2  hl=2 l=   5 prim:   OBJECT            :secp256k1
+   20:d=1  hl=2 l=  66 prim:  BIT STRING
+```
+```console
+$ openssl ec -pubin -in ec-secp256k1-pub-key.pem -text
+read EC key
+Public-Key: (256 bit)
+pub:
+    04:6c:30:66:5f:a1:2a:fb:11:a7:6b:4f:9d:20:a0:
+    f7:8a:08:44:6d:61:51:0c:84:c1:ad:36:b1:4f:44:
+    f8:a0:a0:5c:cf:4d:4b:2b:4b:07:28:fd:c5:56:58:
+    da:9c:e6:bf:10:2c:30:89:af:43:68:c6:ee:f1:32:
+    2a:b8:cf:4d:ee
+ASN1 OID: secp256k1
+writing EC key
+-----BEGIN PUBLIC KEY-----
+MFYwEAYHKoZIzj0CAQYFK4EEAAoDQgAEbDBmX6Eq+xGna0+dIKD3ighEbWFRDITB
+rTaxT0T4oKBcz01LK0sHKP3FVljanOa/ECwwia9DaMbu8TIquM9N7g==
+-----END PUBLIC KEY-----
+```
+Not the public key has 65 hex values if I'm not mistaken. So I'm thinking that
+this is not in compressed form: 
+```
+04 6c 30 66 5f a1 2a fb 11 a7 6b 4f 9d 20 a0
+f7 8a 08 44 6d 61 51 0c 84 c1 ad 36 b1 4f 44 
+f8 a0 a0 5c cf 4d 4b 2b 4b 07 28 fd c5 56 58 
+da 9c e6 bf 10 2c 30 89 af 43 68 c6 ee f1 32 
+2a b8 cf 4d ee
+```
+To see the compressed form we can use:
+```console
+$ openssl ec -pubin -in ec-secp256k1-pub-key.pem -text -conv_form compressed
+read EC key
+Public-Key: (256 bit)
+pub:
+    02:6c:30:66:5f:a1:2a:fb:11:a7:6b:4f:9d:20:a0:
+    f7:8a:08:44:6d:61:51:0c:84:c1:ad:36:b1:4f:44:
+    f8:a0:a0
+ASN1 OID: secp256k1
+writing EC key
+-----BEGIN PUBLIC KEY-----
+MDYwEAYHKoZIzj0CAQYFK4EEAAoDIgACbDBmX6Eq+xGna0+dIKD3ighEbWFRDITB
+rTaxT0T4oKA=
+-----END PUBLIC KEY-----
+```
+Let create something that we can sign:
+```
+$ echo something > blob
+```
+And now create a signature for that file:
+```console
+$ openssl pkeyutl -sign -inkey ec-secp256k1-priv-key.pem -in blob > signature
+```
+So the signature 
+```console
+$ xxd signature 
+00000000: 3046 0221 00c2 799e b372 68fa 807e f195  0F.!..y..rh..~..
+00000010: 4531 e2dc c70f 67c9 89de c3de d3c1 6637  E1....g.......f7
+00000020: 304e b08f 5c02 2100 9cb8 086f 7c07 4f12  0N..\.!....o|.O.
+00000030: 7924 605d f565 dde0 528c c89c 302f cdfc  y$`].e..R...0/..
+00000040: 404e aed1 8e3b ee95                      @N...;..
+```
+An ASN1 Sequence has the hex value of 30 so lets try parsing this as a ASN1
+structure:
+```console
+$ openssl asn1parse -i  -in signature -inform der
+  0:d=0  hl=2 l=  70 cons: SEQUENCE          
+   2:d=1  hl=2 l=  33 prim:  INTEGER   :C2799EB37268FA807EF1954531E2DCC70F67C989DEC3DED3C16637304EB08F5C
+   37:d=1  hl=2 l=  33 prim:  INTEGER  :9CB8086F7C074F127924605DF565DDE0528CC89C302FCDFC404EAED18E3BEE95
+```
+So I'm thinking that the first integer is `r` and the second is `s`.
+
+And we can verify using the following command:
+```console
+$ openssl pkeyutl -in blob -inkey ec-secp256k1-pub-key.pem -pubin -verify -sigfile signature
+Signature Verified Successfully
+```
+If we make a change to the blob the verification will fail:
+```console
+$ openssl pkeyutl -in blob -inkey ec-secp256k1-pub-key.pem -pubin -verify -sigfile signature
+Signature Verification Failure
+```
+
 _wip_
 
 So we find the inverse of the random value k that we generated before. And this
