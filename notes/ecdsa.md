@@ -213,7 +213,91 @@ $ openssl asn1parse -i  -in signature -inform der
 ```
 So I'm thinking that the first integer is `r` and the second is `s`.
 
-And we can verify using the following command:
+### Verifying
+The verify function takes as input the message, the signature {r, s}, and the
+public key (point on the curve).
+
+1) The message is hashed:
+```
+let h = hash(message);
+```
+
+2) The modular inverse of s, mod n, is calculated:
+```
+let s1 = s⁻¹ (mod n)
+```
+Recall that s is an integer.
+
+3) Recover the random point R used during the signing:
+```
+let R′ = (h * s1) * G + (r * s1) * pub_key
+let r′ = R′.x;
+```
+But don't we already know the value of R, or at least the x coordinate, as it
+is passed in as one of the values of the signature tuple?  
+Well, we are passed that value but that is the value that we are going to check
+against to make sure they are the same. So we need to calculate this and notice
+that we are using the hash.
+
+4) Compare r′ == r
+Recall that r is only the x coordinate part of the random point.
+
+So lets try to understand this. We start with how the signature value s is
+created:
+```
+let private_key = random[0..n-1];
+let public_key = private_key * G;
+let k = random[1..n-1] | h + private_key;
+let R = k * G;
+let r = R.x;
+
+let s = k⁻¹ * (h + r * private_key) (mod n)
+
+let signature = Signature{r, s};
+```
+So this value encodes information about the hash of the message, the x
+coordinate of the random point R, and the private key.
+
+```
+let R′ = (h * s1) * G + (r * s1) * pub_key
+```
+We can expand/replace the `pub_key` with how it was generated which was using
+`private_key * G`:
+```
+let R′ = (h * s1) * G + (r * s1) * private_key * G
+```
+And we can rewrite this as:
+```
+let R′ = (h * s1) * G + (r * s1) * private_key * G
+let R′ = (h + r * private_key) * s1 *  G;
+```
+And `s1` was calculated using which we can rewrite as:
+```
+let s = k⁻¹ * (h + r * private_key) (mod n)
+
+let s1 = s⁻¹ (mod n)
+// replace s with
+let s1 = (k⁻¹ * (h + r * private_key))⁻¹ (mod n)
+// Now we take the invers of k and the inverse of (h + r * private_key)
+let s1 = k * (h + r * private_key)⁻¹ (mod n)
+```
+And we take this representation of `s` and replace `s1` in the following
+expression:
+```
+let R′ = (h + r * private_key) * s1 *  G;
+                
+let R′ = (h + r * private_key) * k * (h + r * private_key)⁻¹ (mod n) *  G;
+```
+Recall that `x⁻¹ * x = 1`, so (h + r * private_key) and (h + r * private_key)⁻¹
+will become 1
+```
+let R′ = 1 * k * (mod n) *  G;
+let R′ = k * G (mod n);
+```
+Notice that is the same point that was calculated by the sign function.
+
+
+We can verify using the following command:
 ```console
 $ openssl pkeyutl -in blob -inkey ec-secp256k1-pub-key.pem -pubin -verify -sigfile signature
 Signature Verified Successfully
