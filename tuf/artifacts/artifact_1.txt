@@ -1,0 +1,1 @@
+version 1 of artifact_1
