@@ -1,39 +1,155 @@
 ## The Update Framework (TUF)
-This is a "design framework" for performing software updates in a reliable and
-verifiable way. So don't think of TUF as a software framework but more along
-the lines of design guidelines (?).
 
-[specification](https://theupdateframework.github.io/specification/latest/).
+This document is an attempt to get some hands-on experience with TUF. The goal
+is that having examples will help understand TUF as I've found just reading has
+not made it "stick" with me.
 
-This document is an attempt to get some hands-on experience with TUF and
-hopefully understand it better. I've read about TUF several times but I've had
-to refresh my knowledge about it and I've not been 100% sure what it actually is
-as I've only read about it. Seeing some examples will hopefully help me
-understand and make this all stick.
+As the name "The Update Framework" implies this is a framework for update
+systems, and doing so in a secure way. What is getting updated is could be
+anything, it could be software packages, source files, certificates, public
+keys, etc. And by following this "framework" updates can be performed in a
+secure way.
 
-One of they main concepts in TUF is `key protection` which we will look into
-first.
+Producers want the thing they produce available to consumers, and they want to
+make sure that consumers are getting updates for these things. I'm using
+"things" just to make it clear that this does not have to be software packages
+which might be what first comes to mind.
+
+One problem is, how can producers be make sure that consumers are getting
+updated? 
+
+Lets take a look what this might look like without TUF:
+```
+  +-----------+     +---------------------+                      +----------+
+  | Producer  |     | Distribution server |                      | Consumer |
+  |-----------+     |---------------------+                      |----------|
+  | thing_v1  | --> | thing_v1            | -------------------> | thing_v1 |
+  +-----------+     +---------------------+                      +----------+
+```
+So we have a producer that has something that it makes available to consumser's
+via a distribution server. The consumer uses this thing by downloading it from
+the distribution server in some manner. If the distribution server just allows
+the consumer to poll and download the thing/artifact, then it will be up to the
+consumer code to decide when it should poll to check for updates and update if
+needed. 
+
+This is where TUF comes in and will introduce the framework for how the consumer
+should behave, and it also addresses a number of security concerns that might
+otherwise could lead to security vulnerabilties.
+
+For example, lets say that a man in the middle (MITM) attack is put in place
+and the consumer is no longer talking to the distribution server but instead
+to server controlled by an attacker which provides the consumer with a malicious
+artifacts:
+```
+  +-----------+     +---------------------+     +----------+     +----------+
+  | Producer  |     | Distribution server |     | MITM     |     | Consumer |
+  |-----------+     |---------------------+     |          |     |----------|
+  | thing_v1  | --> | thing_v1            |     | evil_v1  | --> | thing_v1 |
+  +-----------+     +---------------------+     +----------+     +----------+
+```
+
+An attacker may also target the distribution server itself and modify the
+artifacts that the consumers download:
+```
+  +-----------+     +---------------------+                      +----------+
+  | Producer  |     | Distribution server |                      | Consumer |
+  |-----------+     |---------------------+                      |----------|
+  | thing_v1  | --> | thing_v1 (evil_v1)  | ------------------>  | thing_v1 |
+  +-----------+     +---------------------+                      +----------+
+```
+This type of attack is refered to as `Arbitary software installation`.
+
+Another attack against the distribution server is where the attacker prevents
+the consumer from getting updates, and instead provides the consumer with an
+older version which might contain a known vulnerabilty.
+
+This would be the current state where the correct/latest version is being used:
+```
+  +-----------+     +---------------------+                      +----------+
+  | Producer  |     | Distribution server |                      | Consumer |
+  |-----------+     |---------------------+                      |----------|
+  | thing_v3  | --> | thing_v3            | ------------------>  | thing_v3 |
+  +-----------+     +---------------------+                      +----------+
+```
+The attacker then changes the version on the distribution server to an older
+version, causing the consumer to downgrade, or rollback to that version:
+```
+  +-----------+     +---------------------+                      +----------+
+  | Producer  |     | Distribution server |                      | Consumer |
+  |-----------+     |---------------------+                      |----------|
+  | thing_v3  | --> | thing_v2 (evil_v2)  | ------------------>  | thing_v2 |
+  +-----------+     +---------------------+                      +----------+
+```
+This type of attack is refered to as `Rollback attack`.
+
+There are other [attacks](https://theupdateframework.io/security/) but these
+I found help me understand a little more about the metadata that is provided
+by TUF. There is a need to know what version are on the distribution server,
+which from now on I'll call the TUF repository. 
+
+A simplified overview of this can be seen below and I'll going into more
+details later in the document.
+
+What I'd like to convey with this is that the producer will update the TUF
+repository by creating `metadata` about the artifact(s) that are going to be
+made available. This metadata is signed by one or more keys.
+The motivation for signing is that we want to prevent the situation above where
+an attacker is able to replace an artifact with an older version, or a modified
+version.
+
+Having the metadata signed for each version means that it would not be
+possible for an attacker to do this as the TUF client framework will verify
+signatures.
+
+TUF overview:
+```
+  +-----------+         +---------------------+               +--------------+
+  | Producer  |         | TUF Repository      | <-----------  | TUF Consumer |
+  |-----------+ update  |---------------------+               |--------------|
+  | thing_v1  | ------> | Metadata (signed)   | ------------> | Metadata     |
+  +-----------+         +---------------------+               +--------------+
+                                                ------------> | thing_v1     |
+                                                              +--------------+
+```
+Notice that in addition to the metadata that exists on the TUF repository there
+is also metadata on the TUF consumer/client side. This metadata is downloaded
+frequently resigned, and it has an short expiration date. This is how the the
+TUF framework enforces that updates actually take place. Because the TUF client
+framework checks the expiration and the signature of the metadata file, it
+can detect if the expiration date has passed. If there has not been any updates
+and the expiration date has passed, perhaps a certain number of times, it can
+take action to notify the client side software about this situation. This
+metadata is also signed as we don't want an attacker like a man in the middle
+to be able to server the client with an metadata file they crafted themselves.
+
+Hopefully this has provided an overview and some idea about the metadata and
+the signing in TUF. Later we will see a concrete example of the metadata files
+to get "feel" for what they look like.
+
+But lets start with of the main concepts in TUF is `key protection`.
 
 ### Key Protection
-Is about key management and preventing keys from leaking. The model it has is
-that keys will be leaked and that has to be delt with.
+Is about key management and preventing keys from leaking. The idea it has is
+that keys will be leaked/lost and that is a situation that need to be handled.
 
 Instead of having a single root key, there would be multiple root keys which
 are stored in different offline locations. And these keys are used to sign keys
-that can for other purposes.
+that can be used for other purposes.
 
-So we have a number of keys that are `offline`, meaning that hey are not used
-for signing stuff like software artifacts or things like that. Instead these
+So we have a number of keys that are `offline`, meaning that they are not used
+for signing things, like software artifacts or things like that. Instead these
 keys are often stored in separate locations and then used together to sign other
-keys, which are then used for `online` tasks, like signing software artifacts.
-These non-root keys can then be re-signed/revoked/rotated if/when needed.
+keys, which are then used for `online` tasks, like signing metadata describing
+artifacts.
+The non-root keys can then be re-signed/revoked/rotated if/when needed.
 
-TUF specifies four top level roles which are the `Root`, `Target`, `Timestamp`, and
-`Snapshot` roles.
+TUF specifies four top level roles which are the `Root`, `Target`, `Timestamp`,
+and `Snapshot` roles.
 The root role specifies which keys are trusted for the other roles.
 
 #### Root Role
-The root (keys) are offline and are used to sign other keys:
+The root (keys) are offline and are used to sign other keys. 
 ```
 
   +------------+ signs   +----------------+
@@ -108,7 +224,7 @@ $ tuftool root set-threshold root/root.json root 1
 $ tuftool root set-threshold root/root.json timestamp 1
 $ tuftool root set-threshold root/root.json targets 1
 ```
-And we can see that root.json has been updated:
+And we can see that `root/root.json` has been updated:
 $ cat root/root.json 
 {
   "signed": {
@@ -153,6 +269,7 @@ $ tuftool root gen-rsa-key root/root.json ./keys/root.pem --role root
 ```
 This will generate [keys/root.pem](../tuf/keys/root.pem) which is a private
 key in pkcs8 format. The hex value printed on above is the `key_id`.
+
 Now, if we again inspect `root.json` we find that a key has been added:
 ```console
 $ cat root/root.json
@@ -198,10 +315,14 @@ $ cat root/root.json
 ```
 Notice that the `keys` object has a field which is named after the `key_id` and
 that the `root` role has this `key_id` in its `keyids` array.
+And notice also that `keys` only includes the public key.
+
+Next, lets take a closer look at the four top level Roles in TUF.
 
 #### Target Role
-The Target role is a role/key which signs project artifacts, like software
-packages, source code, or whatever. 
+The Target role is a role that signs metadata files that describe the
+project artifacts, like software packages, source code, or whatever that is
+to be trusted.
 
 These keys are created using the Root keys
 ```           
@@ -233,9 +354,10 @@ $ tuftool root add-key root/root.json ./keys/root.pem --role targets
 ```
 
 #### Snapshot
-Snapshot keys are used to identify which versions of a target are in a
-repository at a certain time. This is used to know if there is an update
-available (remember its call The Update Framework).
+Snapshot roles signs a metadata file which contains information about the 
+latest version of the targets metadata. This is used to identify which versions
+of a target are in a repository at a certain time. This is used to know if there
+is an update available (remember its call The Update Framework).
 
 So, lets add a key to the snapshot role:
 ```console
@@ -512,21 +634,91 @@ $ cat repo/metadata/timestamp.json
 ```
 `snapshot.json` is refering to the file `repo/metadata/timestamp.json`.
 
-
-
 Finally, we have repo/metadata/1.root.json which is identical to root/root.json.
 
 So what we have been doing is setting up a repository which would be on a
-server somewhere. We can download the repo and inspect it:
+server somewhere.
+
+From a consumer of the artifact (software) they would use TUF to download the
+artifacts, and would specify the metadata and targets to download:
 ```console
 $ tuftool download \
    --root root/root.json \
-   -t "file://$PWD/repo/targets" \
-   -m "file://$PWD/repo/metadata" \
+   --targets-url "file://$PWD/repo/targets" \
+   --metadata-url "file://$PWD/repo/metadata" \
    downloaded-repo
 ```
+And we can inspect the downloaded file:
+```console
+$ cat downloaded-repo/artifact_1.txt 
+version 1 of artifact_1
+```
 
+Alright, now lets say we need create a new release of our target,
+artifact_1.txt. To do this we would use the tuftool update command. First we
+need to make a change to our artifact:
+```console
+$ echo "version 2 of artifact_1" > artifacts/artifact_1.txt
+```
+Now we can run the update command:
+```console
+$ tuftool update \
+   --root root/root.json \
+   --key keys/root.pem \
+   --add-targets artifacts \
+   --targets-expires 'in 3 weeks' \
+   --targets-version 2 \
+   --snapshot-expires 'in 3 weeks' \
+   --snapshot-version 2 \
+   --timestamp-expires 'in 1 week' \
+   --timestamp-version 2 \
+   --outdir repo \
+   --metadata-url file:///$PWD/repo/metadata
+```
+Now, after that command has been run there will have been a changes to
+`repo/metadata/timestamp.json`:
+```console
+$ cat repo/metadata/timestamp.json 
+{
+  "signed": {
+    "_type": "timestamp",
+    "spec_version": "1.0.0",
+    "version": 2,
+    "expires": "2023-01-24T12:49:36.580297365Z",
+    "meta": {
+      "snapshot.json": {
+        "length": 1004,
+        "hashes": {
+          "sha256": "05e44a53c09c018f812a7ffb59ecd147d4265c6ca2b10ba4e56a46397fb5d7ff"
+        },
+        "version": 2
+      }
+    }
+  },
+  "signatures": [
+    {
+      "keyid": "6e99ec437323f2c7334c8b16fd7a7a197829ba89ff50d07aa4b50fc9634dad9f",
+      "sig": "73995d97b2df1ebe2044152d054febad55100f0699ec199ebd1e237c57242c9e536a5a53b9198eda8f965c1434c9b75829b7a34f6294176e9cee24b140a0737fb3c1c3b7fe13466c4ea2622b18177e78a9440cfd2e66fd46f2041bcb139722e175491a355f83f9c8f7f8d44366daddadb79a123d9d4d8886eb46f92a8e16a2900beb3daeba72d6fa815b82d7ab49af4246e2148dbd41854eef309aabb7ca6598ca52195357b4d0537bdd61a228cce2c8ee24d66a0465b528a2552a9fac65497619480c62b2beecfea67f05994eb39bf021800eeb0fede3f4dcf1e8c1211cf429a0e8db2fcd5c2680d4873911eeb1e4067b9d7b50aa60e8668cfbb01ba343d901"
+    }
+  ]
+}
+```
+And we have two new metadata files, `repo/metadata/2.snapshot.json`, and
+`repoo/metadata/2.targets.json`.
 
+So lets simulate our downloading from the tuf server again:
+```console
+$ tuftool download \
+   --root root/root.json \
+   --targets-url "file://$PWD/repo/targets" \
+   --metadata-url "file://$PWD/repo/metadata" \
+   downloaded-repo2
+```
+And lets take a look at the artifact:
+```console
+$ cat downloaded-repo2/artifact_1.txt 
+version 2 of artifact_1
+```
 
 
 Keys that are more likely to be compromised are signed with offline keys and
@@ -557,3 +749,7 @@ rotated/resigned after that point.
 The roles mentioned later in this document talk about signing and this refers
 to signing of metadata information. The format in the spec is a canonical JSON
 format. So each role also has a metadata json file associated with it.
+
+
+### Specification
+[specification](https://theupdateframework.github.io/specification/latest/).
