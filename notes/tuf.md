@@ -175,7 +175,7 @@ Next we initiate a new `root.json` file using the following command:
 $ tuftool root init root/root.json
 ```
 This command will generate a file named [root.json](../tuf/root/root.json):
-```json
+```console
 $ cat root/root.json 
 {
   "signed": {
