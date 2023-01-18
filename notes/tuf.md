@@ -653,6 +653,11 @@ $ cat downloaded-repo2/artifact_1.txt
 version 2 of artifact_1
 ```
 
+### TUF usage in Sigstore
+Sigstore uses TUF to protect their keys and is one reason for trying to say
+things instead of software updates in the text above.
+TODO: expand on this...or is it too much for a single post?
+
 Keys that are more likely to be compromised are signed with offline keys and
 are used with specific purposes. For example, keys to publish software artifacts
 would be an example of a key that is more likely to be compromised as probably
