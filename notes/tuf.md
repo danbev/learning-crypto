@@ -219,6 +219,7 @@ $ tuftool root set-threshold root/root.json timestamp 1
 $ tuftool root set-threshold root/root.json targets 1
 ```
 And we can see that `root/root.json` has been updated:
+```
 $ cat root/root.json 
 {
   "signed": {
