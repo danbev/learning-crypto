@@ -531,7 +531,12 @@ targets to be sent to the client. Having the `snapshot.json` prevents this as
 it specifies which metadata files are included in a specific version and no
 other metadata files that may exist in the TUF repository are included.
 
-So that leaves us with `timestamp.json`:
+So that leaves us with `timestamp.json`. This is a file that is downloaded by
+the client and usually has a short expiration date. As mentioned before this is
+the part that allows the system to enforce that updates are actually reaching
+consumers, and if they are not they allow the consumer to take action.
+
+The metadata looks like this:
 ```console
 $ cat repo/metadata/timestamp.json 
 {
@@ -558,7 +563,8 @@ $ cat repo/metadata/timestamp.json
   ]
 }
 ```
-`snapshot.json` is refering to the file `repo/metadata/timestamp.json`.
+Notice that `snapshot.json` is refering to the file `1.timestamp.json` in the
+TUF repository. 
 
 Finally, we have repo/metadata/1.root.json which is identical to root/root.json
 which we saw previously.
@@ -602,7 +608,7 @@ $ tuftool update \
    --outdir repo \
    --metadata-url file:///$PWD/repo/metadata
 ```
-Now, after that command has been run there will have been a changes to
+After that command has been run there will have been a changes to
 `repo/metadata/timestamp.json`:
 ```console
 $ cat repo/metadata/timestamp.json 
