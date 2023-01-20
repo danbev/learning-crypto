@@ -403,7 +403,7 @@ Signing steps:
 * The keypair used are deleted
 * The signed artifact can be published.
 
-### Continer image signing
+### Container image signing
 The examples in this section can be found in the
 [container-image](../sigstore/container-image/) directory.
 
@@ -1213,3 +1213,220 @@ $ cosign verify-blob --bundle=artifact.bundle --certificate-chain=downloaded-roo
 tlog entry verified offline
 Verified OK
 ```
+
+### Cerificate validity
+Let say we sign a blob using cosign:
+```console
+$ COSIGN_EXPERIMENTAL=1 cosign sign-blob --output-signature=signature \
+  --output-certificate=artifact.cert artifact.bin 
+Using payload from: artifact.bin
+Generating ephemeral keys...
+Retrieving signed certificate...
+
+        Note that there may be personally identifiable information associated with this signed artifact.
+        This may include the email address associated with the account with which you authenticate.
+        This information will be used for signing this artifact and will be stored in public transparency logs and cannot be removed later.
+        By typing 'y', you attest that you grant (or have permission to grant) and agree to have this information stored permanently in transparency logs.
+
+Are you sure you want to continue? (y/[N]): y
+Your browser will now be opened to:
+https://oauth2.sigstore.dev/auth/auth?access_type=online&client_id=sigstore&code_challenge=i2FR4ebTXeg_0gQYrrxCqlqDaWL-0VS0in1LSIQLW4s&code_challenge_method=S256&nonce=2KZn4GWbrY0HsRKlPDXd0zEZUt6&redirect_uri=http%3A%2F%2Flocalhost%3A39771%2Fauth%2Fcallback&response_type=code&scope=openid+email&state=2KZn4IE8XZ2Ew3z8AeRmSaxoFt2
+Successfully verified SCT...
+using ephemeral certificate:
+-----BEGIN CERTIFICATE-----
+MIICqTCCAi+gAwIBAgIUQN7wCBUg1AJUyEHM3jqTTCWDjWwwCgYIKoZIzj0EAwMw
+NzEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MR4wHAYDVQQDExVzaWdzdG9yZS1pbnRl
+cm1lZGlhdGUwHhcNMjMwMTIwMDQ1OTQ0WhcNMjMwMTIwMDUwOTQ0WjAAMFkwEwYH
+KoZIzj0CAQYIKoZIzj0DAQcDQgAElDC4ZRkQAyzUtBuuVwBa2FayCiOo/LNu293e
+DQxiebyabsnaOZdShgs9junBABaojXTYj8aUUWoxgE4CvvQWraOCAU4wggFKMA4G
+A1UdDwEB/wQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDAzAdBgNVHQ4EFgQUIlZI
+/wY144jmEryO4UdkmrdimOgwHwYDVR0jBBgwFoAU39Ppz1YkEZb5qNjpKFWixi4Y
+ZD8wJwYDVR0RAQH/BB0wG4EZZGFuaWVsLmJldmVuaXVzQGdtYWlsLmNvbTAsBgor
+BgEEAYO/MAEBBB5odHRwczovL2dpdGh1Yi5jb20vbG9naW4vb2F1dGgwgYsGCisG
+AQQB1nkCBAIEfQR7AHkAdwDdPTBqxscRMmMZHhyZZzcCokpeuN48rf+HinKALynu
+jgAAAYXNjAb/AAAEAwBIMEYCIQDwjl5Vo0puV5in7H1rcE1wK24V3fqtbU/yBScf
+RdqQXwIhAKjtlZK0SIVFYEddp/YdV69RXheKG3vNZHdFwKIFN4krMAoGCCqGSM49
+BAMDA2gAMGUCMAkbyDOt4y5f91TBMzZxKMlLCgpEQ6Nub9Yfj8k8MTv55Pav1/yN
+hz+MXiy3yFazuwIxAIMLF4yfXd0p344Y3tdPDcbdnshxxiOABZcWQYAoNl9Tz0gK
+7hvkWL3Oy1a3LXromw==
+-----END CERTIFICATE-----
+
+tlog entry created with index: 11560124
+Signature wrote in the file signature
+Certificate wrote in the file artifact.cert
+```
+Now, if we take a look at the certificate that was created we see the following:
+```console
+$ base64 -d artifact.cert | openssl x509 --noout --text
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            40:de:f0:08:15:20:d4:02:54:c8:41:cc:de:3a:93:4c:25:83:8d:6c
+        Signature Algorithm: ecdsa-with-SHA384
+        Issuer: O = sigstore.dev, CN = sigstore-intermediate
+        Validity
+            Not Before: Jan 20 04:59:44 2023 GMT
+            Not After : Jan 20 05:09:44 2023 GMT
+        Subject: 
+        Subject Public Key Info:
+            Public Key Algorithm: id-ecPublicKey
+                Public-Key: (256 bit)
+                pub:
+                    04:94:30:b8:65:19:10:03:2c:d4:b4:1b:ae:57:00:
+                    5a:d8:56:b2:0a:23:a8:fc:b3:6e:db:dd:de:0d:0c:
+                    62:79:bc:9a:6e:c9:da:39:97:52:86:0b:3d:8e:e9:
+                    c1:00:16:a8:8d:74:d8:8f:c6:94:51:6a:31:80:4e:
+                    02:be:f4:16:ad
+                ASN1 OID: prime256v1
+                NIST CURVE: P-256
+        X509v3 extensions:
+            X509v3 Key Usage: critical
+                Digital Signature
+            X509v3 Extended Key Usage: 
+                Code Signing
+            X509v3 Subject Key Identifier: 
+                22:56:48:FF:06:35:E3:88:E6:12:BC:8E:E1:47:64:9A:B7:62:98:E8
+            X509v3 Authority Key Identifier: 
+                keyid:DF:D3:E9:CF:56:24:11:96:F9:A8:D8:E9:28:55:A2:C6:2E:18:64:3F
+
+            X509v3 Subject Alternative Name: critical
+                email:daniel.bevenius@gmail.com
+            1.3.6.1.4.1.57264.1.1: 
+                https://github.com/login/oauth
+            CT Precertificate SCTs: 
+                Signed Certificate Timestamp:
+                    Version   : v1 (0x0)
+                    Log ID    : DD:3D:30:6A:C6:C7:11:32:63:19:1E:1C:99:67:37:02:
+                                A2:4A:5E:B8:DE:3C:AD:FF:87:8A:72:80:2F:29:EE:8E
+                    Timestamp : Jan 20 04:59:44.255 2023 GMT
+                    Extensions: none
+                    Signature : ecdsa-with-SHA256
+                                30:46:02:21:00:F0:8E:5E:55:A3:4A:6E:57:98:A7:EC:
+                                7D:6B:70:4D:70:2B:6E:15:DD:FA:AD:6D:4F:F2:05:27:
+                                1F:45:DA:90:5F:02:21:00:A8:ED:95:92:B4:48:85:45:
+                                60:47:5D:A7:F6:1D:57:AF:51:5E:17:8A:1B:7B:CD:64:
+                                77:45:C0:A2:05:37:89:2B
+    Signature Algorithm: ecdsa-with-SHA384
+         30:65:02:30:09:1b:c8:33:ad:e3:2e:5f:f7:54:c1:33:36:71:
+         28:c9:4b:0a:0a:44:43:a3:6e:6f:d6:1f:8f:c9:3c:31:3b:f9:
+         e4:f6:af:d7:fc:8d:87:3f:8c:5e:2c:b7:c8:56:b3:bb:02:31:
+         00:83:0b:17:8c:9f:5d:dd:29:df:8e:18:de:d7:4f:0d:c6:dd:
+         9e:c8:71:c6:23:80:05:97:16:41:80:28:36:5f:53:cf:48:0a:
+         ee:1b:e4:58:bd:ce:cb:56:b7:2d:7a:e8:9b
+
+```
+Notice the `Validity` of this certificate issued by Fulico (CA) which is only
+10 mins:
+```console
+        Validity
+            Not Before: Jan 20 04:59:44 2023 GMT
+            Not After : Jan 20 05:09:44 2023 GMT
+```
+A certificate that is issued from Fulico is only valid for 10 mins.
+
+But we are still able to verify artifacts after this period which is done with
+the help of the log entry in Rekor, which we will show in the following command.
+First we print the current date to show that this is being executed after the
+certificate validity period:
+```console
+$ date
+Fri Jan 20 08:24:00 AM CET 20231
+```
+The we run `cosign verify-blob`:
+```console
+
+$ COSIGN_EXPERIMENTAL=1 cosign verify-blob --cert artifact.cert --signature signature artifact.bin
+tlog entry verified with uuid: b61919f59757b7717b50230f4340e67cf4c8bcd1c9e39204dd860ff4341d883d index: 11560124
+Verified OK
+```
+And like we mentioned it is still possible to verify after the certificate
+validity period has passed.
+
+We can inspect check the `integratedTime` in the Rekor log entry using:
+```console
+$ curl -s https://rekor.sigstore.dev/api/v1/log/entries?logIndex=11560124 | jq -r '.[].integratedTime'
+1674190784
+```
+And the parse that timestamp into a date using:
+```
+$ date -ud @1674190784 
+Fri Jan 20 04:59:44 AM UTC 2023
+```
+The `integratedTime` field is one of the fields that is included when Rekor
+creates the `signedEntryTimestamp` signature.
+
+During validation, cosign will check that this timestamp was during the period
+of certificate validity.
+
+This works because Sigstore separates the lifetime of the artifact from the
+lifetime of the certificate. This is where Rekor comes into the picture.
+
+We can look at the Rekor log entry using curl:
+```console
+$ curl -s https://rekor.sigstore.dev/api/v1/log/entries?logIndex=11560124 | jq -r '.[]'
+{
+  "body": "eyJhcGlWZXJzaW9uIjoiMC4wLjEiLCJraW5kIjoiaGFzaGVkcmVrb3JkIiwic3BlYyI6eyJkYXRhIjp7Imhhc2giOnsiYWxnb3JpdGhtIjoic2hhMjU2IiwidmFsdWUiOiIzMTEzNzU5MDhiMmExMDY4OGZiODg0MWI2MWQ4YjFkYWE5YTNlOTA0Zjg0ZDJlZDg4ZDBhMzVjYjRmMGUxYTk1In19LCJzaWduYXR1cmUiOnsiY29udGVudCI6Ik1FVUNJRmxaZGU4MzFCb21oQ2RzTFBZUW85dCtwZWFaNExPSEdUK0luaFdoVnZqVEFpRUExMmpkMEdkcEJwNE9LWEEraU1ucGg0T2JJYkxCczMvZ3E1enhTNU54WE9FPSIsInB1YmxpY0tleSI6eyJjb250ZW50IjoiTFMwdExTMUNSVWRKVGlCRFJWSlVTVVpKUTBGVVJTMHRMUzB0Q2sxSlNVTnhWRU5EUVdrclowRjNTVUpCWjBsVlVVNDNkME5DVldjeFFVcFZlVVZJVFROcWNWUlVRMWRFYWxkM2QwTm5XVWxMYjFwSmVtb3dSVUYzVFhjS1RucEZWazFDVFVkQk1WVkZRMmhOVFdNeWJHNWpNMUoyWTIxVmRWcEhWakpOVWpSM1NFRlpSRlpSVVVSRmVGWjZZVmRrZW1SSE9YbGFVekZ3WW01U2JBcGpiVEZzV2tkc2FHUkhWWGRJYUdOT1RXcE5kMDFVU1hkTlJGRXhUMVJSTUZkb1kwNU5hazEzVFZSSmQwMUVWWGRQVkZFd1YycEJRVTFHYTNkRmQxbElDa3R2V2tsNmFqQkRRVkZaU1V0dldrbDZhakJFUVZGalJGRm5RVVZzUkVNMFdsSnJVVUY1ZWxWMFFuVjFWbmRDWVRKR1lYbERhVTl2TDB4T2RUSTVNMlVLUkZGNGFXVmllV0ZpYzI1aFQxcGtVMmhuY3pscWRXNUNRVUpoYjJwWVZGbHFPR0ZWVlZkdmVHZEZORU4yZGxGWGNtRlBRMEZWTkhkblowWkxUVUUwUndwQk1WVmtSSGRGUWk5M1VVVkJkMGxJWjBSQlZFSm5UbFpJVTFWRlJFUkJTMEpuWjNKQ1owVkdRbEZqUkVGNlFXUkNaMDVXU0ZFMFJVWm5VVlZKYkZwSkNpOTNXVEUwTkdwdFJYSjVUelJWWkd0dGNtUnBiVTluZDBoM1dVUldVakJxUWtKbmQwWnZRVlV6T1ZCd2VqRlphMFZhWWpWeFRtcHdTMFpYYVhocE5Ga0tXa1E0ZDBwM1dVUldVakJTUVZGSUwwSkNNSGRITkVWYVdrZEdkV0ZYVm5OTWJVcHNaRzFXZFdGWVZucFJSMlIwV1Zkc2MweHRUblppVkVGelFtZHZjZ3BDWjBWRlFWbFBMMDFCUlVKQ1FqVnZaRWhTZDJONmIzWk1NbVJ3WkVkb01WbHBOV3BpTWpCMllrYzVibUZYTkhaaU1rWXhaRWRuZDJkWmMwZERhWE5IQ2tGUlVVSXhibXREUWtGSlJXWlJVamRCU0d0QlpIZEVaRkJVUW5GNGMyTlNUVzFOV2tob2VWcGFlbU5EYjJ0d1pYVk9ORGh5Wml0SWFXNUxRVXg1Ym5VS2FtZEJRVUZaV0U1cVFXSXZRVUZCUlVGM1FrbE5SVmxEU1ZGRWQycHNOVlp2TUhCMVZqVnBiamRJTVhKalJURjNTekkwVmpObWNYUmlWUzk1UWxOalpncFNaSEZSV0hkSmFFRkxhblJzV2tzd1UwbFdSbGxGWkdSd0wxbGtWalk1VWxob1pVdEhNM1pPV2toa1JuZExTVVpPTkd0eVRVRnZSME5EY1VkVFRUUTVDa0pCVFVSQk1tZEJUVWRWUTAxQmEySjVSRTkwTkhrMVpqa3hWRUpOZWxwNFMwMXNURU5uY0VWUk5rNTFZamxaWm1vNGF6aE5WSFkxTlZCaGRqRXZlVTRLYUhvclRWaHBlVE41Um1GNmRYZEplRUZKVFV4R05IbG1XR1F3Y0RNME5Ga3pkR1JRUkdOaVpHNXphSGg0YVU5QlFscGpWMUZaUVc5T2JEbFVlakJuU3dvM2FIWnJWMHd6VDNreFlUTk1XSEp2YlhjOVBRb3RMUzB0TFVWT1JDQkRSVkpVU1VaSlEwRlVSUzB0TFMwdENnPT0ifX19fQ==",
+  "integratedTime": 1674190784,
+  "logID": "c0d23d6ad406973f9559f3ba2d1ca01f84147d8ffc5b8445c224f98b9591801d",
+  "logIndex": 11560124,
+  "verification": {
+    "inclusionProof": {
+      "checkpoint": "rekor.sigstore.dev - 2605736670972794746\n7398089\nd1DQUHLBKbT7Sl4m1f5RZ7homaI52tiF60buxAyhJCM=\nTimestamp: 1674192874293544902\n\n— rekor.sigstore.dev wNI9ajBFAiAeYBe4Xt4xyhtFxBozJXSnYebAM9xGzC0RpFsqnjSA7QIhAPstqAuhDibJrr3svyiYaULONn0ZSjV5TcyEA2gxQx79\n",
+      "hashes": [
+        "a45805f461d9ae59a337a228f84e68b5e72415f8f7058434da97078ccc3bc0dd",
+        "4794f0f809cef2fb1b472af55c80ef9104b4df919a3e082ea9efa95e8e1e5bda",
+        "c2da2e7f2ffcdddc349e41d3ae62747f126d44b7b4579810b508869e67407cc9",
+        "1398f13b70e90842a7a9e9cc866377972cec0f6ff70f7f6db9ba4abb2c1a7c5e",
+        "a3803a6dc31a2cc8bbb291f5e96bffcf4260b15523872bc2256bf12bbf0a5fa7",
+        "d93ce7ae9c328464e133c8db5f345c30e84d274e39b412b20e347a12dc5e218d",
+        "317763148e311a0b9721080d97e482427bb363fbe1875e5af38ef1d560122153",
+        "e69c00b93c48e79d81dd482b0537a18c234b14866a3209812be140b42ed4d760",
+        "025762f9da46287f9c0cf4610f36c0c078afba1b1d0d03004b6e91fcae635dc1",
+        "1ace4460a740618f909188b96d886b449424ff2b1b36229809504fb77043e498",
+        "eab77380e22f6d8396bf06b59987a3ace90b37698930f8fc59cedd3cbe202e1e",
+        "b7873706fe7c9af04715c7e4f0f4fe32654c9cef53c256a5e5d0c62f68d9880a",
+        "5218ea43f5bb78336c0fe0bd461d3d9dd3a8fad205aeaf4598a46ea3bf1093ed",
+        "ab94c094711e570e0bfe172882d8f7d8f318f3a28e8f238bc513737e61d7a9c2",
+        "866c91027797653add7fe591cc361e089976d0f8c0e4f1b56827055c4e714228",
+        "da55a1381116c4092bc6abc560de2da344a1f243f4dbe58382f99b06505c9bf6",
+        "4b6df664d9552bc24d48a4c7d5659a8270065e1fedbc39103b010ab235a87850",
+        "616429db6c7d20c5b0eff1a6e512ea57a0734b94ae0bc7c914679463e01a7fba",
+        "5a4ad1534b1e770f02bfde0de15008a6971cf1ffbfa963fc9c2a644973a8d2d1"
+      ],
+      "logIndex": 7396693,
+      "rootHash": "7750d05072c129b4fb4a5e26d5fe5167b86899a239dad885eb46eec40ca12423",
+      "treeSize": 7398089
+    },
+    "signedEntryTimestamp": "MEYCIQCeg0q60gzijtU3V+FdpemQyX6kozLs9r5fq1pMs91MGgIhAJHRSQowwcrWQ/Myj5QqhjH/uHH6Sn+yWQatMsREGki2"
+  }
+}
+```
+The `signedEntryTimestamp` is a signature created by Rekor and includes the
+`body` field, the `logIndex` and the `integratedTime`. The integratedTime is
+the time that this record was integrated into the Rekor log.
+
+We can inspect the body and see the contents using:
+```console
+$ curl -s https://rekor.sigstore.dev/api/v1/log/entries?logIndex=11560124 | jq -r '.[].body' | base64 -d | jq
+{
+  "apiVersion": "0.0.1",
+  "kind": "hashedrekord",
+  "spec": {
+    "data": {
+      "hash": {
+        "algorithm": "sha256",
+        "value": "311375908b2a10688fb8841b61d8b1daa9a3e904f84d2ed88d0a35cb4f0e1a95"
+      }
+    },
+    "signature": {
+      "content": "MEUCIFlZde831BomhCdsLPYQo9t+peaZ4LOHGT+InhWhVvjTAiEA12jd0GdpBp4OKXA+iMnph4ObIbLBs3/gq5zxS5NxXOE=",
+      "publicKey": {
+        "content": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNxVENDQWkrZ0F3SUJBZ0lVUU43d0NCVWcxQUpVeUVITTNqcVRUQ1dEald3d0NnWUlLb1pJemowRUF3TXcKTnpFVk1CTUdBMVVFQ2hNTWMybG5jM1J2Y21VdVpHVjJNUjR3SEFZRFZRUURFeFZ6YVdkemRHOXlaUzFwYm5SbApjbTFsWkdsaGRHVXdIaGNOTWpNd01USXdNRFExT1RRMFdoY05Nak13TVRJd01EVXdPVFEwV2pBQU1Ga3dFd1lICktvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVsREM0WlJrUUF5elV0QnV1VndCYTJGYXlDaU9vL0xOdTI5M2UKRFF4aWVieWFic25hT1pkU2hnczlqdW5CQUJhb2pYVFlqOGFVVVdveGdFNEN2dlFXcmFPQ0FVNHdnZ0ZLTUE0RwpBMVVkRHdFQi93UUVBd0lIZ0RBVEJnTlZIU1VFRERBS0JnZ3JCZ0VGQlFjREF6QWRCZ05WSFE0RUZnUVVJbFpJCi93WTE0NGptRXJ5TzRVZGttcmRpbU9nd0h3WURWUjBqQkJnd0ZvQVUzOVBwejFZa0VaYjVxTmpwS0ZXaXhpNFkKWkQ4d0p3WURWUjBSQVFIL0JCMHdHNEVaWkdGdWFXVnNMbUpsZG1WdWFYVnpRR2R0WVdsc0xtTnZiVEFzQmdvcgpCZ0VFQVlPL01BRUJCQjVvZEhSd2N6b3ZMMmRwZEdoMVlpNWpiMjB2Ykc5bmFXNHZiMkYxZEdnd2dZc0dDaXNHCkFRUUIxbmtDQkFJRWZRUjdBSGtBZHdEZFBUQnF4c2NSTW1NWkhoeVpaemNDb2twZXVONDhyZitIaW5LQUx5bnUKamdBQUFZWE5qQWIvQUFBRUF3QklNRVlDSVFEd2psNVZvMHB1VjVpbjdIMXJjRTF3SzI0VjNmcXRiVS95QlNjZgpSZHFRWHdJaEFLanRsWkswU0lWRllFZGRwL1lkVjY5UlhoZUtHM3ZOWkhkRndLSUZONGtyTUFvR0NDcUdTTTQ5CkJBTURBMmdBTUdVQ01Ba2J5RE90NHk1ZjkxVEJNelp4S01sTENncEVRNk51YjlZZmo4azhNVHY1NVBhdjEveU4KaHorTVhpeTN5RmF6dXdJeEFJTUxGNHlmWGQwcDM0NFkzdGRQRGNiZG5zaHh4aU9BQlpjV1FZQW9ObDlUejBnSwo3aHZrV0wzT3kxYTNMWHJvbXc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
+      }
+    }
+  }
+}
+```
+
+https://rekor.tlog.dev/?logIndex=11560124
