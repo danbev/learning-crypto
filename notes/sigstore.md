@@ -1429,4 +1429,6 @@ $ curl -s https://rekor.sigstore.dev/api/v1/log/entries?logIndex=11560124 | jq -
 }
 ```
 
-https://rekor.tlog.dev/?logIndex=11560124
+The Rekor Log Index for this example can be found [here](https://rekor.tlog.dev/?logIndex=11560124).
+
+And the example files created above can be found in [sigstore/elf](../sigstore/elf).
