@@ -1214,7 +1214,7 @@ tlog entry verified offline
 Verified OK
 ```
 
-### Cerificate validity
+### Certificate validity
 Let say we sign a blob using cosign:
 ```console
 $ COSIGN_EXPERIMENTAL=1 cosign sign-blob --output-signature=signature \
