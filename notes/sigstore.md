@@ -1323,7 +1323,6 @@ Notice the `Validity` of this certificate issued by Fulico (CA) which is only
             Not Before: Jan 20 04:59:44 2023 GMT
             Not After : Jan 20 05:09:44 2023 GMT
 ```
-A certificate that is issued from Fulico is only valid for 10 mins.
 
 But we are still able to verify artifacts after this period which is done with
 the help of the log entry in Rekor, which we will show in the following command.
