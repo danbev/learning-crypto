@@ -218,3 +218,17 @@ OC9qeE1BNTBwajZyTUtZdDRDQlpjcmRNcmc9PSJ9
 -----END ENCRYPTED COSIGN PRIVATE KEY-----
 ```
 
+## Ed25519 formats
+One thing that I've run into is Ed25519 keys in pkcs8 version 1, which is
+specified in [RFC-5208](https://www.rfc-editor.org/rfc/rfc5208), and version 2
+[RFC-5958](https://www.rfc-editor.org/rfc/rfc5958). The issue is that OpenSSL
+currently only supports version 1 (RFC-5208) and the openssl tools will not be
+able to parse keys in the version 2 format (RFC-5958). The Rust ring crate uses
+version 2 and trying to check those keys with openssl will not work.
+Example of trying to use a version 2 formatted Ed25519 key:
+```console
+$ openssl pkey -inform der -in ed25519-1 -pubout
+Could not read key from ed25519-1
+```
+
+
