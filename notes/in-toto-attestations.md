@@ -30,14 +30,16 @@ base64 encoded:
   "predicate": {}
 }
 ```
-The subjects bind this attestation to a set of software artifacts.
+The subjects bind this attestation to a set of software artifacts, notice that
+this is an array of objects.
+
 Each software artifact is given a name and a digest. The digest contains the
 name of the hashing algorithm used, and the digest (the outcome of the hash
 function). The name could be a file name but it can also be left unspecified
 using `_`.
 
-This leads us to the `Predicate` structure which is just like shown above
-and has a type, and any object as the content of the predicate.
+This leads us to the `predicate` fields which is just like shown above
+one for the type of the predicate, and an object as the content of the predicate.
 
 This is the innermost part of the attestation and can contain pretty much
 any metadata related to the Statement object's subjects. The `predicateType
