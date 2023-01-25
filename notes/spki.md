@@ -1,4 +1,4 @@
-## Subject Public Key Info I (SPKI)
+## Subject Public Key Info (SPKI)
 In section [Section 4.1.2.7](https://datatracker.ietf.org/doc/html/rfc5280#section-4-1-2-7)
 we can find out that this is a type that contains the public key and the
 algorithm the key is to be used with. This can be RSA, DSA, DH.
