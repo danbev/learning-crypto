@@ -288,7 +288,7 @@ $ sha256sum artifact.txt
 4bc453b53cb3d914b45f4b250294236adba2c0e09ff6f03793949e7e39fd4cc1  artifact.txt
 ```
 And `spec.signature.content` is the signature which is the same as the signature
-that cosign sign-blob ouputs (see above):
+that cosign sign-blob outputs (see above):
 ```console
 $ cat artifact.bundle | jq -r '.rekorBundle.Payload.body' | base64 -d - | jq '.spec.signature.content'
 "MEUCIEwujBWM+kBZkNPlVZ4tclosmQUNCSNrhBrGOnf8lZv+AiEAv/VRaBGk1tN6jMvl7M9XbxwyDi86tD+Nc+tvrI4GaOU="
@@ -671,7 +671,7 @@ GERZ4TjkkB9l/vpHU6RE2gST1rzApE27zBXEWMerg4F4wlMp8Z3qmwlt9g==
 -----END PUBLIC KEY-----
 ```
 
-The payload if verified as well:
+The payload is verified as well:
 ```go
   payload, err := sig.Payload()
   signature, err := sig.Base64Signature()
@@ -710,11 +710,18 @@ The `bundleHash` is then compared with the `payloadHash`:
 ```
 I'm not exactly sure where the bundleHash is encoded from hex to string, but it
 looks like that must be happening. Perhaps this is part of the marshalling into
-a Record.
+a  Record.
 
-So we know that we need sha256sum of the blob.
+So, recall that the Go verify-blob program just took a bundle and the blob
+to verify and so should our example. And in the bundle we have the signature
+which was created using the original blob, hashing that, and then creating a
+signature using that hash and the private key.
 
-_wip_
+To verify the signature we use the public key and decrypt the signature using
+the publickey (signatureᵉ mod n). This will produce a hash, and we then compare
+this hash to the hash of the blob we passed in on the command line.
+
+The PR for this work can be found [here](https://github.com/sigstore/sigstore-rs/pull/186).
 
 ### Running the example
 Then we can run the example using:
