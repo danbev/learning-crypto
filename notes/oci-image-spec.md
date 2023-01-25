@@ -2,7 +2,7 @@
 The OCI image [specification] deals with how to package and store a container
 image. 
 
-My main motivation for learning about this format is that it use useful to
+My main motivation for learning about this format is that it is useful to
 understand when using [ORAS](./oras.md), and also projects like in-toto and
 sigstore use these concepts internally.
 
