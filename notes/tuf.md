@@ -123,39 +123,111 @@ Hopefully this has provided an overview and some idea about the metadata and
 the signing in TUF. Later we will see a concrete example of the metadata files
 to get "feel" for what they look like.
 
-So, we have mentioned metadata files and signing. The following is an attempt
-to visualize where the metadata files exist:
+Initially, we would have the following metadata files:
+```
+  +-----------+         +---------------------+               +---------------+
+  | Producer  |         | TUF Repository      |               | TUF Consumer  |
+  |-----------+ update  |---------------------+               |---------------|
+  | Keys      | ------> | Metadata            |               | Metadata      |
+  +-----------+         | 1.root.json         |               | root.json     |  
+  | Metadata  |         | 1.targets.json      |               +---------------+
+  | root.json |         | 1.snapshot.json     |
+  +-----------+         | timestamp.json      |
+  | thing_v1  |         +---------------------+
+  +-----------+         | thing_v1            |
+                        +---------------------+
+```
+Initially, before the client has interacted with the TUF repository, the client
+has a trusted root.json metadata file. This file is shipped with the client and
+it does not matter if it's expire date has passed, as it will get updated once
+the client interacts with the TUF reporitory which is part of the client
+[workflow](https://theupdateframework.github.io/specification/latest/index.html#detailed-client-workflow)
+of TUF's specification.
+
+The client starts by [loading](https://theupdateframework.github.io/specification/latest/index.html#load-trusted-root) this trusted root file. 
+
+
+Next, client proceeds to the [download](https://theupdateframework.github.io/specification/latest/index.html#update-root) \<version\>.root.json files from the TUF repository until it has
+reached the latest:
 ```
   +-----------+         +---------------------+               +---------------+
   | Producer  |         | TUF Repository      | <-----------  | TUF Consumer  |
   |-----------+ update  |---------------------+               |---------------|
   | Keys      | ------> | Metadata            | ------------> | Metadata      |
-  +-----------+         | 1.root.json         |               | snapshot.json |  
-  | Metadata  |         | 1.targets.json      |               |---------------|
-  | root.json |         | 1.snapshot.json     |               | thing_v1      |
-  +-----------+         | timestamp.json      |               +---------------+
-  | thing_v1  |         +---------------------+                                      
+  +-----------+         | 1.root.json         |               | root.json     |  
+  | Metadata  |         | 1.targets.json      |               +---------------+
+  | root.json |         | 1.snapshot.json     |
+  +-----------+         | timestamp.json      |
+  | thing_v1  |         +---------------------+
   +-----------+         | thing_v1            |
-                        +---------------------+                                      
+                        +---------------------+
 ```
+Notice that the root.json is written on the client side without the version
+prefix. This will be used to verify the files that are download later.
+
+Next, the client will [download](https://theupdateframework.github.io/specification/latest/index.html#update-timestamp) the timestamp metadata file:
+```
+  +-----------+         +---------------------+               +---------------+
+  | Producer  |         | TUF Repository      | <-----------  | TUF Consumer  |
+  |-----------+ update  |---------------------+               |---------------|
+  | Keys      | ------> | Metadata            | ------------> | Metadata      |
+  +-----------+         | 1.root.json         |               | root.json     |  
+  | Metadata  |         | 1.targets.json      |               | timestamp.json|
+  | root.json |         | 1.snapshot.json     |               +---------------+
+  +-----------+         | timestamp.json      |
+  | thing_v1  |         +---------------------+
+  +-----------+         | thing_v1            |
+                        +---------------------+
+```
+And there will number of verifications performed on timestamp.json.
+
+Next, the client will [download](https://theupdateframework.github.io/specification/latest/index.html#update-snapshot) the snapshot metadata file:
+```
+  +-----------+         +---------------------+               +---------------+
+  | Producer  |         | TUF Repository      | <-----------  | TUF Consumer  |
+  |-----------+ update  |---------------------+               |---------------|
+  | Keys      | ------> | Metadata            | ------------> | Metadata      |
+  +-----------+         | 1.root.json         |               | root.json     |  
+  | Metadata  |         | 1.targets.json      |               | timestamp.json|
+  | root.json |         | 1.snapshot.json     |               | snapshot.json |
+  +-----------+         | timestamp.json      |               +---------------+
+  | thing_v1  |         +---------------------+
+  +-----------+         | thing_v1            |
+                        +---------------------+
+```
+And there will number of verifications performed on snapshot.json.
+
+Next, the client will [download](https://theupdateframework.github.io/specification/latest/index.html#update-targets) the targets.json metadata file:
+```
+  +-----------+         +---------------------+               +---------------+
+  | Producer  |         | TUF Repository      | <-----------  | TUF Consumer  |
+  |-----------+ update  |---------------------+               |---------------|
+  | Keys      | ------> | Metadata            | ------------> | Metadata      |
+  +-----------+         | 1.root.json         |               | root.json     |  
+  | Metadata  |         | 1.targets.json      |               | timestamp.json|
+  | root.json |         | 1.snapshot.json     |               | snapshot.json |
+  +-----------+         | timestamp.json      |               | targets.json  |
+  | thing_v1  |         +---------------------+               +---------------+
+  +-----------+         | thing_v1            |
+                        +---------------------+
+```
+And there will number of verifications performed on targets.json.
+
+Finally, the client will [fetch](https://theupdateframework.github.io/specification/latest/index.html#fetch-target) the actual target files, these are the actual artifacts.
+
 The names of the metadata files are named after four top level roles in TUF, 
 the `Root`, `Target`, `Timestamp`, and `Snapshot` roles.
 
 #### Root Metadata
 Instead of having a single root key, there will often be multiple root keys
-which are stored in different offline locations. And these keys are used to sign
-keys that can be used for other purposes.
+which are stored in different offline locations, meaning that they are not
+accessible remotely. These are often hardware keys, like Yubikeys.
 
-So we have a number of keys that are `offline`, meaning that they are not used
-for signing things, like software artifacts or things like that. Instead these
-keys are often stored in separate locations and then used together to sign other
-keys, which are then used for `online` tasks, like signing metadata describing
-artifacts.
-
-The non-root keys can then be re-signed/revoked/rotated if/when needed.
+Root keys are often used together to sign other keys. These non-root keys can
+then be re-signed/revoked/rotated if/when needed.
 
 Each role has metadata associated with it, and the specification defines a
-canonical json format for these. So there would be a root.json, a targets.json,
+canonical json format for them. So there would be a root.json, a targets.json,
 a, timestamps.json, and a snapshot.json.
 
 So what do these file look like?  
@@ -165,8 +237,6 @@ Lets try this out by using a tool called
 ```console
 $ cargo install --force tuftool
 ```
-An example directory can be found in [tuf](../tuf) which will contain all the
-files that are generated below.
 
 #### Root metadata
 
@@ -174,7 +244,7 @@ Next we initiate a new `root.json` file using the following command:
 ```console
 $ tuftool root init root/root.json
 ```
-This command will generate a file named [root.json](../tuf/root/root.json):
+This command will generate a file named `root/root.json`:
 ```console
 $ cat root/root.json 
 {
@@ -255,7 +325,7 @@ We can also set the expire time for the root using the following command:
 ```console
 $ tuftool root expire root/root.json 'in 6 weeks'
 ```
-Now, to sign anthing we will need a private key to create the signatures and
+Now, to sign anything we will need a private key to create the signatures and
 a matching public key to be used to verify signatures.
 
 We can generate a root key and one can be generated using
@@ -264,9 +334,9 @@ We can generate a root key and one can be generated using
 $ tuftool root gen-rsa-key root/root.json ./keys/root.pem --role root
 6e99ec437323f2c7334c8b16fd7a7a197829ba89ff50d07aa4b50fc9634dad9f
 ```
-This will generate [keys/root.pem](../tuf/keys/root.pem) which is a private
-key in pkcs8 format. The hex value printed on above is the `key_id` which will
-be used later to reference this key in metadata files.
+This will generate keys/root.pem which is a private key in pkcs8 format. The
+hex value printed above is the `key_id` which will be used later to reference
+this key in metadata files.
 
 Now, if we again inspect `root.json` we find that a key has been added:
 ```console
@@ -312,12 +382,29 @@ $ cat root/root.json
 }
 ```
 Notice that the `keys` object has a field which is named after the `key_id` and
-that the `root` role has this `key_id` in its `keyids` array. And notice also
-that `keys` only includes the public key.
+that the `root` role has this `key_id` in its `keyids` array. This `key_id` is
+created from the json value of the public key, which are then canonicalized
+before hashed using sha256. We can inspect/verify this using a tool named
+[tuf-keyid](https://github.com/danbev/tuf-keyid), and passing in the above
+json field of the public key:
+```console
+$ tuf-keyid --json='{
+            "keytype": "rsa",
+            "keyval": {
+              "public": "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA5ZiWzak3CBJkRrCfw5GO\nSUtYjIK2jLozyaZ44FePW/KYEhM8LyHcNz9lwx45tZ8gId4AsxGBj9fhsOgjpN7l\nMPXpaKsV/5f37HzQLCrbldz3ei9LkMWG5La4Cwil0qPDpTxfzI7IWDKk6l4/epgi\nOrAJDaQ/mKhH5OZ485JYuDIE7a0jplU/GvsNeCdZVMEQ8dko/CA4Di8lPkDRRdSw\naC/8g3K6mF+87ADdGOmZ+LFodLEPvqIVljece2JlX2z44Io3N7Y5FH63Az4H3MFL\nDPZJH5lFs7Lb/fHx25rWSE2/GHcUUTs4oScPp2X0hAnblOsmCFSCjf8Kb0R7dLUb\nnQIDAQAB\n-----END PUBLIC KEY-----"
+            },
+            "scheme": "rsassa-pss-sha256"
+    }'
 
+key_id: SHA256:6e99ec437323f2c7334c8b16fd7a7a197829ba89ff50d07aa4b50fc9634dad9f
+```
+And we can see that the `key_id`'s produced are the same. This may be obvious
+but just to be clear, `keys` only includes the public key.
+
+#### Targets metadata
 The Target role is a role that signs metadata files that describe the
 project artifacts, like software packages, source code, or whatever artifacts
-that are to be consumed by consumers.
+that are to be consumed by TUF clients/consumers.
 
 So lets add a target key, and we will use the same private key as before:
 ```console
@@ -335,10 +422,11 @@ $ jq '.signed.roles.targets' < root/root.json
 }
 ```
 
+#### Snapshot metadata
 The Snapshot roles signs a metadata file which contains information about the 
 latest version of the targets metadata. This is used to identify which versions
 of a target are in a repository at a certain time. This is used to know if there
-is an update available (remember its call The Update Framework).
+is an update available (remember it's call The Update Framework).
 
 So, lets add a key to the snapshot role:
 ```console
@@ -354,7 +442,9 @@ $ jq '.signed.roles.snapshot' < root/root.json
   "threshold": 1
 }
 ```
-Finally, we have the timestamp role sed tell if there is an update. 
+
+#### Timestamp metadata
+Finally, we have the timestamp role which tells if there is an update. 
 ```console
 $ tuftool root add-key root/root.json ./keys/root.pem --role timestamp
 ```
@@ -368,10 +458,12 @@ $ jq '.signed.roles.timestamp' < root/root.json
   "threshold": 1
 }
 ```
+
+#### Signing root.json
 So we have configured which keys to be used for each of the roles but we have
 not signed this metadata file. We need to sign it to prevent tampering of it
-as it will be sent to the TUF repository, usually on server I think but for
-the example everything will be on the local file system.
+as it will be sent to the TUF repository, usually on server but for this
+example everything will be on the local file system.
 
 We can now sign root.json using the following command:
 ```console
@@ -389,8 +481,9 @@ a keyid and a signature.
 ]
 ```
 
-With the `root.json` and the private key we can generate a tuf repository
-using the following command:
+#### Generate the TUF repository
+With `root.json` and the private key we can generate a tuf repository using the
+following command:
 ```console
 $ tuftool create \
   --root root/root.json \
@@ -404,10 +497,10 @@ $ tuftool create \
   --timestamp-version 1 \
   --outdir repo
 ```
-That command will create a directory named [repo](../tuf/repo) which contains
-two directories, `metadata` and `targets`.
+That command will create a directory named `repo` which contains two
+directories, `metadata` and `targets`.
 
-Let start by `targets` directory:
+Let start by looking at the `targets` directory:
 ```console
 $ ls -l repo/targets/01ab0faaf41a4543df1fa218b8e9f283d07536339cf11d2afae9d116a257700c.artifact_1.txt 
 lrwxrwxrwx. 1 danielbevenius danielbevenius 79 Jan 17 12:50 repo/targets/01ab0faaf41a4543df1fa218b8e9f283d07536339cf11d2afae9d116a257700c.artifact_1.txt -> artifacts/artifact_1.txt
@@ -418,6 +511,13 @@ artifact_1.txt file:
 $ sha256sum  artifacts/artifact_1.txt 
 01ab0faaf41a4543df1fa218b8e9f283d07536339cf11d2afae9d116a257700c  artifacts/artifact_1.txt
 ```
+And we can check the size of this file using:
+```console
+$ stat -c "%s" artifact_1.txt 
+24
+```
+The reason for showing this values is that they are referred to in the next
+section.
 
 Now, lets take a look at the `metadata` directory.
 ```console
@@ -456,10 +556,15 @@ Lets start by looking at `targets.json`:
   ]
 }
 ```
+Notice that the `hashes` object has a single field which is the sha256sum of
+the file `artifacts_1.txt`, and that `length` matches the size which we showed
+in the previous section.
+
 We have information about the targets, in this case on a single file named
 artifact_1.txt, and this is the file that a client wants to consume. This
-metadata file is signed and the signature is in the `sig` field of the
+metadata file is signed and the signature in the `sig` field of the
 `signatures` array.
+
 Again, this needs to be signed to prevent an attacker from modifying the targets
 and modifying the `length`, and `sha256` fields which would otherwise allow them
 to replace the target artifact with a potentially malicious version.
@@ -507,9 +612,9 @@ And we also can check the hash using:
 $ sha256sum repo/metadata/1.targets.json 
 896781ff1260ed4ad5b05a004b034279219dc92b64068a2cc376604e8a6821c9  repo/metadata/1.targets.json
 ```
-The snapshot metadata file tells us which which versions of metadata files
+The snapshot metadata file tells us which versions of metadata files
 existed for a specific version. Even though we only have one version currently
-in our example real world repositories would have multiple versions of
+in our example, a real world repositories would have multiple versions of
 metadata files. The purpose of the snapshot.json file is to prevent an attacker
 from including metadata files from another version in some version:
 ```
@@ -527,9 +632,10 @@ which we will discuss shortly, with a version number of 3. The client proceeds
 to retrieve this version update from the TUF server. Now if an attacker was able
 to include other metadata files, which are available in the TUF repository only
 they are not part of the request version, it would be possible for them those
-targets to be sent to the client. Having the `snapshot.json` prevents this as
+targets to be sent to the client.Having the `snapshot.json` prevents this as
 it specifies which metadata files are included in a specific version and no
-other metadata files that may exist in the TUF repository are included.
+other additional metadata files that may exist in the TUF repository are
+included.
 
 So that leaves us with `timestamp.json`. This is a file that is downloaded by
 the client and usually has a short expiration date. As mentioned before this is
@@ -567,102 +673,98 @@ Notice that `snapshot.json` is refering to the file `1.timestamp.json` in the
 TUF repository. 
 
 Finally, we have repo/metadata/1.root.json which is identical to root/root.json
-which we saw previously.
+which we saw previously as this is the only version we have in our repository.
 
-What we have been doing is setting up a repository which would be on a server
-somewhere.
+What we have been doing is setting up a repository which would be most often
+exist on on a server somewhere.
 
-From a consumer of the artifact (software) they would use TUF to download the
-artifacts, and would specify the metadata and targets to download:
-```console
-$ tuftool download \
-   --root root/root.json \
-   --targets-url "file://$PWD/repo/targets" \
-   --metadata-url "file://$PWD/repo/metadata" \
-   downloaded-repo
-```
-And we can inspect the downloaded file:
-```console
-$ cat downloaded-repo/artifact_1.txt 
-version 1 of artifact_1
-```
+### TUF client/consumer
+From a consumer of the artifact they would use TUF client library to download
+the artifacts, and would specify the metadata and targets to download.
 
-Alright, now lets say we need create a new release of our target,
-artifact_1.txt. To do this we would use the tuftool update command. First we
-need to make a change to our artifact:
-```console
-$ echo "version 2 of artifact_1" > artifacts/artifact_1.txt
-```
-Now we can run the update command:
-```console
-$ tuftool update \
-   --root root/root.json \
-   --key keys/root.pem \
-   --add-targets artifacts \
-   --targets-expires 'in 3 weeks' \
-   --targets-version 2 \
-   --snapshot-expires 'in 3 weeks' \
-   --snapshot-version 2 \
-   --timestamp-expires 'in 1 week' \
-   --timestamp-version 2 \
-   --outdir repo \
-   --metadata-url file:///$PWD/repo/metadata
-```
-After that command has been run there will have been a changes to
-`repo/metadata/timestamp.json`:
-```console
-$ cat repo/metadata/timestamp.json 
-{
-  "signed": {
-    "_type": "timestamp",
-    "spec_version": "1.0.0",
-    "version": 2,
-    "expires": "2023-01-24T12:49:36.580297365Z",
-    "meta": {
-      "snapshot.json": {
-        "length": 1004,
-        "hashes": {
-          "sha256": "05e44a53c09c018f812a7ffb59ecd147d4265c6ca2b10ba4e56a46397fb5d7ff"
-        },
-        "version": 2
-      }
-    }
-  },
-  "signatures": [
-    {
-      "keyid": "6e99ec437323f2c7334c8b16fd7a7a197829ba89ff50d07aa4b50fc9634dad9f",
-      "sig": "73995d97b2df1ebe2044152d054febad55100f0699ec199ebd1e237c57242c9e536a5a53b9198eda8f965c1434c9b75829b7a34f6294176e9cee24b140a0737fb3c1c3b7fe13466c4ea2622b18177e78a9440cfd2e66fd46f2041bcb139722e175491a355f83f9c8f7f8d44366daddadb79a123d9d4d8886eb46f92a8e16a2900beb3daeba72d6fa815b82d7ab49af4246e2148dbd41854eef309aabb7ca6598ca52195357b4d0537bdd61a228cce2c8ee24d66a0465b528a2552a9fac65497619480c62b2beecfea67f05994eb39bf021800eeb0fede3f4dcf1e8c1211cf429a0e8db2fcd5c2680d4873911eeb1e4067b9d7b50aa60e8668cfbb01ba343d901"
-    }
-  ]
-}
-```
-And we have two new metadata files, `repo/metadata/2.snapshot.json`, and
-`repoo/metadata/2.targets.json`.
-
-So lets simulate our downloading from the tuf server again:
-```console
-$ tuftool download \
-   --root root/root.json \
-   --targets-url "file://$PWD/repo/targets" \
-   --metadata-url "file://$PWD/repo/metadata" \
-   downloaded-repo2
-```
-And lets take a look at the artifact:
-```console
-$ cat downloaded-repo2/artifact_1.txt 
-version 2 of artifact_1
-```
+We have created a very basic [example](https://github.com/danbev/tuf-client#readme)
+which is intended to see how one such client library, in this case
+[tough](https://crates.io/crates/tough), might be used.
 
 ### TUF usage in Sigstore
-Sigstore uses TUF to protect their keys and is one reason for trying to say
-things instead of software updates in the text above.
-TODO: expand on this...or is it too much for a single post?
+Armed with the above knowledge, lets take a look at how Sigstore uses TUF.
 
-Keys that are more likely to be compromised are signed with offline keys and
-are used with specific purposes. For example, keys to publish software artifacts
-would be an example of a key that is more likely to be compromised as probably
-there are a number of individuals/systems that are allow to publish the
-software.
+The [root-signing](https://github.com/sigstore/root-signing/tree/main/repository)
+repository has a directory which contains the TUF repository metadata.
+
+Sigstore uses TUF to protect their public keys and certificates, which was one
+reason for trying to say "things" instead of software updates in the text above.
+So the artifacts that are updated are public keys and certificates. As of this
+writing these are the current [targets](https://github.com/sigstore/root-signing/blob/0ce4aa6c45c3ee709766d90e34c6b1372ad4b29a/repository/repository/targets.json):
+```
+fulcio.crt.pem  Fulico (CA) certificate.
+rekor.pub       Rekor public key.
+ctfe.pub        Certificate Transparency log public key used to verify
+                signed certificate timestamps.
+artifact.pub    Public key which is used to verify Sigstore releases, like
+                Cosign, Rekor, and Fulcio releases.
+```
+There are more than four in the actual file but they are different version. The
+four listed here just explain the usage of these keys. In the case of
+sigstore-rs only the Fulio certificate, and Rekor's public key are used. We will
+focus on these in this post.
+
+The [root.json](https://github.com/sigstore/root-signing/blob/main/repository/repository/root.json)
+can also be found in the same directory and hopefully this should look familar
+after seeing the root.json earlier.
+
+We also learned earlier that the initial trusted `root.json` is shipped with the
+software in some manner. In sigstore-rs, `root.json` is
+[embedded](https://github.com/sigstore/sigstore-rs/blob/8d22a6d23a6771688c8206850524a2b1076bbdb0/src/tuf/constants.rs#L30-L173) in the crate itself.
+
+sigstore-rs uses the `tough` crate just like the example we saw earlier, and
+similar to the [example](https://github.com/danbev/tuf-client/blob/3adca52130c69f242ef24c5845c91ee1612fc64c/src/main.rs#L61), creates a tough [RepositoryLoader](https://github.com/sigstore/sigstore-rs/blob/cef673776548c9b268e0ce8ecc3a4fe2da504658/src/tuf/repository_helper.rs#L43) in a RepositoryHelper
+struct. A RepositoryHelper is created in SigstoreRepository's
+[fetch](https://github.com/sigstore/sigstore-rs/blob/cef673776548c9b268e0ce8ecc3a4fe2da504658/src/tuf/mod.rs#L123) method, and the Fulcio certificate, and Rekor's public key are read from
+the repository, similar to how `artifact.txt` was read in the example:
+```rust
+    let repository_helper = RepositoryHelper::new(
+        SIGSTORE_ROOT.as_bytes(),
+        metadata_base,
+        target_base,
+        checkout_dir,
+    )?;
+
+    let fulcio_certs = repository_helper.fulcio_certs()?;
+
+    let rekor_pub_key = repository_helper.rekor_pub_key().map(|data| {
+        String::from_utf8(data).map_err(|e| {
+            SigstoreError::UnexpectedError(format!(
+                "Cannot parse Rekor's public key obtained from TUF repository: {}",
+                e
+            ))
+        })
+    })??;
+```
+There is a caching layer in between the call to `fulcio_certs` but after
+that, and if there is a cache miss, the actual call the TUF repository can
+be found in [fetch_target](https://github.com/sigstore/sigstore-rs/blob/cef673776548c9b268e0ce8ecc3a4fe2da504658/src/tuf/repository_helper.rs#L158):
+```rust
+/// Download a file from a TUF repository
+fn fetch_target(repository: &tough::Repository, target_name: &TargetName) -> Result<Vec<u8>> {
+    let data: Vec<u8>;
+    match repository.read_target(target_name)? {
+        None => Err(SigstoreError::TufTargetNotFoundError(
+            target_name.raw().to_string(),
+        )),
+        Some(reader) => {
+            data = read_to_end(reader)?;
+            Ok(data)
+        }
+    }
+}
+```
+And in the example we [downloaded](https://github.com/danbev/tuf-client/blob/3adca52130c69f242ef24c5845c91ee1612fc64c/src/main.rs#L69-L71) `artifact.txt` like this:
+```rust
+    let artifact = repository
+        .read_target(&TargetName::from_str("artifact.txt").unwrap())
+        .unwrap();
+```
 
 ### Heartbeats
 This is about software updates and how to mitigate freeze or rollback
@@ -709,3 +811,10 @@ The non-root keys can then be re-signed/revoked/rotated if/when needed.
 TUF specifies four top level roles which are the `Root`, `Target`, `Timestamp`,
 and `Snapshot` roles.
 The root role specifies which keys are trusted for the other roles.
+
+
+### Delegation
+Having offline keys, those that are stored in hardware for example, work for
+project that don't have to sign things very often. But for project that do
+frequent releases, having to get the offline key do sign the artifacts will
+just be too time consuming.
