@@ -400,6 +400,9 @@ PASSED: Verified SLSA provenance
 This has shown an example of in-toto attestations, namely
 [SLSA Provenance](https://slsa.dev/provenance/v0.1).
 
+`slsa-verifier` can also print out the predicate information after validation
+, using `--print-predicate`, which could then be passed to a Policy Engine.
+
 
 ### Processing an attestation
 1) First the attestation is decoded as a JSON encoded Envelope.  
