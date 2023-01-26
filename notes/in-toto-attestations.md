@@ -403,6 +403,9 @@ This has shown an example of in-toto attestations, namely
 `slsa-verifier` can also print out the predicate information after validation
 , using `--print-predicate`, which could then be passed to a Policy Engine.
 
+Now, that worked well for a binary artifact but in Rust the releases are more
+often source code and would not have a binary to sign. 
+TODO: Take a closer look at what NPM does.
 
 ### Processing an attestation
 1) First the attestation is decoded as a JSON encoded Envelope.  
