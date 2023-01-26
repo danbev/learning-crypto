@@ -10,6 +10,10 @@ verify that the software comes from the designated product owner.
 `in-toto` means the whole which is from latin and in this context refers to it
 taking the whole process into account (I think).
 
+One thing that I did not consider was that in-toto's verification can also
+be seen as policy verification and one might therefor consider in-toto to be
+a policy engine as well.
+
 ### Installation
 ```console
 $ pip install in-toto
