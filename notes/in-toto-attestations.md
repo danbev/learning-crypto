@@ -140,7 +140,12 @@ If we look back at the beginning of this document we will see that this format
 matches the `Envelope` of the attestation, and we have the `payloadType`,
 a `payload`, and `signatures`.
 
-And recall that the payload is a base64 encoded `Statement`. Let's decode the
+The certificate can be inspected using:
+```console
+$ cat tuf-keyid.intoto.jsonl | jq -r '.signatures[].cert' | openssl x509 --text
+```
+
+Recall that the payload is a base64 encoded `Statement`. Let's decode the
 `Statement` and take a closer a look at it:
 ```console
 $ cat tuf-keyid.intoto.jsonl | jq -r '.payload' | base64 -d | jq
