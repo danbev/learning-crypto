@@ -1,20 +1,19 @@
 ### OpenID Connect (OICD)
 Is built on top of the OAuth 2.0 framework and is an identity layer that allows
 applications to verify an end user to obtain basic user profile information.
-It uses JSON Web Token (JWT).
+It uses JSON Web Token [JWT](./jwt.md).
 
 OAuth 2.0 is only about authorization, about granting access to resources. For
-example you want a thirdparty application to be able to access data you own. One
-way would be to give you credentials to the application that needs to access
-this data, but that means that application can access all you data. Instead we
-want to limit the scope of what can be accessed and also have this access scoped
-in time (token).
-
+example, you want a thirdparty application to be able to access data you own.
+One way would be to give you credentials to the application that needs to access
+this data, but that means that application can access all your data. Instead we
+want to limit the scope of what can be accessed, and also have this access
+scoped in time (token).
 
 First, the client application could be some web application or mobil application
 that I'm using. This application wants to access information which is available
 to my github account `danbev`. So the client application sends a request to
-github's authentication server requesting access for the user `danbev`:
+github's authentication server, requesting access for the user `danbev`:
 ```
    +-------------+                  +-------------+
    | Client App1 |----------------->| Github      |
@@ -22,18 +21,19 @@ github's authentication server requesting access for the user `danbev`:
 ```
 
 This will cause the Gihub authentication server to prompts me for
-authentication and also ask if I consent to what share with this application:
+authentication, and also ask if I consent to what to share with this
+application:
 ```                                                        
    +-------------+                  +-------------+     +-------------------+
    | Client App1 |                  | Github      |---->| Prompts user (me) |
    +-------------+                  +-------------+     | for auth/consent  |
                                                         +-------------------+
 ```
-If I consent Github will return a token that enables access for to my github
+If I consent, Github will return a token that enables access to my github
 account but only the data that I consented to:
 ```
    +-------------+  token           +-------------+
-   | Client App1 |←---------------- | Github      |
+   | Client App1 |<---------------- | Github      |
    +-------------+                  +-------------+
 ```
 
@@ -43,13 +43,12 @@ The client application can now access Github's API using the token:
    | Client App1 |                  | Github      |
    +-------------+                  +-------------+
          |    request with token    +-------------+
-         +-------------------------→| Github API  |
+         +------------------------->| Github API  |
                                     +-------------+
 ```
 
 
-
-OICD is a layer that sits on top of OAuth 2.0 and adds login and profile
+OICD is a layer that sits on top of OAuth 2.0, and adds login and profile
 information about the Resource Owner called the identity.
 OICD can be used for single sign-on where one login can be used for multiple
 applications.
