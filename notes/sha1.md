@@ -1,4 +1,6 @@
 ### SHA-1
+Secure Hash Algorithm 1 was developed by NSA in the 1990s and first published
+in 1995.
 
 ```
            +-----------------------------------+
