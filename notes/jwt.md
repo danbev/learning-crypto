@@ -6,7 +6,7 @@ Can be either a [jws](./jsw.md) or a [jwe](./jwe.md).
 
 ### Structure
 The JWT contains 3 sections, a header, a payload, and a signature. The 
-header and the payload are base64 encodes. 
+header and the payload are base64 encoded. 
 ```
 base64(header).base64(payload).signature
 ```
