@@ -2,10 +2,10 @@
 When we sign an artifact, like a blob, the signature proves that we were in
 possesion of the private key. When we verify, we use the signature, the public
 key, and the blob, and we are verifying that this was in fact the case.
-But it does not say anything else about the artifact, we don't know what
-was actually signed.
+But it does not say anything else about the artifact, we don't know what was
+actually signed.
 
-By providing, and signing a document specifying `statements` about the artifact
+By providing, and signing, a document specifying `statements` about the artifact
 we can say things about the artifact as well. Statements could be anything which
 we will address later in this document. A signed Statement is called an
 Attestation.
@@ -26,8 +26,8 @@ the [DSSE](./dsse.md) format.
 
 The `payloadType` could be JSON, CBOR, or ProtoBuf.
 
-The structure of the `Statement`  looks something like this before it is
-base64 encoded:
+The structure of the `Statement`, payload above, looks something like this
+before it is base64 encoded:
 ```json
 {
   "_type": "https://in-toto.io/Statement/v0.1",
@@ -52,8 +52,8 @@ This leads us to the `predicate` fields, which like shown above has one field
 for the type of the predicate, and an object as the content of the predicate.
 
 The predicate can contain pretty much any metadata related to the Statement
-object's subjects. The `predicateType` provides a way to knowing how to interpret
-the predicate field.
+object's subjects. The `predicateType` provides a way of knowing how to
+interpret the `predicate` field.
 
 Examples of predicate types are
 [SLSA Provenance](https://slsa.dev/provenance/v0.1#example),
@@ -107,7 +107,7 @@ So we need to set up a GitHub Action which can been seen in
 After that workflow has run it will produce an attestation and a binary which
 we will use to verify.
 
-First, we need to download the binary from the [workflow run](https://github.com/danbev/tuf-keyid/actions/runs/4015220869) (this should really be able to be downloaded from the releases page too but I've not been able to
+First, we need to download the binary from the [workflow run](https://github.com/danbev/tuf-keyid/actions/runs/4015220869) (we should really be able to be download this from the releases page too, but I've not been able to
 get that to work just yet):
 ```console
 $ unzip tuf-keyid.zip
@@ -371,6 +371,15 @@ $ cat tuf-keyid.intoto.jsonl | jq -r '.payload' | base64 -d | jq
 So that gives us a concrete example of an attestation and in this case it is
 a [SLSA Provenance](https://slsa.dev/provenance/v0.1) predicate.
 
+Notice that the `digest`in the subject array is the sha256sum of the tuf-keyid
+binary:
+```console
+$ cat tuf-keyid.intoto.jsonl | jq -r '.payload' | base64 -d | jq -r '.subject[].digest.sha256'
+470c549740f98fe1b1977d48e014031ed5183785fd459df7e04605daefe8e293
+$ sha256sum tuf-keyid
+470c549740f98fe1b1977d48e014031ed5183785fd459df7e04605daefe8e293  tuf-keyid
+```
+
 Alright, so next step if to verify the binary that we produced, using the
 attestation.
 
@@ -406,7 +415,13 @@ This has shown an example of in-toto attestations, namely
 [SLSA Provenance](https://slsa.dev/provenance/v0.1).
 
 `slsa-verifier` can also print out the predicate information after validation
-, using `--print-predicate`, which could then be passed to a Policy Engine.
+, using `--print-provenance`, which could then be passed to a Policy Engine:
+```console
+$ slsa-verifier verify-artifact --provenance-path tuf-keyid.intoto.jsonl \
+  --source-uri github.com/danbev/tuf-keyid \
+  --print-provenance \
+  tuf-keyid
+```
 
 Now, that worked well for a binary artifact but in Rust the releases are more
 often source code and would not have a binary to sign. 
