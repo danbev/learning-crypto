@@ -95,7 +95,8 @@ To try to make this a little more concrete lets take a look at an example
 that creates an attestation.
 
 For this example I'm going to use a GitHub Action named
-[slsa-github-generator](https://github.com/slsa-framework/slsa-github-generator/blob/main/internal/builders/generic/README.md) which can generate SLSA provenance attestations for a project.
+[slsa-github-generator](https://github.com/slsa-framework/slsa-github-generator/blob/main/internal/builders/generic/README.md) which can generate SLSA provenance attestations for github
+native projects. This generator can generate SLSA provenance for SLSA level 3.
 
 The example project I'm going to use is [tuf-keyid](https://github.com/danbev/tuf-keyid)
 but the actual project is not important in this case, any Rust project could
@@ -427,28 +428,238 @@ Now, that worked well for a binary artifact but in Rust the releases are more
 often source code and would not have a binary to sign. 
 TODO: Take a closer look at what NPM does.
 
-### Processing an attestation
-1) First the attestation is decoded as a JSON encoded Envelope.  
 
-2) Next the statements signatures are collected and later used to verify all the
-subjects.
+### in-toto sbom attestations
+Similar to the provenance discussed above there is also a need to be able to
+sign sboms to that they cannot be tampered with. SBOMs can be a added as a
+predicate, just like the SLSA provenance predicate.
 
-If any of the above steps fail then validation fails. If the above steps pass,
-then the ouput of the above will be fed into a policy engine:
-* predicateType
-* predicate
-* artifactNames (gathered by the first step)
-* attesterNames (gathered by the first step)
+Currently in-toto has specifications for
+[SPDX](https://github.com/in-toto/attestation/blob/main/spec/predicates/spdx.md)
+and there is an open pull issue for adding
+[CycloneDX](https://github.com/in-toto/attestation/issues/82). 
 
-So this was the part that was not clear to me regarding the predicate, but this
-is provided as input to a policy rule engine, like OPA, which can then
-approve/deny depending on the rules written.
+---------------
 
-### in-toto-enhancements (ITE)
-https://github.com/in-toto/ITE
+### SLSA github generator notes
+So how does the above builder generate the in-toto predicate?  
+Lets take a look at https://github.com/slsa-framework/slsa-github-generator.
 
-[attestation spec]: https://github.com/in-toto/attestation/blob/main/spec/README.md
-[ITE-5]: https://github.com/in-toto/ITE/tree/master/ITE/5
+If we look at the [workflow](https://github.com/danbev/tuf-keyid/blob/main/.github/workflows/provenance.yaml)
+definition:
+```yaml
+ provenance:
+    needs: [build]
+    permissions:
+      actions: read # To read the workflow path.
+      id-token: write # To sign the provenance.
+      contents: write # To add assets to a release.
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.4.0
+    with:
+      base64-subjects: "${{ needs.build.outputs.hashes }}"
+      upload-assets: true # Optional: Upload to a new release
+```
+We can see that this step `uses` [slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.4.0](https://github.com/slsa-framework/slsa-github-generator/blob/main/.github/workflows/generator_generic_slsa3.yml).
+```
+BUILDER_DIR: internal/builders/generic # Source directory if we compile the builder.
+```
 
-### Specification
-The specification can be found [here](https://github.com/in-toto/attestation/blob/main/spec/README.md).
+Now, recall that the oidc token is provided 
+So I'm thinking that the main entry point will be
+https://github.com/slsa-framework/slsa-github-generator/blob/main/internal/builders/generic/main.go:
+```go
+c.AddCommand(attestCmd(nil, checkExit, sigstore.NewDefaultFulcio(), sigstore.NewDefaultRekor()))
+```
+
+https://github.com/slsa-framework/slsa-github-generator/blob/main/internal/builders/generic/attest.go#L37
+```go
+func attestCmd(provider slsa.ClientProvider, check func(error),
+	signer signing.Signer, tlog signing.TransparencyLog,
+) *cobra.Command {
+  ...
+  g := slsa.NewHostedActionsGenerator(&b)
+  ...
+  p, err := g.Generate(ctx) 
+```
+Notice that `signer` in this case is what is returned from
+`sigstore.NewDefaultFulcio`.
+```go
+type Fulcio struct {
+  fulcioAddr   string
+  oidcIssuer   string
+  oidcClientID string
+}
+```
+
+[NewHostedActionsGenerator](https://github.com/slsa-framework/slsa-github-generator/blob/main/slsa/provenance.go#L45) is the type and [Generate](https://github.com/slsa-framework/slsa-github-generator/blob/main/slsa/provenance.go#L53) is method.
+```go
+func (g *HostedActionsGenerator) Generate(ctx context.Context) (*intoto.ProvenanceStatement, error) {
+  // NOTE: Use buildType as the audience as that closely matches the intended
+  // recipient of the OIDC token.
+  // NOTE: GitHub doesn't allow github.com in the audience so remove it.
+  audience := githubComReplace.ReplaceAllString(g.buildType.URI(), "")
+
+    if oidcClient != nil {
+      t, err := oidcClient.Token(ctx, []string{audience})
+      if err != nil {
+        return nil, err
+      }
+      if t.JobWorkflowRef != "" {
+        builderID = fmt.Sprintf("https://github.com/%s", t.JobWorkflowRef)
+      }
+   }
+   ...
+
+  return &intoto.ProvenanceStatement{
+    StatementHeader: intoto.StatementHeader{
+      Type:          intoto.StatementInTotoV01,
+      PredicateType: slsa02.PredicateSLSAProvenance,
+      Subject:       subject,
+     },
+     Predicate: slsa02.ProvenancePredicate{
+       BuildType: g.buildType.URI(),
+       Builder: slsacommon.ProvenanceBuilder{
+         ID: builderID,
+       },
+       Invocation:  invocation,
+       BuildConfig: buildConfig,
+       Materials:   materials,
+       Metadata:    metadata,
+     },
+  }, nil
+}
+```
+Looking at the code notice `oidcClient.Token` which is what requests an access
+token from githubs OIDC provider:
+```go
+func (c *OIDCClient) Token(ctx context.Context, audience []string) (*OIDCToken, error) {
+  tokenBytes, err := c.requestToken(ctx, audience)
+  ...
+```
+The `requestToken` function is simliar to what we have done manually using
+curl to get an oidc access code/token from githubs OIDC authorization server:
+```console
+     - name: Generate OIDC Token                                               
+        id: token                                                               
+        run: |                                                                  
+          echo oidc_token=$(curl -sLS "${ACTIONS_ID_TOKEN_REQUEST_URL}" \          
+            -H "User-Agent: actions/oidc-client" \                                 
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \           
+            | jq '.value' | tr '"' ' ') >> $GITHUB_OUTPUT 
+```
+This will return an OIDC jwt token. And notice that they are using the
+`audience` when requesting the token.
+Now, what I seem to be missing is that I can see that they are requesting an
+OIDC token in exchange for the access grant code/token. Then they are taking
+the job_workflow_ref and using that in the builderId. But I don't see where
+the token is actually used, I mean where is it sent to Fulcio?
+This is used later when signing, which is done back in attest.go
+```go
+att, err := signer.Sign(ctx, &intoto.Statement{
+  StatementHeader: p.StatementHeader,
+  Predicate:       p.Predicate,
+})
+```
+And signer was created using `sigstore.NewDefaultFulcio()` and the `sign`
+function  can be found in https://github.com/slsa-framework/slsa-github-generator/blob/main/signing/sigstore/fulcio.go#L79.
+```go
+func (s *Fulcio) Sign(ctx context.Context, p *intoto.Statement) (signing.Attestation, error) {
+  ...
+  k, err := fulcio.NewSigner(ctx, options.KeyOpts{
+    OIDCIssuer:   s.oidcIssuer,
+    OIDCClientID: s.oidcClientID,
+    FulcioURL:    s.fulcioAddr,
+  })
+}
+```
+
+https://github.com/sigstore/cosign/blob/main/cmd/cosign/cli/fulcio/fulcio.go
+```go
+func NewSigner(ctx context.Context, ko options.KeyOpts) (*Signer, error) {
+  fClient, err := NewClient(ko.FulcioURL)
+  if err != nil {
+    return nil, fmt.Errorf("creating Fulcio client: %w", err)
+  }
+  idToken, err := idToken(ko.IDToken)
+  ...
+  var provider providers.Interface
+  // If token is not set in the options, get one from the provders
+  if idToken == "" && providers.Enabled(ctx) && !ko.OIDCDisableProviders {
+	if ko.OIDCProvider != "" {
+		provider, err = providers.ProvideFrom(ctx, ko.OIDCProvider)
+		if err != nil {
+			return nil, fmt.Errorf("getting provider: %w", err)
+		}
+		idToken, err = provider.Provide(ctx, "sigstore")
+	} else {
+		idToken, err = providers.Provide(ctx, "sigstore")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("fetching ambient OIDC credentials: %w", err)
+	}
+  }
+}
+```
+In our case the token is already there I think, but I'm not exactly sure how
+this works yet. 
+What I think is happening is that since we are passing in the OIDCIssuer, this
+is getting looked up from the context using the `providers.ProvideFrom` called
+and then the `providers.Provide` function will be invoked.
+https://github.com/sigstore/cosign/blob/main/pkg/providers/github/github.go#L54
+
+https://github.com/sigstore/cosign/blob/main/cmd/cosign/cli/fulcio/fulcio.go#L61
+```go
+func getCertForOauthID(priv *ecdsa.PrivateKey, fc api.LegacyClient, connector oidcConnector, oidcIssuer, oidcClientID, oidcClientSecret, oidcRedirectURL string) (*api.CertificateResponse, error) {
+  ...
+  tok, err := connector.OIDConnect(oidcIssuer, oidcClientID, oidcClientSecret, oidcRedirectURL)
+}
+```
+https://github.com/sigstore/sigstore/blob/main/pkg/oauthflow/flow.go#L84
+
+
+https://github.com/sigstore/cosign/blob/main/pkg/providers/github/github.go#L54
+
+```go
+func OIDConnect(issuer, id, secret, redirectURL string, tg TokenGetter) (*OIDCIDToken, error) {
+  if sg, ok := tg.(*StaticTokenGetter); ok {
+    return sg.GetIDToken(nil, oauth2.Config{})
+  } 
+
+}
+```
+```go
+// StaticTokenGetter is a token getter that works on a JWT that is already known
+type StaticTokenGetter struct {
+	RawToken string
+}
+```
+https://github.com/sigstore/sigstore/blob/main/pkg/oauthflow/flow.go#L140
+```go
+func (stg *StaticTokenGetter) GetIDToken(_ *oidc.Provider, _ oauth2.Config) (*OIDCIDToken, error) {
+	unsafeTok, err := jose.ParseSigned(stg.RawToken)
+	if err != nil {
+		return nil, err
+	}
+	// THIS LOGIC IS GENERALLY UNSAFE BUT OK HERE
+	// We are only parsing the id-token passed directly to a command line tool by a user, so it is trusted locally.
+	// We need to extract the email address to attach an additional signed proof to the server.
+	// THE SERVER WILL DO REAL VERIFICATION HERE
+	unsafePayload := unsafeTok.UnsafePayloadWithoutVerification()
+	claims := claims{}
+	if err := json.Unmarshal(unsafePayload, &claims); err != nil {
+		return nil, err
+	}
+
+	subj, err := subjectFromClaims(claims)
+	if err != nil {
+		return nil, err
+	}
+
+	return &OIDCIDToken{
+		RawString: stg.RawToken,
+		Subject:   subj,
+	}, nil
+}
+
+```
+
