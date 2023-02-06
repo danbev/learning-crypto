@@ -1431,3 +1431,206 @@ $ curl -s https://rekor.sigstore.dev/api/v1/log/entries?logIndex=11560124 | jq -
 The Rekor Log Index for this example can be found [here](https://rekor.tlog.dev/?logIndex=11560124).
 
 And the example files created above can be found in [sigstore/elf](../sigstore/elf).
+
+
+### CoreIdToken
+Currently, the code that expects a JWT token will use the TokenProvider::Static
+enum variant:
+```rust
+    let id_token: CoreIdToken = CoreIdToken::from_str(&token).unwrap();
+    TokenProvider::Static((id_token, "keygen".to_string()))
+```
+Notice the hardcoded `keygen`. This was something, if I recall correctly, that
+I just used the name of the program that I was working on at the time. This was
+very much trying this out and I forgot about it.
+
+I'm trying to figure out what the correct value of this field should be. In
+sigstore-rs the code that uses this string looks like this:
+```rust
+    let (token, challenge) = self.token_provider.get_token().await?;
+
+    let signer = signing_scheme.create_signer()?;
+    let signature = signer.sign(challenge.as_bytes())?;
+    let signature = BASE64_STD_ENGINE.encode(signature);
+
+    let key_pair = signer.to_sigstore_keypair()?;
+    let public_key = key_pair.public_key_to_der()?;
+    let public_key = BASE64_STD_ENGINE.encode(public_key);
+
+    let csr = Csr {
+        public_key: Some(PublicKey(public_key, signing_scheme)),
+        signed_email_address: Some(signature),
+    };
+
+    let csr: Body = csr.try_into()?;
+    let client = reqwest::Client::new();
+    let response = client
+        .post(self.root_url.join(SIGNING_CERT_PATH)?)
+        .header(CONTENT_TYPE_HEADER_NAME, "application/json")
+        .bearer_auth(token.to_string())
+        .body(csr)
+        .send()
+        .await
+        .map_err(|_| SigstoreError::SigstoreFulcioCertificatesNotProvidedError)?;
+```
+So what should be specified for the `challenge` value?  
+To answer this we need to find out which issuers are available for Fulico, which
+can be done using the following command:
+```console
+$ curl -Ls https://fulcio.sigstore.dev/api/v2/configuration | jq
+{
+  "issuers": [
+    {
+      "issuerUrl": "https://accounts.google.com",
+      "audience": "sigstore",
+      "challengeClaim": "email",
+      "spiffeTrustDomain": ""
+    },
+    {
+      "issuerUrl": "https://allow.pub",
+      "audience": "sigstore",
+      "challengeClaim": "sub",
+      "spiffeTrustDomain": "allow.pub"
+    },
+    {
+      "issuerUrl": "https://oauth2.sigstore.dev/auth",
+      "audience": "sigstore",
+      "challengeClaim": "email",
+      "spiffeTrustDomain": ""
+    },
+    {
+      "issuerUrl": "https://token.actions.githubusercontent.com",
+      "audience": "sigstore",
+      "challengeClaim": "sub",
+      "spiffeTrustDomain": ""
+    },
+    {
+      "wildcardIssuerUrl": "https://*.oic.prod-aks.azure.com/*",
+      "audience": "sigstore",
+      "challengeClaim": "sub",
+      "spiffeTrustDomain": ""
+    },
+    {
+      "wildcardIssuerUrl": "https://container.googleapis.com/v1/projects/*/locations/*/clusters/*",
+      "audience": "sigstore",
+      "challengeClaim": "sub",
+      "spiffeTrustDomain": ""
+    },
+    {
+      "wildcardIssuerUrl": "https://oidc.eks.*.amazonaws.com/id/*",
+      "audience": "sigstore",
+      "challengeClaim": "sub",
+      "spiffeTrustDomain": ""
+    },
+    {
+      "wildcardIssuerUrl": "https://oidc.prod-aks.azure.com/*",
+      "audience": "sigstore",
+      "challengeClaim": "sub",
+      "spiffeTrustDomain": ""
+    }
+  ]
+}
+```
+In our case the issuer is `https://token.actions.githubusercontent.com`:
+```console
+$ curl -Ls https://fulcio.sigstore.dev/api/v2/configuration | jq '.[][] | select(.issuerUrl=="https://token.actions.githubusercontent.com")'
+{
+  "issuerUrl": "https://token.actions.githubusercontent.com",
+  "audience": "sigstore",
+  "challengeClaim": "sub",
+  "spiffeTrustDomain": ""
+}
+```
+So we can see that we need to set our `aud` field to `sigstore`. And notice that
+the `challengeClaim` is specified as `sub`, to we should be using the `subject`
+of the id_token for the challenge value.
+
+Also notice the `audience` which needs to be specified when we request the
+action, which is added as a request query parameter `&audience=sigstore`.
+
+We can set the audience in our workflow when we make the request to get
+an OICD id token from github's authorization server:
+```yaml
+      - name: Generate OIDC Token
+        id: token
+        run: |
+          echo oidc_token=$(curl -sLS "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=sigstore" \
+            -H "User-Agent: actions/oidc-client" \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            | jq '.value' | tr '"' ' ') >> $GITHUB_OUTPUT
+```
+Now, we also need to extract the value of `sub` from the OIDC id_token returned
+from the request above. To do this in a safe manner, we will need to have access
+to the JSON Web Key Set (JWKS). We can acccess these keys using the following
+command which gets github's OIDC server configuration:
+```console
+$ curl -Ls https://token.actions.githubusercontent.com/auth/.well-known/openid-configuration | jq
+{
+  "issuer": "https://token.actions.githubusercontent.com/auth",
+  "jwks_uri": "https://token.actions.githubusercontent.com/.well-known/jwks",
+  "subject_types_supported": [
+    "public",
+    "pairwise"
+  ],
+  "response_types_supported": [
+    "id_token"
+  ],
+  "claims_supported": [
+    "sub",
+    "aud",
+    "exp",
+    "iat",
+    "iss",
+    "jti",
+    "nbf",
+    "ref",
+    "repository",
+    "repository_id",
+    "repository_owner",
+    "repository_owner_id",
+    "run_id",
+    "run_number",
+    "run_attempt",
+    "actor",
+    "actor_id",
+    "workflow",
+    "workflow_ref",
+    "workflow_sha",
+    "head_ref",
+    "base_ref",
+    "event_name",
+    "ref_type",
+    "environment",
+    "environment_node_id",
+    "job_workflow_ref",
+    "job_workflow_sha",
+    "repository_visibility"
+  ],
+  "id_token_signing_alg_values_supported": [
+    "RS256"
+  ],
+  "scopes_supported": [
+    "openid"
+  ]
+}
+```
+And we can get/inspect the keys using `jwks_uri`:
+```console
+$ curl -Ls https://token.actions.githubusercontent.com/.well-known/jwks | jq
+```
+
+With those changes in place we should be able to get the CI workflow
+[working](https://github.com/trustification/source-distributed/actions/runs/4076323277/jobs/7023899660#step:8:16)
+and see the certificates printed out and not the error message.
+
+One thing I also had to do was to compile/build this project before running
+the workflow.sh script. The reason for this is that the script uses cargo and
+will compile the project. This takes some time and I believe enough time for
+the OIDC id_token to expire. The strange thing is that there was no error
+message from the server, well it does return a `401` in this case but that is
+not checked for, instead the if we print out the cert field it will be:
+```console
+{"code":16,"message":"There was an error processing the credentials for this request","details":[]}
+```
+I think this could be improved and the `401` handled. Also it would be nice to
+see if the error message from the server could be improved in this situation.
