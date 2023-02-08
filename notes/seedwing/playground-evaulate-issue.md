@@ -985,13 +985,13 @@ This I believe proves the point regarding the orphaned entry in the type_slots
 vector. 
 
 ## Summary
-The cause of this issue is that the core::data::package is added twice to the
-packages in the engine. This will cause two entries in the type_slots vector
+The cause of this issue is that the `core::data::package` is added twice to the
+`packages` in the engine. This will cause two entries in the `type_slots` vector
 to exist for the same package path. But since they have the same package path
-the types hashmap, which uses the package path as the key, will only have
-single entry in it which is an index into the type_slots vector. The slot that
-the types entry points to will be updated, but the other will not which will
-then cause the error when the type_slots are iterated over add added to the
+the `types` hashmap, which uses the package path as the key, will only have
+single entry in it which is an index into the `type_slots` vector. The slot that
+the types entry points to will be updated, but the other will not, which will
+then cause the error when the `type_slots` are iterated over and added to the
 engine. 
 
 This explanation is somewhat simplified but the details are in the above
