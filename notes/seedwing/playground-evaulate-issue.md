@@ -998,3 +998,34 @@ This explanation is somewhat simplified but the details are in the above
 sections but they are a little long and probably contain too many details for
 someone that is already familar with code base (unlike myself).
 
+## Solution
+One way to solve this is to make sure that there are no orphaned TypeHandle's
+in the task_slots vector by adding a check in the `declare` function, something
+like this:
+```rust
+    pub(crate) fn declare(
+        &mut self,
+        path: TypeName,
+        documentation: Option<String>,
+        parameters: Vec<Located<String>>,
+    ) {
+        log::info!("declare {}", path);
+        if documentation.is_none() {
+            log::warn!("{} is not documented", path.as_type_str());
+        }
+
+        let runtime_type = Arc::new(
+            TypeHandle::new(Some(path.clone()))
+                .with_parameters(parameters)
+                .with_documentation(documentation),
+        );
+
+        if let Some(handle) = self.types.get_mut(&path) {
+            // self.types already contains an entry for this paths so update it.
+            self.type_slots[*handle] = runtime_type;
+        } else {
+            self.type_slots.push(runtime_type);
+            self.types.insert(path, self.type_slots.len() - 1);
+        }
+    }
+```
