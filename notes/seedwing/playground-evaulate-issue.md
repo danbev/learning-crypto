@@ -1029,3 +1029,5 @@ like this:
         }
     }
 ```
+
+This suggestion has been opened as [pull request](https://github.com/seedwing-io/seedwing-policy/pull/63)
