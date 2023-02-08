@@ -1,5 +1,5 @@
 ## Vulnerabilty Exploitablity Exchange (VEX)
-Is an document that accompanies an SBOM and allows a software producer to
+Is a document that accompanies an SBOM and allows a software producer to
 specify if their product is exploitable by know software vulnerabilities. This
 can be important as just be cause there an exploit has been disclosed it might
 not mean that the producers software is actually exploiteable using that
