@@ -564,6 +564,11 @@ Later when `Lowerer::lower` is called it will iterate over the packages twice,
 first calling world.declare, and then in the second iteration call
 world.define_function:
 ```rust
+impl<'b> Lowerer<'b> {
+   ...
+
+    pub fn lower(mut self) -> Result<mir::World, Vec<BuildError>> {
+        ...
         for package in self.packages.iter() {
             let path = package.path();
             for (fn_name, func) in package.functions() {
@@ -594,12 +599,390 @@ world.define_function:
             }
         }
 ```
-If we have two duplicate packages in the vector of packages...what will happen?
+If we have two duplicate packages in the vector of packages...what will happen?  
+
 Well, there will be two entries in the type_slots of mir::World, one will be
-an entry with a Refcall<None> and the second the one that is updated. But
+an entry with a `Refcall<None>` and the second the one that is updated. But
 since the old one is still there it will get added below just that same causing
 the error:
 ```rust
-            world.add(ty.name.as_ref().unwrap().clone(), ty.clone());
+    pub fn lower(mut self) -> Result<runtime::World, Vec<BuildError>> {
+        let mut world = runtime::World::new();
+
+        log::info!("Compiling {} patterns", self.types.len());
+
+        for (slot, ty) in self.type_slots.iter().enumerate() {
+ ------>    world.add(ty.name.as_ref().unwrap().clone(), ty.clone());
+        }
+
+        Ok(world)
+    }
 ```
+
+### Debugging
+To debug this with gdb I had to resort to adding the following code in 
+seedwing-policy-engine/src/lang/hir/mod.rs
+```rust
+    pub fn add_package(&mut self, package: Package) {
+        if package.path().as_package_str() == "data" {
+            println!("Adding data package");
+        }
+        self.packages.push(package);
+    }
+```
+This is becasue I've not been able to get conditional break points to work
+with Rust and gdb (I hope to be able to spend some time figuring this out). 
+We can start the server, and see that there are multiple threads running:
+```console
+$ rust-gdb --args target/debug/seedwing-policy-server
+(gdb) r
+[2023-02-08T06:41:17Z INFO  seedwing_policy_server] starting up at http://0.0.0.0:8080/
+[New Thread 0x7ffff77426c0 (LWP 466409)]
+[New Thread 0x7ffff75416c0 (LWP 466410)]
+[New Thread 0x7ffff73406c0 (LWP 466411)]
+[New Thread 0x7ffff713f6c0 (LWP 466412)]
+[New Thread 0x7ffff6f3e6c0 (LWP 466413)]
+[New Thread 0x7ffff6d3d6c0 (LWP 466414)]
+[New Thread 0x7ffff6b3c6c0 (LWP 466415)]
+```
+Above we can see that gdb is informing us that new thread were created.
+So lets add a break point in all of them so that we don't miss anything
+```console
+(gdb) thread apply all seedwing-policy-engine/src/lang/hir/mod.rs:411
+(gdb) thread apply all seedwing-policy-engine/src/lang/hir/mod.rs:411
+
+Thread 8 (Thread 0x7ffff6b3c6c0 (LWP 466415) "actix-server ac"):
+Undefined command: "seedwing-policy-engine".  Try "help".
+(gdb) thread apply all br seedwing-policy-engine/src/lang/hir/mod.rs:411
+
+Thread 8 (Thread 0x7ffff6b3c6c0 (LWP 466415) "actix-server ac"):
+Note: breakpoints 3 and 4 also set at pc 0x5555558bfa3b.
+Breakpoint 5 at 0x5555558bfa3b: file seedwing-policy-engine/src/lang/hir/mod.rs, line 411.
+
+Thread 7 (Thread 0x7ffff6d3d6c0 (LWP 466414) "actix-rt|system"):
+Note: breakpoints 3, 4 and 5 also set at pc 0x5555558bfa3b.
+Breakpoint 6 at 0x5555558bfa3b: file seedwing-policy-engine/src/lang/hir/mod.rs, line 411.
+
+Thread 6 (Thread 0x7ffff6f3e6c0 (LWP 466413) "actix-rt|system"):
+Note: breakpoints 3, 4, 5 and 6 also set at pc 0x5555558bfa3b.
+Breakpoint 7 at 0x5555558bfa3b: file seedwing-policy-engine/src/lang/hir/mod.rs, line 411.
+
+Thread 5 (Thread 0x7ffff713f6c0 (LWP 466412) "actix-rt|system"):
+Note: breakpoints 3, 4, 5, 6 and 7 also set at pc 0x5555558bfa3b.
+Breakpoint 8 at 0x5555558bfa3b: file seedwing-policy-engine/src/lang/hir/mod.rs, line 411.
+
+Thread 4 (Thread 0x7ffff73406c0 (LWP 466411) "actix-rt|system"):
+Note: breakpoints 3, 4, 5, 6, 7 and 8 also set at pc 0x5555558bfa3b.
+Breakpoint 9 at 0x5555558bfa3b: file seedwing-policy-engine/src/lang/hir/mod.rs, line 411.
+
+Thread 3 (Thread 0x7ffff75416c0 (LWP 466410) "actix-rt|system"):
+Note: breakpoints 3, 4, 5, 6, 7, 8 and 9 also set at pc 0x5555558bfa3b.
+Breakpoint 10 at 0x5555558bfa3b: file seedwing-policy-engine/src/lang/hir/mod.rs, line 411.
+
+Thread 2 (Thread 0x7ffff77426c0 (LWP 466409) "actix-rt|system"):
+Note: breakpoints 3, 4, 5, 6, 7, 8, 9 and 10 also set at pc 0x5555558bfa3b.
+Breakpoint 11 at 0x5555558bfa3b: file seedwing-policy-engine/src/lang/hir/mod.rs, line 411.
+
+Thread 1 (Thread 0x7ffff7ecda00 (LWP 466408) "seedwing-policy"):
+Note: breakpoints 3, 4, 5, 6, 7, 8, 9, 10 and 11 also set at pc 0x5555558bfa3b.
+Breakpoint 12 at 0x5555558bfa3b: file seedwing-policy-engine/src/lang/hir/mod.rs, line 411.
+
+(gdb) continue
+```
+Now, we can go to the playground and compile a pattern, and then evaulate it.
+This should cause our breakpoint to be hit.
+```console
+(gdb) bt 4
+#0  seedwing_policy_engine::lang::hir::World::add_package (self=0x7fffe8046428, package=...)
+    at seedwing-policy-engine/src/lang/hir/mod.rs:411
+#1  0x00005555558bfb2c in seedwing_policy_engine::lang::hir::World::lower (self=0x7fffe8046428)
+    at seedwing-policy-engine/src/lang/hir/mod.rs:420
+#2  0x00005555557d50cb in seedwing_policy_engine::lang::builder::{impl#1}::finish::{async_fn#0} ()
+    at seedwing-policy-engine/src/lang/builder.rs:36
+#3  0x00005555556cec68 in seedwing_policy_server::playground::{impl#6}::register::evaluate::{async_fn#0} ()
+    at seedwing-policy-server/src/playground.rs:106
+```
+If we check the packages vector at this stage we can see that the last entry
+is the following:
+```console
+(gdb) p self.packages
+...
+seedwing_policy_engine::package::Package {path: seedwing_policy_engine::runtime::PackagePath {is_absolute: true, path: Vec(size=1) = {seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName> {inner: seedwing_policy_engine::runtime::PackageName ("data"), location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}}}, functions: HashMap(size=1) = {["from"] = Arc(strong=15, weak=0) = {value = dyn seedwing_policy_engine::core::Function, strong = 15, weak = 0}}, sources: Vec(size=0)}
+```
+And the package we are adding:
+```console
+(gdb) p package
+seedwing_policy_engine::package::Package {path: seedwing_policy_engine::runtime::PackagePath {is_absolute: true, path: Vec(size=1) = {seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName> {inner: seedwing_policy_engine::runtime::PackageName ("data"), location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}}}, functions: HashMap(size=1) = {["from"] = Arc(strong=1, weak=0) = {value = dyn seedwing_policy_engine::core::Function, strong = 1, weak = 0}}, sources: Vec(size=0)}
+```
+So when this function returns there will be two identical entries in this vector.
+We are interested in the packages vector because it effects the contents of
+the `type_slots` vector which is iterated over in the following function:
+```rust
+    pub fn lower(mut self) -> Result<runtime::World, Vec<BuildError>> {
+        let mut world = runtime::World::new();
+
+        log::info!("Compiling {} patterns", self.types.len());
+
+        for (slot, ty) in self.type_slots.iter().enumerate() {
+           world.add(ty.name.as_ref().unwrap().clone(), ty.clone());
+        }
+
+        Ok(world)
+    }
+```
+
+So we will add the following code blocks to enable us to set breakpoints:
+```rust
+impl<'b> Lowerer<'b> {
+   ...
+
+    pub fn lower(mut self) -> Result<mir::World, Vec<BuildError>> {
+        ...
+        for package in self.packages.iter() {
+            if package.path().as_package_str() == "data" {
+                println!("Lowerer::lower data declare");
+            }
+            let path = package.path();
+            for (fn_name, func) in package.functions() {
+                let path = path.type_name(fn_name);
+                world.declare(
+                    path,
+                    func.documentation(),
+                    func.parameters()
+                        .iter()
+                        .cloned()
+                        .map(|p| Located::new(p, 0..0))
+                        .collect(),
+                );
+            }
+        }
+
+        if !errors.is_empty() {
+            return Err(errors);
+        }
+
+        for package in self.packages.iter() {
+            if package.path().as_package_str() == "data" {
+                println!("Lowerer::lower data declare_function");
+            }
+            let path = package.path();
+            for (fn_name, func) in package.functions() {
+                let path = path.type_name(fn_name);
+                world.define_function(path, func);
+            }
+        }
+```
+The goal here is to find out how type_slots is effected by the duplicated
+entries in the packages vector.
+We need to recompile, not just re-run the gdb command, and then start gdb
+```console
+$ cargo b
+$ rust-gdb --args target/debug/seedwing-policy-server
+(gdb) r
+```
+And we can no go to the [playground](http://localhost:8080/playground/) and
+compile a pattern. Then we want to interrupt gdb by pressing CTRL+C so that we
+can enter breakpoints:
+```console
+(gdb) thread apply all br seedwing-policy-engine/src/lang/hir/mod.rs:588
+(gdb) thread apply all br seedwing-policy-engine/src/lang/hir/mod.rs:611
+(gdb) c
+```
+And now we can press evaluate in the playground:
+```console
+Thread 3 "actix-rt|system" hit Breakpoint 1, seedwing_policy_engine::lang::hir::Lowerer::lower (self=...) at seedwing-policy-engine/src/lang/hir/mod.rs:588
+588	                println!("Lowerer::lower data declare");
+```
+Lets follow this into `world.declare` (seedwing-policy-engine/src/lang/mir/mod.rs)
+```rust
+    pub(crate) fn declare(
+        &mut self,
+        path: TypeName,
+        documentation: Option<String>,
+        parameters: Vec<Located<String>>,
+    ) {
+        log::info!("declare {}", path);
+        if documentation.is_none() {
+            log::warn!("{} is not documented", path.as_type_str());
+        }
+
+        self.type_slots.push(Arc::new(
+            TypeHandle::new(Some(path.clone()))
+                .with_parameters(parameters)
+                .with_documentation(documentation),
+        ));
+        self.types.insert(path, self.type_slots.len() - 1);
+    }
+```
+We can see the length of the type_slots:
+```console
+(gdb) p self.type_slots.len
+$13 = 133
+```
+Lets print type_slots to a file by enabling logging in gdb:
+```console
+(gdb) set logging on
+(gdb) p self_type_slots
+(gdb) set logging off
+```
+The contents will now be in `gdb.txt`. 
+```console
+seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName> {inner: seedwing_policy_engine::runtime::PackageName ("v1_4"), location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}}}), name: "data"}), documentation: core::option::Option<alloc::string::String>::Some(""), ty: RefCell(borrow=0) = {value = core::option::Option<alloc::sync::Arc<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::lang::mir::Type>>>::None, borrow = 0}, parameters: Vec(size=0)}, strong = 1, weak = 0}, Arc(strong=1, weak=0) = {
+```
+And types will be updated with the path and the index which will be 133 in this
+case.
+Now, this will return us to Lowerer::lower and the package iteration that we
+are currently doing and there is now another data package to handle.
+```console
+(gdb) p path
+$43 = seedwing_policy_engine::runtime::TypeName {package: core::option::Option<seedwing_policy_engine::runtime::PackagePath>::Some(seedwing_policy_engine::runtime::PackagePath {is_absolute: true, path: Vec(size=1) = {
+        seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName> {inner: seedwing_policy_engine::runtime::PackageName ("data"), location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}}}), name: "from"}
+```
+And this will be passed to `world.declare`, which will push this into the
+type_slots vector.
+```console
+Arc(strong=1, weak=0) = {value = seedwing_policy_engine::lang::mir::TypeHandle {name: core::option::Option<seedwing_policy_engine::runtime::TypeName>::Some(seedwing_policy_engine::runtime::TypeName {package: core::option::Option<seedwing_policy_engine::runtime::PackagePath>::Some(seedwing_policy_engine::runtime::PackagePath {is_absolute: true, path: Vec(size=1) = {seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName> {inner: seedwing_policy_engine::runtime::PackageName ("data"), location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}}}), name: "from"}), documentation: core::option::Option<alloc::string::String>::Some("Ignores the input value and returns data loaded from the specified relative path."), ty: RefCell(borrow=0) = {value = core::option::Option<alloc::sync::Arc<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::lang::mir::Type>>>::None, borrow = 0}, parameters: Vec(size=1) = {seedwing_policy_engine::lang::parser::Located<alloc::string::String> {inner: "path", location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}}}, strong = 1, weak = 0},
+
+Arc(strong=1, weak=0) = {value = seedwing_policy_engine::lang::mir::TypeHandle {name: core::option::Option<seedwing_policy_engine::runtime::TypeName>::Some(seedwing_policy_engine::runtime::TypeName {package: core::option::Option<seedwing_policy_engine::runtime::PackagePath>::Some(seedwing_policy_engine::runtime::PackagePath {is_absolute: true, path: Vec(size=1) = {seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName> {inner: seedwing_policy_engine::runtime::PackageName ("data"), location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}}}), name: "from"}), documentation: core::option::Option<alloc::string::String>::Some("Ignores the input value and returns data loaded from the specified relative path."), ty: RefCell(borrow=0) = {value = core::option::Option<alloc::sync::Arc<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::lang::mir::Type>>>::None, borrow = 0}, parameters: Vec(size=1) = {seedwing_policy_engine::lang::parser::Located<alloc::string::String> {inner: "path", location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}}}, strong = 1, weak = 0}}
+```
+And then the types hashmap will get updated using:
+```rust
+        self.types.insert(path, self.type_slots.len() - 1);
+```
+And notice that the index will be:
+```console
+(gdb) p self.type_slots.len - 1
+$46 = 134
+```
+Now, the path is the same as before to the index in the hashmap for this
+path will be updated to 134:
+```console
+[seedwing_policy_engine::runtime::TypeName {package: core::option::Option<seedwing_policy_engine::runtime::PackagePath>::Some(seedwing_policy_engine::runtime::PackagePath {is_absolute: true, path: Vec(size=1) = {seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName> {inner: seedwing_policy_engine::runtime::PackageName ("data"), location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}}}), name: "from"}] = 134,
+```
+So that was takes care of the 2 entries in the packages which were then added
+using world.declare. Lets `continue` and take a look at world.declare_function:
+```console
+(gdb) continue
+Thread 3 "actix-rt|system" hit Breakpoint 9, seedwing_policy_engine::lang::hir::Lowerer::lower (self=...) at seedwing-policy-engine/src/lang/hir/mod.rs:611
+611	                println!("Lowerer::lower data declare_function");
+```
+Here is the code we are going to step through:
+```rust
+        for package in self.packages.iter() {
+            if package.path().as_package_str() == "data" {
+                println!("Lowerer::lower data declare_function");
+            }
+            let path = package.path();
+            for (fn_name, func) in package.functions() {
+                let path = path.type_name(fn_name);
+                world.define_function(path, func);
+            }
+        }
+```
+If we take print `fn_name` we find:
+```console
+(gdb) p fn_name
+$49 = "from"
+```
+And the path:
+```console
+(gdb) p path
+$48 = seedwing_policy_engine::runtime::PackagePath {is_absolute: true, path: Vec(size=1) = {
+    seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName> {inner: seedwing_policy_engine::runtime::PackageName ("data"), location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}}}
+```
+And the the path after the call to path.type_name:
+```console
+(gdb) p path
+$50 = seedwing_policy_engine::runtime::TypeName {package: core::option::Option<seedwing_policy_engine::runtime::PackagePath>::Some(seedwing_policy_engine::runtime::PackagePath {is_absolute: true, path: Vec(size=1) = {seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName> {inner: seedwing_policy_engine::runtime::PackageName ("data"), location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}}}), name: "from"}
+```
+And this will be passed to `world.define_function`:
+```rust
+    pub(crate) fn define_function(&mut self, path: TypeName, func: Arc<dyn Function>) {
+        log::info!("define function {}", path);
+        let runtime_type = Located::new(
+            mir::Type::Primordial(PrimordialType::Function(
+                SyntacticSugar::from(path.clone()),
+                path.clone(),
+                func,
+            )),
+            0..0,
+        );
+
+        if let Some(handle) = self.types.get_mut(&path) {
+            self.type_slots[*handle].define(Arc::new(runtime_type));
+        }
+    }
+```
+Notice that self.types.get_mut(&path) is getting the index into the type_slots
+using the path. This should return 134 which we saw earlier.
+```console
+(gdb) p *handle
+$51 = 134
+```
+So that is all good, but recall that we also have another entry for this path
+in type_slots, but it is like a dangling pointer as there is no entry in the
+types hashmap pointing to it.
+After we return from this function we will be back in the package iteration,
+and there is another entry for this path.
+```console
+(gdb) p path
+$52 = seedwing_policy_engine::runtime::TypeName {package: core::option::Option<seedwing_policy_engine::runtime::PackagePath>::Some(seedwing_policy_engine::runtime::PackagePath {is_absolute: true, path: Vec(size=1) = {
+        seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName> {inner: seedwing_policy_engine::runtime::PackageName ("data"), location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}}}), name: "from"}
+```
+And we go through the same process, the handle should again be 134:
+```console
+(gdb) p *handle
+$53 = 134
+```
+Now, let's set a breakpoint in `lower` and continue
+```console
+(gdb) br seedwing-policy-engine/src/lang/mir/mod.rs:459
+(gdb) continue
+```
+And `lower` has been updated to add logging like this, again this only to
+enable us to set breakpoints as conditional breakpoint and Rust don't play
+well together:
+```rust
+    pub fn lower(mut self) -> Result<runtime::World, Vec<BuildError>> {
+        let mut world = runtime::World::new();
+
+        log::info!("Compiling {} patterns", self.types.len());
+
+        for (slot, ty) in self.type_slots.iter().enumerate() {
+            if ty.name.as_ref().unwrap().as_type_str() == "data::from" {
+                eprintln!(
+                    "processing type_slot for data::from slot: {}, ty: {:?}",
+                    slot, &ty
+                );
+                if self.type_slots.len() > 133 {
+                    let slot_134 = &self.type_slots[134];
+                    eprintln!("slot_134: {:?}", slot_134);
+                }
+            }
+            world.add(ty.name.as_ref().unwrap().clone(), ty.clone());
+        }
+
+        Ok(world)
+    }
+```
+Notice that this will iterate over all the elements in the `type_slots` vector
+including our orphaned entry which does not have any entry in the types
+hashtable indexing it. 
+
+If we run the policy-server with the above code we will see the following in
+the console:
+```console
+$ cargo r --bin seedwing-policy-server
+...
+[2023-02-08T09:07:25Z INFO  seedwing_policy_engine::lang::mir] Compiling 134 patterns
+processing type_slot for data::from slot: 133, ty: TypeHandle { name: Some(TypeName { package: Some(PackagePath { is_absolute: true, path: [PackageName("data")] }), name: "from" }), documentation: Some("Ignores the input value and returns data loaded from the specified relative path."), ty: RefCell { value: None }, parameters: ["path"] }
+
+slot_134: TypeHandle { name: Some(TypeName { package: Some(PackagePath { is_absolute: true, path: [PackageName("data")] }), name: "from" }), documentation: Some("Ignores the input value and returns data loaded from the specified relative path."), ty: RefCell { value: Some(Function(None, TypeName { package: Some(PackagePath { is_absolute: true, path: [PackageName("data")] }), name: "from" }, From { data_sources: [] })) }, parameters: ["path"] }
+
+thread 'actix-rt|system:0|arbiter:1' panicked at 'called `Option::unwrap()` on a `None` value', seedwing-policy-engine/src/lang/mir/mod.rs:79:35
+```
+This I believe proves the point regarding the orphaned entry in the type_slots
+vector. 
+The question is now how to fix it.
+
 
