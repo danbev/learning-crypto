@@ -612,7 +612,7 @@ the error:
         log::info!("Compiling {} patterns", self.types.len());
 
         for (slot, ty) in self.type_slots.iter().enumerate() {
- ------>    world.add(ty.name.as_ref().unwrap().clone(), ty.clone());
+           world.add(ty.name.as_ref().unwrap().clone(), ty.clone());
         }
 
         Ok(world)
@@ -983,6 +983,18 @@ thread 'actix-rt|system:0|arbiter:1' panicked at 'called `Option::unwrap()` on a
 ```
 This I believe proves the point regarding the orphaned entry in the type_slots
 vector. 
-The question is now how to fix it.
 
+## Summary
+The cause of this issue is that the core::data::package is added twice to the
+packages in the engine. This will cause two entries in the type_slots vector
+to exist for the same package path. But since they have the same package path
+the types hashmap, which uses the package path as the key, will only have
+single entry in it which is an index into the type_slots vector. The slot that
+the types entry points to will be updated, but the other will not which will
+then cause the error when the type_slots are iterated over add added to the
+engine. 
+
+This explanation is somewhat simplified but the details are in the above
+sections but they are a little long and probably contain too many details for
+someone that is already familar with code base (unlike myself).
 
