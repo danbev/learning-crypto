@@ -70,7 +70,7 @@ pub struct CompilationUnit {
     types: Vec<Located<TypeDefn>>,
 }
 ```
-So a compilation unit represents a `.dog` file I think, which has  a source
+So a compilation unit represents a `.dog` file I think, which has a source
 which is the name of the source and not the actual source.
 
 `uses` is when we have `use` statements in a pattern source.  For example:
@@ -78,8 +78,11 @@ which is the name of the source and not the actual source.
 use list::all
 ```
 
-### Typedefn
-`types` is a filed in a CompilationUnit and I'm not sure about what they are, we
+There is a separate section on [CompilationUnit](#compilationunit) but I found
+it useful to talk about TypeDefn first.
+
+### TypeDefn
+`types` is a field in a CompilationUnit and I'm not sure about what they are, we
 can see that it is a vector of `Typedefn`:
 ```rust
 #[derive(Clone, Debug)]
@@ -433,11 +436,181 @@ $78 = Vec(size=1) = {
 
 So hopefully that helps understand what TypeDefn is.
 
+### CompilationUnit
+In the TypeDefn section we looked mentioned [chumsky] but dit not go into any
+details at all. This section tries to show how parsing is done. 
 
-I'm thinking that `data_sources` are data that we want to have loaded into
-the engine, which could be json files containing information that can then
-be accessed by rules to match against.
+```console
+$ rust-gdb --args target/debug/seedwing-policy-server
+Reading symbols from target/debug/seedwing-policy-server...
+(gdb) br seedwing_policy_engine::lang::parser::PolicyParser::parse
+Breakpoint 1 at 0x2c2be3: file seedwing-policy-engine/src/lang/parser/mod.rs, line 276.
+(gdb) r
+```console
+Breakpoint 1, seedwing_policy_engine::lang::parser::PolicyParser::parse<alloc::boxed::Box<dyn core::iter::traits::iterator::Iterator<Item=(char, core::ops::range::Range<usize>)>, alloc::alloc::Global>, seedwing_policy_engine::lang::parser::SourceLocation, alloc::string::String> (self=0x7fffffff6170, source=..., stream="\n\n\n/// Matches OID of 85.4.3, common name.\npattern common<pattern> = {\n  oid: \"85.4.3\",\n  value: pattern,\n}\n\n/// Matches OID of 85.4.10, organization name.\npattern organization<pattern> = {\n  oid: \"85"...) at seedwing-policy-engine/src/lang/parser/mod.rs:276
+276	        let tokens = lexer().parse(stream)?;
+```
+And we can find out how we got here:
+```console
+(gdb) bt 4
+#0  seedwing_policy_engine::lang::parser::PolicyParser::parse<alloc::boxed::Box<dyn core::iter::traits::iterator::Iterator<Item=(char, core::ops::range::Range<usize>)>, alloc::alloc::Global>, seedwing_policy_engine::lang::parser::SourceLocation, alloc::string::String> (self=0x7fffffff6170, source=..., stream="\n\n\n/// Matches OID of 85.4.3, common name.\npattern common<pattern> = {\n  oid: \"85.4.3\",\n  value: pattern,\n}\n\n/// Matches OID of 85.4.10, organization name.\npattern organization<pattern> = {\n  oid: \"85"...) at seedwing-policy-engine/src/lang/parser/mod.rs:276
+#1  0x00005555558bff76 in seedwing_policy_engine::lang::hir::World::lower (self=0x7fffffffa4f0) at seedwing-policy-engine/src/lang/hir/mod.rs:424
+#2  0x00005555557d50cb in seedwing_policy_engine::lang::builder::{impl#1}::finish::{async_fn#0} () at seedwing-policy-engine/src/lang/builder.rs:36
+#3  0x000055555573cff5 in seedwing_policy_server::main::{async_block#0} () at seedwing-policy-server/src/main.rs:87
+```
+Using `up` we an understand how we got here:
+```console
+(gdb) up 3
+#3  0x000055555573cff5 in seedwing_policy_server::main::{async_block#0} () at seedwing-policy-server/src/main.rs:87
+87	    }
+(gdb) l
+82	    if let Some(directories) = matches.get_many::<String>("data") {
+83	        for each in directories {
+84	            log::info!("loading data from {:?}", each);
+85	            builder.data(DirectoryDataSource::new(each.into()));
+86	        }
+87	    }
+88	
+89	    let result = builder.finish().await;
+```
+This line number reported by gdb is not correct unless I'm missing something
+but we know by doing `down` that `builder.finish()` was called.
+```console
+(gdb) l
+31	    {
+32	        self.hir.build(sources)
+33	    }
+34	
+35	    pub async fn finish(&mut self) -> Result<runtime::World, Vec<BuildError>> {
+36	        let mir = self.hir.lower()?;
+37	        let runtime = mir.lower()?;
+38	        Ok(runtime)
+39	    }
+```
+And the lowest stack fram is for `self.hir.lower`:
+```console
+(gdb) down
+(gdb) l
+419	
+420	        for pkg in &self.packages {
+421	            for (source, stream) in pkg.source_iter() {
+422	                log::info!("loading {}", source);
+423	                self.source_cache.add(source.clone(), stream.clone().into());
+424	                let unit = PolicyParser::default().parse(source.to_owned(), stream);
+425	                match unit {
+426	                    Ok(unit) => {
+427	                        core_units.push(unit);
+428	                    }
+(gdb) f
+#1  0x00005555558bff76 in seedwing_policy_engine::lang::hir::World::lower (self=0x7fffffffa4f0) at seedwing-policy-engine/src/lang/hir/mod.rs:424
+424	                let unit = PolicyParser::default().parse(source.to_owned(), stream);
+```
+Like mentioned in the [TypeDefn](#typeDefn) section this will be parsing a
+single dogma source:
+```console
+(gdb) p source
+$1 = seedwing_policy_engine::lang::parser::SourceLocation {name: "x509::oid"}
+```
+And stepping into `parse`:
+```console
+(gdb) s
+(gdb) l
+271	        Self: Sized,
+272	        Iter: Iterator<Item = (ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
+273	        Src: Into<SourceLocation> + Clone,
+274	        S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
+275	    {
+276	        let tokens = lexer().parse(stream)?;
+277	        let tokens = remove_comments(&tokens);
+278	        let (compilation_unit, errors) = compilation_unit(source).parse_recovery_verbose(
+279	            Stream::from_iter(tokens.len()..tokens.len() + 1, tokens.iter().cloned()),
+280	        );
+(gdb) s
+(gdb) l
+338	pub fn lexer(
+339	) -> impl Parser<ParserInput, Vec<(ParserInput, SourceSpan)>, Error = ParserError> + Clone {
+340	    any().map_with_span(|l, span| (l, span)).repeated()
+341	}
+```
+The Chumsky `any` parser will accept anything, and map_with_span will attach a
+span, and repeated means that this will be repeated so every thing will be
+parsed.
+```console
+(gdb) n
+(gdb) n
+(gdb) n
+(gdb) p tokens.len
+$4 = 228
+```
+I'm not listing the tokens vector but this can be done.
+```console
+(gdb) f
+277	        let tokens = remove_comments(&tokens);
+```
+The above is just removing comments from the source. After that we have:
+```console
+(gdb) l
+273	        Src: Into<SourceLocation> + Clone,
+274	        S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
+275	    {
+276	        let tokens = lexer().parse(stream)?;
+277	        let tokens = remove_comments(&tokens);
+278	        let (compilation_unit, errors) = compilation_unit(source).parse_recovery_verbose(
+279	            Stream::from_iter(tokens.len()..tokens.len() + 1, tokens.iter().cloned()),
+280	        );
+```
+So let's step into `compilation_unit`.
+```rust
+                                                      [input]      [output]
+pub fn compilation_unit<S>(source: S,) -> impl Parser<ParserInput, CompilationUnit, Error = ParserError> + Clone where S: Into<SourceLocation> + Clone, {
+    use_statement()
+        .padded()
+        .repeated()
+        .then(type_definition().padded().repeated())
+        .then_ignore(end())
+        .map(move |(use_statements, types)| {
+            let mut unit = CompilationUnit::new(source.clone().into());
 
+            for e in use_statements {
+                unit.add_use(e)
+            }
+
+            for e in types {
+                unit.add_type(e)
+            }
+
+            unit
+        })
+}
+```
+Chumsky is a parser combinator and the engine has parsers defined that handle
+the various tokens in the Dogma language. The `then` parser will cause this
+parser to yield a tuple of the first parser, `use_statement()`, and the second
+which is `type_definition()`.  For example, a .dog file can specify
+zero or more `use` statement(s), followed by one or more type definitions.
+
+The tuple produced is passed to `.map` where we can see that a new
+CompilationUnit is created, and all the use statement (if there are any) are
+added to the compilation unit. Likewise, the types are also added, and
+finally the unit is returned.
+
+`use_statement()` returns a Chumsky parser:
+```rust
+pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error = ParserError> + Clone {
+    just("use")
+        .padded()
+        .ignored()
+        .then(type_name())
+        .then(as_clause().or_not())
+        // .then( just(";").padded().ignored() )
+        .map_with_span(|(((_, type_path), as_clause)), span| {
+            Located::new(Use::new(type_path, as_clause), span)
+        })
+}
+```
+`just` specifies that only that sequence of characters are accepted by the
+parser returned from this function. `padding` says that it is alright to
+whitespace characters before and/or after the `use` sequence.
 
 
 ### Dogma policy language
@@ -640,7 +813,7 @@ pub struct TypeName {
 And this matches the above `TypeName::new` call. But the lir is meant for
 lower level code and would not be exposed at this level so we can assume it is
 not used here.
-That is a PackagePath?
+What is a PackagePath?
 
 ```rust
         let ty = Arc::new(TypeHandle::new_with(
@@ -664,54 +837,4 @@ pub struct Location {
 pub type SourceSpan = std::ops::Range<usize>;
 ```
 
-### playground evaluate issue "Option::unwrap() on None value"
-I ran into this issue the first time I tried out the playground locally.
-I used the simplest pattern possible:
-```
-pattern something = integer
-```
-I compiles fine but when I try to evaluate it using:
-```
-7
-
-pattern = something
-```
-The error below is generated:
-```rust
-[2023-02-07T06:31:31Z INFO  seedwing_policy_engine::lang::mir] define type vex::openvex::affected
-[2023-02-07T06:31:31Z INFO  seedwing_policy_engine::lang::mir] define type maven::coordinates
-[2023-02-07T06:31:31Z INFO  seedwing_policy_engine::lang::mir] Compiling 132 patterns
-thread 'actix-rt|system:0|arbiter:1' panicked at 'called `Option::unwrap()` on a `None` value', seedwing-policy-engine/src/lang/mir/mod.rs:79:35
-stack backtrace:
-   0: rust_begin_unwind
-             at /rustc/fc594f15669680fa70d255faec3ca3fb507c3405/library/std/src/panicking.rs:575:5
-   1: core::panicking::panic_fmt
-             at /rustc/fc594f15669680fa70d255faec3ca3fb507c3405/library/core/src/panicking.rs:64:14
-   2: core::panicking::panic
-             at /rustc/fc594f15669680fa70d255faec3ca3fb507c3405/library/core/src/panicking.rs:111:5
-   3: core::option::Option<T>::unwrap
-             at /rustc/fc594f15669680fa70d255faec3ca3fb507c3405/library/core/src/option.rs:778:21
-   4: seedwing_policy_engine::lang::mir::TypeHandle::ty
-             at /home/danielbevenius/work/security/seedwing/seedwing-policy/seedwing-policy-engine/src/lang/mir/mod.rs:79:9
-   5: seedwing_policy_engine::runtime::World::add
-             at /home/danielbevenius/work/security/seedwing/seedwing-policy/seedwing-policy-engine/src/runtime/mod.rs:443:18
-   6: seedwing_policy_engine::lang::mir::World::lower
-             at /home/danielbevenius/work/security/seedwing/seedwing-policy/seedwing-policy-engine/src/lang/mir/mod.rs:462:13
-   7: seedwing_policy_engine::lang::builder::Builder::finish::{{closure}}
-             at /home/danielbevenius/work/security/seedwing/seedwing-policy/seedwing-policy-engine/src/lang/builder.rs:37:23
-   8: <seedwing_policy_server::playground::evaluate as actix_web::service::HttpServiceFactory>::register::evaluate::{{closure}}
-             at ./src/playground.rs:106:51
-   9: actix_web::handler::handler_service::{{closure}}::{{closure}}
-             at /home/danielbevenius/.cargo/registry/src/github.com-1ecc6299db9ec823/actix-web-4.2.1/src/handler.rs:106:21
-```
-After adding some log statements I found that the TypeHandle in this case if
-for a Data function.
-
-Lets start a debugging session to understand what is going on:
-```console
-$ rust-gdb --args ../target/debug/seedwing-policy-server
-Reading symbols from ../target/debug/seedwing-policy-server...
-(gdb) br main.rs:55
-Breakpoint 1 at 0x1d7a42: file seedwing-policy-server/src/main.rs, line 55.
-```
-
+[chumsky]: https://crates.io/crates/chumsky/0.9.0
