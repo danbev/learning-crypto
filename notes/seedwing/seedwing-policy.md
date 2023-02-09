@@ -2,6 +2,10 @@
 Is a policy engine, like OPA for example. The policy language in Sweedwing is
 called Dogma, and in OPA it is Rego.
 
+# Table of Contents
+1. [CompilationUnit](#compilationunit)
+2. [TypeDefn](#typedefn)
+
 ### policy-server walkthrough
 Lets start a debugging session and break in the policy-servers main function.
 ```console
