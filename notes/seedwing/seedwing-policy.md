@@ -77,11 +77,6 @@ pub struct CompilationUnit {
 So a compilation unit represents a `.dog` file I think, which has a source
 which is the name of the source and not the actual source.
 
-`uses` is when we have `use` statements in a pattern source.  For example:
-```
-use list::all
-```
-
 ### CompilationUnit
 In the TypeDefn section we looked mentioned [chumsky] but dit not go into any
 details at all. This section tries to show how parsing is done. 
