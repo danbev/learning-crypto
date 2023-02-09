@@ -78,8 +78,9 @@ So a compilation unit represents a `.dog` file I think, which has a source
 which is the name of the source and not the actual source.
 
 ### CompilationUnit
-In the TypeDefn section we looked mentioned [chumsky] but dit not go into any
-details at all. This section tries to show how parsing is done. 
+This section tries to show how parsing is done. A Rust library named [Chumsky]
+is used and I found it useful to try out some standalone [chumsky examples] to
+gain a basic understanding of it.
 
 ```console
 $ rust-gdb --args target/debug/seedwing-policy-server
@@ -616,4 +617,5 @@ $78 = Vec(size=1) = {
 So hopefully that helps understand what TypeDefn is.
 
 [chumsky]: https://crates.io/crates/chumsky/0.9.0
+[chumsky examples]: https://github.com/danbev/learning-rust/tree/master/chumsky#chumsky
 [rust-gdb]: https://github.com/danbev/learning-rust/blob/master/notes/gdb.md
