@@ -329,7 +329,10 @@ We can inspect `source` using:
 $3 = seedwing_policy_engine::lang::parser::SourceLocation {name: "x509::oid"}
 ```
 So where did this come source from?  
-It is in the `self.packages` vector:
+It is in the `self.packages` vector which can be inspected using the following
+command. This might look strange but please see [rust-gdb] for details. I'vector
+also formatted the output to make it a little more readable which I think helps
+visualize things:
 ```console
 (gdb) p *(self.packages.buf.ptr.pointer.pointer + 6)
 $46 = seedwing_policy_engine::package::Package {
@@ -845,3 +848,4 @@ pub type SourceSpan = std::ops::Range<usize>;
 ```
 
 [chumsky]: https://crates.io/crates/chumsky/0.9.0
+[rust-gdb]: https://github.com/danbev/learning-rust/blob/master/notes/gdb.md
