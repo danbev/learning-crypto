@@ -868,6 +868,148 @@ $6 = seedwing_policy_engine::lang::mir::Type::Primordial(seedwing_policy_engine:
 (gdb) p ty.inner.0
 $7 = seedwing_policy_engine::lang::PrimordialType::Integer
 ```
+Back in `define_primordial` we will then add `ty` to the `type_slots` vector:
+```
+(gdb) f
+#0  seedwing_policy_engine::lang::mir::World::define_primordial (self=0x7fffffff4ce0, name="integer", ty=...) at seedwing-policy-engine/src/lang/mir/mod.rs:232
+232	        self.type_slots.push(ty);
+```
+Just printing `ty` will provide a lot of data which can be hard read. One way
+around is to "look" into the Arc and at the data that it points to:
+```console
+(gdb) p (*ty.ptr.pointer).data
+$21 = seedwing_policy_engine::lang::mir::TypeHandle {name: core::option::Option<seedwing_policy_engine::runtime::TypeName>::Some(seedwing_policy_engine::runtime::TypeName {package: core::option::Option<seedwing_policy_engine::runtime::PackagePath>::None, name: "integer"}), documentation: core::option::Option<alloc::string::String>::None, ty: RefCell(borrow=0) = {value = core::option::Option<alloc::sync::Arc<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::lang::mir::Type>>>::Some(Arc(strong=1, weak=0) = {value = seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::lang::mir::Type> {inner: seedwing_policy_engine::lang::mir::Type::Primordial(seedwing_policy_engine::lang::PrimordialType::Integer), location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}, strong = 1, weak = 0}), borrow = 0}, parameters: Vec(size=0)}
+```
+And we can always use `ptype` if we need to remind ourselves of what a struct
+looks like:
+```console
+(gdb) ptype seedwing_policy_engine::lang::mir::TypeHandle
+type = struct seedwing_policy_engine::lang::mir::TypeHandle {
+  name: core::option::Option<seedwing_policy_engine::runtime::TypeName>,
+  documentation: core::option::Option<alloc::string::String>,
+  ty: core::cell::RefCell<core::option::Option<alloc::sync::Arc<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::lang::mir::Type>>>>,
+  parameters: alloc::vec::Vec<seedwing_policy_engine::lang::parser::Located<alloc::string::String>, alloc::alloc::Global>,
+}
+```
+And if we wanted to inspect the value of ty in ty:
+```console
+(gdb) p ((*ty.ptr.pointer).data.ty.value.value.0.ptr.pointer).data
+$39 = seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::lang::mir::Type> {inner: seedwing_policy_engine::lang::mir::Type::Primordial(seedwing_policy_engine::lang::PrimordialType::Integer), location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}
+```
+Next step is to insert the `name` into the `types` hashmap:
+```console
+(gdb) n
+233	        self.types.insert(name, self.type_slots.len() - 1)
+```
+So after this `types` will contains the TypeName for "Integer" as it's key and
+the value will be 0, which means that the TypeHandle for this TypeName can be
+found a position 0 of the `type_slots` vector:
+```console
+(gdb) p *(self.type_slots.buf.ptr.pointer.pointer + 0)
+$46 = Arc(strong=1, weak=0) = {value = seedwing_policy_engine::lang::mir::TypeHandle {name: core::option::Option<seedwing_policy_engine::runtime::TypeName>::Some(seedwing_policy_engine::runtime::TypeName {package: core::option::Option<seedwing_policy_engine::runtime::PackagePath>::None, name: "integer"}), documentation: core::option::Option<alloc::string::String>::None, ty: RefCell(borrow=0) = {value = core::option::Option<alloc::sync::Arc<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::lang::mir::Type>>>::Some(Arc(strong=1, weak=0) = {value = seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::lang::mir::Type> {inner: seedwing_policy_engine::lang::mir::Type::Primordial(seedwing_policy_engine::lang::PrimordialType::Integer), location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}, strong = 1, weak = 0}), borrow = 0}, parameters: Vec(size=0)}, strong = 1, weak = 0}
+```
+After that we are back in seedwing_policy_engine::lang::mir::World::new
+```console
+(gdb) with listsize 39 -- l seedwing_policy_engine::lang::mir::World::new
+184	    ($obj: expr, $name: literal, $primordial: expr) => {
+185	        let name = TypeName::new(None, $name.into());
+186	        $obj.insert(
+187	            name.clone(),
+188	            Arc::new(TypeHandle::new_with(
+189	                Some(name),
+190	                Located::new(mir::Type::Primordial($primordial), 0..0),
+191	            )),
+192	        );
+193	    };
+194	}
+195	
+196	#[derive(Debug)]
+197	pub struct World {
+198	    type_slots: Vec<Arc<TypeHandle>>,
+199	    types: HashMap<TypeName, usize>,
+200	}
+201	
+202	impl World {
+203	    pub(crate) fn new() -> Self {
+204	        //let mut initial_types = HashMap::new();
+205	
+206	        //primordial_type!(initial_types, "integer", PrimordialType::Integer);
+207	        //primordial_type!(initial_types, "string", PrimordialType::String);
+208	        //primordial_type!(initial_types, "boolean", PrimordialType::Boolean);
+209	        //primordial_type!(initial_types, "decimal", PrimordialType::Decimal);
+210	
+211	        let mut this = Self {
+212	            type_slots: vec![],
+213	            types: Default::default(),
+214	        };
+215	
+216	        this.define_primordial("integer", PrimordialType::Integer);
+217	        this.define_primordial("string", PrimordialType::String);
+218	        this.define_primordial("boolean", PrimordialType::Boolean);
+219	        this.define_primordial("decimal", PrimordialType::Decimal);
+220	
+221	        this
+222	    }
+```
+And we can see that the same thing will be done for `string`, `boolean`, and
+`decimal` types.
+That brings up back into `Lowerer::lower`.
+```console
+(gdb) f
+#0  seedwing_policy_engine::lang::hir::Lowerer::lower (self=...) at seedwing-policy-engine/src/lang/hir/mod.rs:463
+463	        let mut errors = Vec::new();
+```
+Next we are now going to iterate over all the CompilationUnits.
+```console
+(gdb) n
+465	        for mut unit in self.units.iter_mut() {
+(gdb) n
+466	            let unit_path = PackagePath::from(unit.source());
+(gdb) p unit.source 
+$48 = seedwing_policy_engine::lang::parser::SourceLocation {name: "x509::oid"}
+```
+Recall what a CompilationUnit looks like:
+```console
+(gdb) ptype seedwing_policy_engine::lang::parser::CompilationUnit
+type = struct seedwing_policy_engine::lang::parser::CompilationUnit {
+  source: seedwing_policy_engine::lang::parser::SourceLocation,
+  uses: alloc::vec::Vec<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::lang::parser::Use>, alloc::alloc::Global>,
+  types: alloc::vec::Vec<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::lang::hir::TypeDefn>, alloc::alloc::Global>,
+}
+```
+We are now going to iterate over all the `use` statements that are in the first
+CompilationUnit
+```console
+468	            let mut visible_types = unit
+469	                .uses()
+470	                .iter()
+471	                .map(|e| (e.as_name().inner(), Some(e.type_name())))
+472	                .chain(unit.types().iter().map(|e| {
+473	                    (
+474	                        e.name().inner(),
+475	                        Some(Located::new(
+476	                            TypeName::new(None, e.name().inner()),
+477	                            e.location(),
+478	                        )),
+479	                    )
+480	                }))
+481	                .collect::<HashMap<String, Option<Located<TypeName>>>>();
+```
+Recall that map returns a new iterator that processes the the modified items.
+So for every `use` we will map the item to a tuple containing the `name` and
+the Some(TypeName). Then the types of the unit are also iterated over and the
+items are also mapped to a tuple and finally all the those tuples are used to
+create a HashMap which is then returned from collect.
+Next, we have the following:
+```console
+483	            //visible_types.insert("int".into(), None);
+484	            for primordial in world.known_world() {
+485	                visible_types.insert(primordial.name(), None);
+486	            }
+```
+Notice that this is adding the primordial types to the hash visiable_types
+HashMap.
+
 
 __work in progress__
 
