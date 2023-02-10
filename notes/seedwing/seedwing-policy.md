@@ -326,9 +326,9 @@ $3 = seedwing_policy_engine::lang::parser::SourceLocation {name: "x509::oid"}
 ```
 So where did this come source from?  
 It is in the `self.packages` vector which can be inspected using the following
-command. This might look strange but please see [rust-gdb] for details. I've
-also formatted the output to make it a little more readable which I think helps
-visualize things:
+command. This command might look strange but please see [rust-gdb] for details.
+I've also formatted the output to make it a little more readable which I think
+helps visualize things:
 ```console
 (gdb) p *(self.packages.buf.ptr.pointer.pointer + 6)
 $46 = seedwing_policy_engine::package::Package {
@@ -384,8 +384,18 @@ From this we can see that the `PackageName` is `x509`, and this package has
 two functions, `DER`, and `PEM`. So with a package name and a function name we
 might guess that these functions can be called using `x509::DER`. `x509::PEM`.
 I also has two sources, one is named 'oid' and the other is unnamed. We can
-see the content of these sources above. So how did this entry make it into
-the packages vector in the first place?
+see the content of these sources above. What we described here is the
+`seedwing_policy_engine::package::Package`:
+```
+#[derive(Clone)]
+pub struct Package {
+    path: PackagePath,
+    functions: HashMap<String, Arc<dyn Function>>,
+    sources: Vec<PackageSource>,
+}
+```
+
+So how did this entry make it into the packages vector in the first place?
 
 To understand this we need to have a look at
 ```console
