@@ -5,6 +5,7 @@ called Dogma, and in OPA it is Rego.
 # Table of Contents
 1. [CompilationUnit](#compilationunit)
 2. [TypeDefn](#typedefn)
+3. [Lowerer](#lowerer)
 
 ### policy-server walkthrough
 Lets start a debugging session and break in the policy-servers main function.
@@ -398,6 +399,7 @@ pub struct Package {
 So how did this entry make it into the packages vector in the first place?
 
 To understand this we need to have a look at
+`seedwing_policy_engine::lang::hir::World::new`:
 ```console
 (gdb) l seedwing_policy_engine::lang::hir::World::new 
 316	impl Default for World {
@@ -625,6 +627,422 @@ $78 = Vec(size=1) = {
 ```
 
 So hopefully that helps understand what TypeDefn is.
+
+So we have now seen what CompoilationUnit's and that TypeDefn are a part of
+them. Now closer look at where these CompilationUnit's are used.
+
+### Lowerer
+After the package sources have been parsed, the CompilationUnit's are added to
+the `seedwing_policy_engine::lang::hir::World` instance which is done in
+`World::lower`.
+The final thing to happen in `World::lower` is that `Lowerer::lower` is called,
+passing in the CompilationUnit's, and the Packages:
+```console
+(gdb) with listsize 0 -- l seedwing_policy_engine::lang::hir::Lowerer::lower
+413	    pub fn lower(&mut self) -> Result<mir::World, Vec<BuildError>> {
+414	        self.add_package(crate::core::data::package(self.data_sources.clone()));
+415	
+416	        let mut core_units = Vec::new();
+417	
+418	        let mut errors = Vec::new();
+419	
+420	        for pkg in &self.packages {
+421	            for (source, stream) in pkg.source_iter() {
+422	                log::info!("loading {}", source);
+423	                self.source_cache.add(source.clone(), stream.clone().into());
+424	                let unit = PolicyParser::default().parse(source.to_owned(), stream);
+425	                match unit {
+426	                    Ok(unit) => {
+427	                        core_units.push(unit);
+428	                    }
+429	                    Err(err) => {
+430	                        for e in err {
+431	                            errors.push((source.clone(), e).into())
+432	                        }
+433	                    }
+434	                }
+435	            }
+436	        }
+437	
+438	        for unit in core_units {
+439	            self.add_compilation_unit(unit);
+440	        }
+441	
+442	        if !errors.is_empty() {
+443	            return Err(errors);
+444	        }
+445	
+446	        Lowerer::new(&mut self.units, &mut self.packages).lower()
+447	    }
+448	}
+```
+And we can see that Lowerer is declared as:
+```console
+449	
+450	struct Lowerer<'b> {
+451	    units: &'b mut Vec<CompilationUnit>,
+452	    packages: &'b mut Vec<Package>,
+453	}
+```
+There is a lot going on in `Lowerer::lower` so lets try to take it in steps:
+```console
+460	    pub fn lower(mut self) -> Result<mir::World, Vec<BuildError>> {
+461	        // First, perform internal per-unit linkage and type qualification
+462	        let mut world = mir::World::new();
+463	        let mut errors = Vec::new();
+```
+
+Now, there is another `World` in the module `seedwing_policy_engine::lang::mir`:
+```console
+(gdb) with listsize 15 -- l seedwing_policy_engine::lang::mir::World::new
+196	#[derive(Debug)]
+197	pub struct World {
+198	    type_slots: Vec<Arc<TypeHandle>>,
+199	    types: HashMap<TypeName, usize>,
+200	}
+```
+Now, `TypeHandle` is not something that we have come accross before.
+Lets set a breakpoint in seedwing_policy_engine::lang::mir::World::new and
+take a closer look:
+```console
+(gdb) br seedwing_policy_engine::lang::mir::World::new
+Breakpoint 1 at 0x567660: file seedwing-policy-engine/src/lang/mir/mod.rs, line 212.
+(gdb) r
+(gdb) r
+Starting program: /home/danielbevenius/work/security/seedwing/seedwing-policy/target/debug/seedwing-policy-server 
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib64/libthread_db.so.1".
+[2023-02-10T07:25:19Z INFO  seedwing_policy_engine::lang::hir] loading x509::oid
+[2023-02-10T07:25:19Z INFO  seedwing_policy_engine::lang::hir] loading x509
+[2023-02-10T07:25:19Z INFO  seedwing_policy_engine::lang::hir] loading cyclonedx::v1_4
+[2023-02-10T07:25:19Z INFO  seedwing_policy_engine::lang::hir] loading cyclonedx::hash
+[2023-02-10T07:25:19Z INFO  seedwing_policy_engine::lang::hir] loading jsf
+[2023-02-10T07:25:19Z INFO  seedwing_policy_engine::lang::hir] loading jsf
+[2023-02-10T07:25:19Z INFO  seedwing_policy_engine::lang::hir] loading jsf
+[2023-02-10T07:25:19Z INFO  seedwing_policy_engine::lang::hir] loading spdx::license
+[2023-02-10T07:25:19Z INFO  seedwing_policy_engine::lang::hir] loading iso::swid
+[2023-02-10T07:25:19Z INFO  seedwing_policy_engine::lang::hir] loading kafka::opa
+[2023-02-10T07:25:19Z INFO  seedwing_policy_engine::lang::hir] loading openvex
+[2023-02-10T07:25:19Z INFO  seedwing_policy_engine::lang::hir] loading maven
+
+Breakpoint 1, seedwing_policy_engine::lang::mir::World::new () at seedwing-policy-engine/src/lang/mir/mod.rs:212
+212	            type_slots: vec![],
+(gdb) l
+211	        let mut this = Self {
+212	            type_slots: vec![],
+213	            types: Default::default(),
+214	        };
+215	
+216	        this.define_primordial("integer", PrimordialType::Integer);
+```
+We can see that initially `type_slots` is set to an empty vector, and types is
+set to the default value for a HashMap:
+```console
+(gdb) p this
+$1 = seedwing_policy_engine::lang::mir::World {type_slots: Vec(size=0), types: HashMap(size=0)}
+```
+The `type_slots` vector contains TypeHandle's, and the `types` hashmap contains
+the TypeName as the key, and the value is an index into the `type_slots` vector.
+
+A TypeHandle looks like this:
+```console
+(gdb) ptype seedwing_policy_engine::lang::mir::TypeHandle
+type = struct seedwing_policy_engine::lang::mir::TypeHandle {
+  name: core::option::Option<seedwing_policy_engine::runtime::TypeName>,
+  documentation: core::option::Option<alloc::string::String>,
+  ty: core::cell::RefCell<core::option::Option<alloc::sync::Arc<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::lang::mir::Type>>>>,
+  parameters: alloc::vec::Vec<seedwing_policy_engine::lang::parser::Located<alloc::string::String>, alloc::alloc::Global>,
+}
+```
+Lets start with the `name` field and see what `TypeName` looks like:
+```console
+(gdb) ptype seedwing_policy_engine::runtime::TypeName
+type = struct seedwing_policy_engine::runtime::TypeName {
+  package: core::option::Option<seedwing_policy_engine::runtime::PackagePath>,
+  name: alloc::string::String,
+```
+```console
+(gdb) ptype seedwing_policy_engine::runtime::PackagePath
+type = struct seedwing_policy_engine::runtime::PackagePath {
+  is_absolute: bool,
+  path: alloc::vec::Vec<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>, alloc::alloc::Global>,
+}
+```
+Notice that a PackagePath has a vector of PackageName element and PackageName
+looks like this:
+```
+(gdb) ptype seedwing_policy_engine::runtime::PackageName
+type = struct seedwing_policy_engine::runtime::PackageName (
+  alloc::string::String,
+)
+```
+The `documentation` field in `TypeHandle` is just an optional String.
+The `ty` field is a RefCell containing an optional atomic reference counted
+element of type seedwing_policy_engine::lang::mir::Type` which is an enum:
+```console
+(gdb) ptype seedwing_policy_engine::lang::mir::Type
+type = enum seedwing_policy_engine::lang::mir::Type {
+  Anything,
+  Primordial(seedwing_policy_engine::lang::PrimordialType),
+  Ref(seedwing_policy_engine::lang::SyntacticSugar, usize, alloc::vec::Vec<alloc::sync::Arc<seedwing_policy_engine::lang::mir::TypeHandle>, alloc::alloc::Global>),
+  Deref(alloc::sync::Arc<seedwing_policy_engine::lang::mir::TypeHandle>),
+  Argument(alloc::string::String),
+  Const(seedwing_policy_engine::lang::lir::ValueType),
+  Object(seedwing_policy_engine::lang::mir::ObjectType),
+  Expr(alloc::sync::Arc<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::lang::hir::Expr>>),
+  List(alloc::vec::Vec<alloc::sync::Arc<seedwing_policy_engine::lang::mir::TypeHandle>, alloc::alloc::Global>),
+  Nothing,
+}
+```
+Next let take a look at `define_primordial` function:
+```console
+(gdb) f
+#1  0x0000555555abb6ef in seedwing_policy_engine::lang::mir::World::new () at seedwing-policy-engine/src/lang/mir/mod.rs:216
+216	        this.define_primordial("integer", PrimordialType::Integer);
+(gdb) s
+gdb) with listsize 30 -- l define_primordial
+224	    fn define_primordial(&mut self, name: &str, ty: PrimordialType) {
+225	        let name = TypeName::new(None, name.into());
+226	
+227	        let ty = Arc::new(TypeHandle::new_with(
+228	            Some(name.clone()),
+229	            Located::new(mir::Type::Primordial(ty), 0..0),
+230	        ));
+231	
+232	        self.type_slots.push(ty);
+233	        self.types.insert(name, self.type_slots.len() - 1);
+234	    }
+```
+And `PrimordialType` is en enum with the following variants:
+```console
+(gdb) ptype seedwing_policy_engine::lang::PrimordialType
+type = enum seedwing_policy_engine::lang::PrimordialType {
+  Integer,
+  Decimal,
+  Boolean,
+  String,
+  Function(seedwing_policy_engine::lang::SyntacticSugar, seedwing_policy_engine::runtime::TypeName, alloc::sync::Arc<dyn seedwing_policy_engine::core::Function>),
+}
+```
+Whenever I don't know the package name of a type I use `info types type_name`:
+```console
+(gdb) info types TypeName
+```
+And then I can inspect that output and figure out the package name. In this case
+TypeName is:
+```console
+(gdb) ptype seedwing_policy_engine::runtime::TypeName
+type = struct seedwing_policy_engine::runtime::TypeName {
+  package: core::option::Option<seedwing_policy_engine::runtime::PackagePath>,
+  name: alloc::string::String,
+}
+```
+And `PackagePath` we covered previously.
+Next, in `define_primordial` we are creating a new Arc with a new TypeHandle:
+```console
+(gdb) l
+223	
+224	    fn define_primordial(&mut self, name: &str, ty: PrimordialType) {
+225	        let name = TypeName::new(None, name.into());
+226	
+227	        let ty = Arc::new(TypeHandle::new_with(
+228	            Some(name.clone()),
+229	            Located::new(mir::Type::Primordial(ty), 0..0),
+230	        ));
+231	
+232	        self.type_slots.push(ty);
+```
+The most interesting call here is `TypeHandle::new_with` which will create a 
+new TypeHandle with the `seedwing_policy_engine::lang::mir::Type` which we
+might recall is an enum and in this case the Primordial variant is used:
+```console
+(gdb) ptype seedwing_policy_engine::lang::mir::Type::Primordial 
+type = struct seedwing_policy_engine::lang::mir::Type::Primordial (
+  seedwing_policy_engine::lang::PrimordialType,
+)
+```
+So Primordial is a tuple struct with one member:
+```console
+(gdb) p ty.inner 
+$6 = seedwing_policy_engine::lang::mir::Type::Primordial(seedwing_policy_engine::lang::PrimordialType::Integer)
+(gdb) p ty.inner.0
+$7 = seedwing_policy_engine::lang::PrimordialType::Integer
+```
+
+__work in progress__
+
+```rust
+464	
+465	        for mut unit in self.units.iter_mut() {
+466	            let unit_path = PackagePath::from(unit.source());
+467	
+468	            let mut visible_types = unit
+469	                .uses()
+470	                .iter()
+471	                .map(|e| (e.as_name().inner(), Some(e.type_name())))
+472	                .chain(unit.types().iter().map(|e| {
+473	                    (
+474	                        e.name().inner(),
+475	                        Some(Located::new(
+476	                            TypeName::new(None, e.name().inner()),
+477	                            e.location(),
+478	                        )),
+479	                    )
+480	                }))
+481	                .collect::<HashMap<String, Option<Located<TypeName>>>>();
+482	
+483	            //visible_types.insert("int".into(), None);
+484	            for primordial in world.known_world() {
+485	                visible_types.insert(primordial.name(), None);
+486	            }
+487	
+488	            for defn in unit.types() {
+489	                visible_types.insert(
+490	                    defn.name().inner(),
+491	                    Some(Located::new(
+492	                        unit_path.type_name(defn.name().inner()),
+493	                        defn.location(),
+494	                    )),
+495	                );
+496	            }
+497	
+498	            for defn in unit.types() {
+499	                let referenced_types = defn.referenced_types();
+500	
+501	                for ty in &referenced_types {
+502	                    if !ty.is_qualified() && !visible_types.contains_key(&ty.name()) {
+503	                        errors.push(BuildError::TypeNotFound(
+504	                            unit.source().clone(),
+505	                            ty.location().span(),
+506	                            ty.clone().as_type_str(),
+507	                        ))
+508	                    }
+509	                }
+510	            }
+511	
+512	            for defn in unit.types_mut() {
+513	                defn.qualify_types(&visible_types)
+514	            }
+515	        }
+516	
+517	        // next, perform inter-unit linking.
+518	
+519	        let mut known_world = world.known_world();
+520	
+521	        //world.push(TypeName::new(None, "int".into()));
+522	
+523	        //world.push("int".into());
+524	
+525	        for package in self.packages.iter() {
+526	            let package_path = package.path();
+527	
+528	            known_world.extend_from_slice(
+529	                &package
+530	                    .function_names()
+531	                    .iter()
+532	                    .map(|e| package_path.type_name(e.clone()))
+533	                    .collect::<Vec<TypeName>>(),
+534	            );
+535	        }
+536	
+537	        for unit in self.units.iter() {
+538	            let unit_path = PackagePath::from(unit.source());
+539	
+540	            let unit_types = unit
+541	                .types()
+542	                .iter()
+543	                .map(|e| unit_path.type_name(e.name().inner()))
+544	                .collect::<Vec<TypeName>>();
+545	
+546	            known_world.extend_from_slice(&unit_types);
+547	        }
+548	
+549	        if !errors.is_empty() {
+550	            return Err(errors);
+551	        }
+552	
+553	        for unit in self.units.iter() {
+554	            for defn in unit.types() {
+555	                // these should be fully-qualified now
+556	                let referenced = defn.referenced_types();
+557	
+558	                for each in referenced {
+559	                    if !known_world.contains(&each.clone().inner()) {
+560	                        errors.push(BuildError::TypeNotFound(
+561	                            unit.source().clone(),
+562	                            each.location().span(),
+563	                            each.clone().as_type_str(),
+564	                        ))
+565	                    }
+566	                }
+567	            }
+568	        }
+569	
+570	        for unit in self.units.iter() {
+571	            let unit_path = PackagePath::from(unit.source());
+572	
+573	            for ty in unit.types() {
+574	                let name = unit_path.type_name(ty.name().inner());
+575	                world.declare(name, ty.documentation.clone(), ty.parameters());
+576	            }
+577	        }
+578	
+579	        for package in self.packages.iter() {
+580	            let path = package.path();
+581	            for (fn_name, func) in package.functions() {
+582	                let path = path.type_name(fn_name);
+583	                world.declare(
+584	                    path,
+585	                    func.documentation(),
+586	                    func.parameters()
+587	                        .iter()
+588	                        .cloned()
+589	                        .map(|p| Located::new(p, 0..0))
+590	                        .collect(),
+591	                );
+592	            }
+593	        }
+594	
+595	        if !errors.is_empty() {
+596	            return Err(errors);
+597	        }
+598	
+599	        for package in self.packages.iter() {
+600	            let path = package.path();
+601	            for (fn_name, func) in package.functions() {
+602	                let path = path.type_name(fn_name);
+603	                world.define_function(path, func);
+604	            }
+605	        }
+606	
+607	        for unit in self.units.iter() {
+608	            let unit_path = PackagePath::from(unit.source());
+609	
+610	            for (path, ty) in unit.types().iter().map(|e| {
+611	                (
+612	                    Located::new(unit_path.type_name(e.name().inner()), e.location()),
+613	                    e.ty(),
+614	                )
+615	            }) {
+616	                world.define(path.inner(), ty);
+617	            }
+618	        }
+619	
+620	        if errors.is_empty() {
+621	            Ok(world)
+622	        } else {
+623	            Err(errors)
+624	        }
+625	    }
+626	}
+```
+And these are then passed to `Lowerer::new`
+```rust
+struct Lowerer<'b> {
+    units: &'b mut Vec<CompilationUnit>,
+    packages: &'b mut Vec<Package>,
+}
+```
 
 [chumsky]: https://crates.io/crates/chumsky/0.9.0
 [chumsky examples]: https://github.com/danbev/learning-rust/tree/master/chumsky#chumsky
