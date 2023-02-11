@@ -1000,6 +1000,40 @@ So for every `use` we will map the item to a tuple containing the `name` and
 the Some(TypeName). Then the types of the unit are also iterated over and the
 items are also mapped to a tuple and finally all the those tuples are used to
 create a HashMap which is then returned from collect.
+
+Lets take a look at `visible_types` at this stage:
+```console
+(gdb) pipe p visible_types | egrep -o '\["[a-z]*"\]'
+["common"]
+["organization"]
+```
+We will be using this again so we might want to create a custom gdb command for
+it:
+```console
+(gdb) define visible_types
+Type commands for definition of "visible_types".
+End with a line saying just "end".
+>pipe p visible_types | egrep -o '\["[a-z]*"\]'
+>end
+```
+
+Recall that these are types, `common` and `organization` object types which were
+defined in oid.dog using:
+```
+/// Matches OID of 85.4.3, common name.
+pattern common<pattern> = {
+  oid: "85.4.3",
+  value: pattern,
+}
+
+/// Matches OID of 85.4.10, organization name.
+pattern organization<pattern> = {
+  oid: "85.4.10",
+  value: pattern,
+}
+```
+So thoese become types which can be used in rule later.
+
 Next, we have the following:
 ```console
 483	            //visible_types.insert("int".into(), None);
@@ -1008,7 +1042,65 @@ Next, we have the following:
 486	            }
 ```
 Notice that this is adding the primordial types to the hash visiable_types
-HashMap.
+HashMap. Currently, we have the following keys in this HashMap:
+```console
+(gdb) visible_types
+["common"]
+["organization"]
+["integer"]
+["decimal"]
+["string"]
+["boolean"]
+```
+What we are doing is adding the types which will be available to evaulate the
+rules.
+
+<a id="interation-compilation-unit"></a> 
+Next, we have an iteration over the CompilationUnit::types:
+```console
+(gdb) f
+#0  seedwing_policy_engine::lang::hir::Lowerer::lower (self=...) at seedwing-policy-engine/src/lang/hir/mod.rs:488
+488	            for defn in unit.types() {
+(gdb) l 488,+8
+488	            for defn in unit.types() {
+489	                visible_types.insert(
+490	                    defn.name().inner(),
+491	                    Some(Located::new(
+492	                        unit_path.type_name(defn.name().inner()),
+493	                        defn.location(),
+494	                    )),
+495	                );
+496	            }
+```
+Hmm, this looks odd to me...it looks like we are adding the types again. If we
+look pack to the code which iterated over the `uses` we also added the `types`:
+```rust
+gdb) l 468
+463	        let mut errors = Vec::new();
+464	
+465	        for mut unit in self.units.iter_mut() {
+466	            let unit_path = PackagePath::from(unit.source());
+467	
+468	            let mut visible_types = unit
+469	                .uses()
+470	                .iter()
+471	                .map(|e| (e.as_name().inner(), Some(e.type_name())))
+472	                .chain(unit.types().iter().map(|e| {
+(gdb) 
+473	                    (
+474	                        e.name().inner(),
+475	                        Some(Located::new(
+476	                            TypeName::new(None, e.name().inner()),
+477	                            e.location(),
+478	                        )),
+479	                    )
+480	                }))
+481	                .collect::<HashMap<String, Option<Located<TypeName>>>>();
+482	
+```
+I looks like the second iteration could be removed if the insert in the `chain`
+above used the `unit_path` instead. I'll open a pull request and see if this
+correct.
 
 
 __work in progress__
