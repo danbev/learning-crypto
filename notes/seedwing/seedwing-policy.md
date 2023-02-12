@@ -65,8 +65,11 @@ pub struct World {
     data_sources: Vec<Arc<dyn DataSource>>,
 }
 ```
-Let's start with the vector of CompilationUnit's. CompilationUnit can be found
-in seedwing-policy-engine/src/lang/parser/mod.rs:
+Let's start with the vector of CompilationUnit's.
+
+
+### CompilationUnit
+CompilationUnit can be found in seedwing-policy-engine/src/lang/parser/mod.rs:
 ```rust
 #[derive(Debug)]
 pub struct CompilationUnit {
@@ -78,18 +81,310 @@ pub struct CompilationUnit {
 So a compilation unit represents a `.dog` file I think, which has a source
 which is the name of the source and not the actual source.
 
-### CompilationUnit
-This section tries to show how parsing is done. A Rust library named [Chumsky]
-is used and I found it useful to try out some standalone [chumsky examples] to
-gain a basic understanding of it.
+Like mentioned in the previous section when a new PolicyBuilder is created
+it will call `hir::World::new`:
+```rust
+impl Builder {
+    pub fn new() -> Self {
+        Self {
+            hir: hir::World::new(),
+        }
+    }
+```
+And `hir::World::new` creates a new seedwing_policy_engine::lang::hir::World:
+```rust
+impl World {
+    pub fn new() -> Self {
+        let mut world = Self {
+            units: Default::default(),
+            packages: Default::default(),
+            source_cache: Default::default(),
+            data_sources: Vec::default(),
+        };
+        world.add_package(crate::core::lang::package());
+        world.add_package(crate::core::list::package());
+        world.add_package(crate::core::string::package());
+        world.add_package(crate::core::base64::package());
+        world.add_package(crate::core::json::package());
+        #[cfg(feature = "sigstore")]
+        world.add_package(crate::core::sigstore::package());
+        world.add_package(crate::core::x509::package());
+        world.add_package(crate::core::cyclonedx::package());
+        world.add_package(crate::core::jsf::package());
+        world.add_package(crate::core::spdx::package());
+        world.add_package(crate::core::iso::package());
+        world.add_package(crate::core::kafka::package());
+        world.add_package(crate::core::pem::package());
+        world.add_package(crate::core::net::package());
+        world.add_package(crate::core::openvex::package());
+        world.add_package(crate::core::osv::package());
+        world.add_package(crate::core::uri::package());
+        world.add_package(crate::core::timestamp::package());
 
+        #[cfg(feature = "debug")]
+        world.add_package(crate::core::debug::package());
+
+        world.add_package(crate::core::maven::package());
+
+        world
+    }
+```
+Notice that initially `units`, which is a vector of CompilationUnits (if you
+for get a type you can always use
+`ptype seedwing_policy_engine::lang::hir::World`), is empty. The
+`world.add_package` functions that follow will populate this vector with
+"core" CompilationUnits. These can be found in:
+```console
+(gdb) shell ls seedwing-policy-engine/src/core/
+base64	   data   iso  json   lang  maven   net      osv  sigstore  string     uri  x509
+cyclonedx  debug  jsf  kafka  list  mod.rs  openvex  pem  spdx	    timestamp  vex
+```
+
+First, lets look at the `crate::core::lang::package()` call.
+```rust
+        world.add_package(crate::core::lang::package());
+```
+```console
+(gdb) l seedwing_policy_engine::core::lang::package 
+16	mod not;
+17	mod or;
+18	mod refine;
+19	mod traverse;
+20	
+21	pub fn package() -> Package {
+22	    let mut pkg = Package::new(PackagePath::from_parts(vec!["lang"]));
+23	    pkg.register_function("and".into(), And);
+24	    pkg.register_function("or".into(), Or);
+25	    pkg.register_function("refine".into(), Refine);
+(gdb) 
+26	    pkg.register_function("traverse".into(), Traverse);
+27	    pkg.register_function("chain".into(), Chain);
+28	    pkg.register_function("not".into(), Not);
+29	    pkg.register_function("map".into(), Map);
+30	    pkg
+31	}
+```
+So what does `Package` look like?
+We can use `info types` to see what types named `Package` exist:
+```console
+(gdb) info types Package
+...
+seedwing_policy_engine::package::Package
+...
+```
+Looking at the above output we can then use `ptype` see what it looks like:
+```console
+(gdb) ptype seedwing_policy_engine::package::Package
+type = struct seedwing_policy_engine::package::Package {
+  path: seedwing_policy_engine::runtime::PackagePath,
+  functions: std::collections::hash::map::HashMap<alloc::string::String, alloc::sync::Arc<dyn seedwing_policy_engine::core::Function>, std::collections::hash::map::RandomState>,
+  sources: alloc::vec::Vec<seedwing_policy_engine::package::PackageSource, alloc::alloc::Global>,
+}
+```
+*Side-note*:
+Tab-completion works pretty well in gdb so it can be used to efficiently write
+commands. One thing I've found though is that gdb crashed often if I don't
+provide two `e` when table complating the seedwing package.
+
+So we can see that Package has a path:
+```console
+(gdb) ptype seedwing_policy_engine::runtime::PackagePath
+type = struct seedwing_policy_engine::runtime::PackagePath {
+  is_absolute: bool,
+  path: alloc::vec::Vec<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>, alloc::alloc::Global>,
+}
+```
+So a `PackagePath` can have a vector of path's which we will see more about later.
+We can take a look at the Package `pkg` created on the first line:
+```console
+(gdb) p pkg
+$14 = seedwing_policy_engine::package::Package {path: seedwing_policy_engine::runtime::PackagePath {is_absolute: true, path: Vec(size=1) = {seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName> {inner: seedwing_policy_engine::runtime::PackageName ("lang"), location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}}}, functions: HashMap(size=0), sources: Vec(size=0)}
+```
+We can see that it has a `path` vector of size 1:
+```console
+(gdb) p pkg.path.path.len
+$16 = 1
+```
+And we can dig down into the vector to inspect the element:
+```console
+(gdb) p pkg.path.path.buf.ptr.pointer.pointer.inner
+$15 = seedwing_policy_engine::runtime::PackageName ("lang")
+```
+And we can see the functions HashMap is initially empty:
+```console
+(gdb) p pkg.functions 
+$19 = HashMap(size=0)
+```
+And sources is initially an empty vector:
+```console 
+(gdb) p pkg.sources 
+$20 = Vec(size=0)
+```
+Alright, so lets take a look at `pgk.register_function`:
+```console
+(gdb) f
+#0  seedwing_policy_engine::core::lang::package () at seedwing-policy-engine/src/core/lang/mod.rs:23
+23	    pkg.register_function("and".into(), And);
+```
+Let take a look at `register_function`:
+```console
+(gdb) l seedwing_policy_engine::package::Package::register_function
+29	
+30	    pub fn path(&self) -> PackagePath {
+31	        self.path.clone()
+32	    }
+33	
+34	    pub fn register_function<F: Function + 'static>(&mut self, name: String, func: F) {
+35	        self.functions.insert(name, Arc::new(func));
+36	    }
+```
+Like before we can use `info types Function` to figure out where `Function`
+comes from (which module). And the use ptype to inspect further:
+```console
+(gdb) ptype seedwing_policy_engine::core::Function
+type = namespace seedwing_policy_engine::core::Function
+```
+Well that does not give as very much so lets try to list the source of it
+instead:
+```
+(gdb) l seedwing-policy-engine/src/core/mod.rs:87
+82	            supporting: vec![],
+83	        }
+84	    }
+85	}
+86	
+87	pub trait Function: Sync + Send + Debug {
+88	    /// A number between 0 and u8::MAX indicating the evaluation order.
+89	    ///
+90	    /// 0 means the function is likely to be fast, 255 means likely to be slow.
+91	    fn order(&self) -> u8;
+(gdb) l
+92	
+93	    fn documentation(&self) -> Option<String> {
+94	        None
+95	    }
+96	
+97	    fn parameters(&self) -> Vec<String> {
+98	        Default::default()
+99	    }
+100	
+101	    fn call<'v>(
+(gdb) 
+102	        &'v self,
+103	        input: Arc<RuntimeValue>,
+104	        ctx: &'v mut EvalContext,
+105	        bindings: &'v Bindings,
+106	        world: &'v World,
+107	    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>>;
+108	}
+```
+So we can see now that Function is a Trait. It takes an input of type
+Arc<RuntimeValue> which we can figure out is an enum using
+`info types RuntimeValue` and then `ptype`, but much like the Function trait
+and enum will also just so a type and not the variants. But we can still
+list the sources using tab completion and the `l -`, and `l +`:
+```console
+(gdb) l seedwing_policy_engine::value::RuntimeValue::as_json
+(gdb) l -
+241	#[derive(Serialize, Debug, Clone)]
+242	pub enum RuntimeValue {
+243	    Null,
+244	    String(String),
+245	    Integer(i64),
+246	    Decimal(f64),
+(gdb) l
+247	    Boolean(bool),
+248	    Object(Object),
+249	    List(#[serde(skip)] Vec<Arc<RuntimeValue>>),
+250	    Octets(Vec<u8>),
+251	}
+```
+It will also be passed an `EvalContext`:
+```console
+(gdb) ptype  seedwing_policy_engine::lang::lir::EvalContext
+type = struct seedwing_policy_engine::lang::lir::EvalContext {
+  trace: seedwing_policy_engine::lang::lir::EvalTrace,
+}
+```
+And a `Bindings`, and then a `World` and note that this is not the same
+World that we saw earlier:
+```console
+(gdb) ptype seedwing_policy_engine::runtime::World
+type = struct seedwing_policy_engine::runtime::World {
+  types: std::collections::hash::map::HashMap<seedwing_policy_engine::runtime::TypeName, usize, std::collections::hash::map::RandomState>,
+  type_slots: alloc::vec::Vec<alloc::sync::Arc<seedwing_policy_engine::lang::lir::Type>, alloc::alloc::Global>,
+  trace: seedwing_policy_engine::lang::lir::EvalTrace,
+}
+```
+This is a little confusing so lets try to sort this out. We have the following
+`World` structs in the engine:
+```console
+(gdb) info types World
+...
+seedwing_policy_engine::lang::hir::World;
+seedwing_policy_engine::runtime::World;
+```
+So we have one World in `runtime`:
+```console
+(gdb) ptype seedwing_policy_engine::runtime::World
+type = struct seedwing_policy_engine::runtime::World {
+  types: std::collections::hash::map::HashMap<seedwing_policy_engine::runtime::TypeName, usize, std::collections::hash::map::RandomState>,
+  type_slots: alloc::vec::Vec<alloc::sync::Arc<seedwing_policy_engine::lang::lir::Type>, alloc::alloc::Global>,
+  trace: seedwing_policy_engine::lang::lir::EvalTrace,
+}
+```
+And one in `lang::hir`:
+```console
+(gdb) ptype seedwing_policy_engine::lang::hir::World
+type = struct seedwing_policy_engine::lang::hir::World {
+  units: alloc::vec::Vec<seedwing_policy_engine::lang::parser::CompilationUnit, alloc::alloc::Global>,
+  packages: alloc::vec::Vec<seedwing_policy_engine::package::Package, alloc::alloc::Global>,
+  source_cache: seedwing_policy_engine::runtime::cache::SourceCache,
+  data_sources: alloc::vec::Vec<alloc::sync::Arc<dyn seedwing_policy_engine::data::DataSource>, alloc::alloc::Global>,
+}
+```
+So I diverged a little but I was talking about the `register_function` for this:
+```console
+23	    pkg.register_function("and".into(), And);
+(gdb) s
+35	        self.functions.insert(name, Arc::new(func));
+```
+`And` is struct, which we can take a closer look at:
+```console
+(gdb) l seedwing_policy_engine::core::lang::and::{impl#0}::call
+(gdb) l -
+14	#[derive(Debug)]
+15	pub struct And;
+16	
+17	impl Function for And {
+18	    fn order(&self) -> u8 {
+19	        128
+20	    }
+21	    fn parameters(&self) -> Vec<String> {
+22	        vec![TERMS.into()]
+23	    }
+```
+So we can see that `And` implements the `Function` trait. I'm going to defer
+the `call` function implementation until looking closer at the evaulate process
+of the engine.
+Alright, so we are adding that function to the packages functions hashmap.
+
+_work in progress....._
+
+```console
+(gdb) ptype seedwing_policy_engine::core::lang::and::And
+type = struct seedwing_policy_engine::core::lang::and::And
+```
+
+
+
+### Parsing
 ```console
 $ rust-gdb --args target/debug/seedwing-policy-server
 Reading symbols from target/debug/seedwing-policy-server...
 (gdb) br seedwing_policy_engine::lang::parser::PolicyParser::parse
 Breakpoint 1 at 0x2c2be3: file seedwing-policy-engine/src/lang/parser/mod.rs, line 276.
 (gdb) r
-```console
 Breakpoint 1, seedwing_policy_engine::lang::parser::PolicyParser::parse<alloc::boxed::Box<dyn core::iter::traits::iterator::Iterator<Item=(char, core::ops::range::Range<usize>)>, alloc::alloc::Global>, seedwing_policy_engine::lang::parser::SourceLocation, alloc::string::String> (self=0x7fffffff6170, source=..., stream="\n\n\n/// Matches OID of 85.4.3, common name.\npattern common<pattern> = {\n  oid: \"85.4.3\",\n  value: pattern,\n}\n\n/// Matches OID of 85.4.10, organization name.\npattern organization<pattern> = {\n  oid: \"85"...) at seedwing-policy-engine/src/lang/parser/mod.rs:276
 276	        let tokens = lexer().parse(stream)?;
 ```
