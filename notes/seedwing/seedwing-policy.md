@@ -368,80 +368,232 @@ So we can see that `And` implements the `Function` trait. I'm going to defer
 the `call` function implementation until looking closer at the evaulate process
 of the engine.
 Alright, so we are adding that function to the packages functions hashmap.
-
-_work in progress....._
-
+After this we will be back in `seedwing_policy_engine::core::lang::package`
+which will add the following functions:
 ```console
-(gdb) ptype seedwing_policy_engine::core::lang::and::And
-type = struct seedwing_policy_engine::core::lang::and::And
+(gdb) l seedwing_policy_engine::core::lang::package:21,+10
+21	pub fn package() -> Package {
+22	    let mut pkg = Package::new(PackagePath::from_parts(vec!["lang"]));
+23	    pkg.register_function("and".into(), And);
+24	    pkg.register_function("or".into(), Or);
+25	    pkg.register_function("refine".into(), Refine);
+26	    pkg.register_function("traverse".into(), Traverse);
+27	    pkg.register_function("chain".into(), Chain);
+28	    pkg.register_function("not".into(), Not);
+29	    pkg.register_function("map".into(), Map);
+30	    pkg
+31	}
 ```
-
-
-
-### Parsing
+And the do the same for these functions, so lets return:
 ```console
-$ rust-gdb --args target/debug/seedwing-policy-server
-Reading symbols from target/debug/seedwing-policy-server...
-(gdb) br seedwing_policy_engine::lang::parser::PolicyParser::parse
-Breakpoint 1 at 0x2c2be3: file seedwing-policy-engine/src/lang/parser/mod.rs, line 276.
-(gdb) r
-Breakpoint 1, seedwing_policy_engine::lang::parser::PolicyParser::parse<alloc::boxed::Box<dyn core::iter::traits::iterator::Iterator<Item=(char, core::ops::range::Range<usize>)>, alloc::alloc::Global>, seedwing_policy_engine::lang::parser::SourceLocation, alloc::string::String> (self=0x7fffffff6170, source=..., stream="\n\n\n/// Matches OID of 85.4.3, common name.\npattern common<pattern> = {\n  oid: \"85.4.3\",\n  value: pattern,\n}\n\n/// Matches OID of 85.4.10, organization name.\npattern organization<pattern> = {\n  oid: \"85"...) at seedwing-policy-engine/src/lang/parser/mod.rs:276
-276	        let tokens = lexer().parse(stream)?;
+(gdb) finish
+(gdb) f
+#0  0x00005555558df485 in seedwing_policy_engine::lang::hir::World::new () at seedwing-policy-engine/src/lang/hir/mod.rs:338
+338	        world.add_package(crate::core::lang::package());
 ```
-And we can find out how we got here:
-```console
-(gdb) bt 4
-#0  seedwing_policy_engine::lang::parser::PolicyParser::parse<alloc::boxed::Box<dyn core::iter::traits::iterator::Iterator<Item=(char, core::ops::range::Range<usize>)>, alloc::alloc::Global>, seedwing_policy_engine::lang::parser::SourceLocation, alloc::string::String> (self=0x7fffffff6170, source=..., stream="\n\n\n/// Matches OID of 85.4.3, common name.\npattern common<pattern> = {\n  oid: \"85.4.3\",\n  value: pattern,\n}\n\n/// Matches OID of 85.4.10, organization name.\npattern organization<pattern> = {\n  oid: \"85"...) at seedwing-policy-engine/src/lang/parser/mod.rs:276
-#1  0x00005555558bff76 in seedwing_policy_engine::lang::hir::World::lower (self=0x7fffffffa4f0) at seedwing-policy-engine/src/lang/hir/mod.rs:424
-#2  0x00005555557d50cb in seedwing_policy_engine::lang::builder::{impl#1}::finish::{async_fn#0} () at seedwing-policy-engine/src/lang/builder.rs:36
-#3  0x000055555573cff5 in seedwing_policy_server::main::{async_block#0} () at seedwing-policy-server/src/main.rs:87
+So we will now pass that Package returned to `world.add_package` (and the is
+the World in seedwing_policy_engine::lang::hir::World):
 ```
-Using `up` we an understand how we got here:
+(gdb) l seedwing_policy_engine::lang::hir::World::add_package:400,411
+409	    pub fn add_package(&mut self, package: Package) {
+410	        self.packages.push(package);
+411	    }
+```
+And the above is adding the package to the `packages` vector, and self here is
+World. After this we will be back in
+seedwing_policy_engine::lang::hir::World::new:
 ```console
-(gdb) up 3
-#3  0x000055555573cff5 in seedwing_policy_server::main::{async_block#0} () at seedwing-policy-server/src/main.rs:87
-87	    }
+(gdb) l 339,+25
+339	        world.add_package(crate::core::list::package());
+340	        world.add_package(crate::core::string::package());
+341	        world.add_package(crate::core::base64::package());
+342	        world.add_package(crate::core::json::package());
+343	        #[cfg(feature = "sigstore")]
+344	        world.add_package(crate::core::sigstore::package());
+345	        world.add_package(crate::core::x509::package());
+346	        world.add_package(crate::core::cyclonedx::package());
+347	        world.add_package(crate::core::jsf::package());
+348	        world.add_package(crate::core::spdx::package());
+349	        world.add_package(crate::core::iso::package());
+350	        world.add_package(crate::core::kafka::package());
+351	        world.add_package(crate::core::pem::package());
+352	        world.add_package(crate::core::net::package());
+353	        world.add_package(crate::core::openvex::package());
+354	        world.add_package(crate::core::osv::package());
+355	        world.add_package(crate::core::uri::package());
+356	        world.add_package(crate::core::timestamp::package());
+357	
+358	        #[cfg(feature = "debug")]
+359	        world.add_package(crate::core::debug::package());
+360	
+361	        world.add_package(crate::core::maven::package());
+362	
+363	        world
+364	    }
+```
+And we are adding those packages in the same way. So before we return from this
+function `world` looks like this:
+```console
+(gdb) p world.data_sources.len
+$8 = 0
+
+(gdb) p world.units.len 
+$5 = 0
+
+(gdb) p world.source_cache.cache
+$6 = HashMap(size=0)
+
+(gdb) p world.packages.len
+$7 = 18
+```
+So the only memeber that is populated at this stage is `packages`.
+```console
+(gdb) n
+(gdb) 
 (gdb) l
-82	    if let Some(directories) = matches.get_many::<String>("data") {
-83	        for each in directories {
-84	            log::info!("loading data from {:?}", each);
-85	            builder.data(DirectoryDataSource::new(each.into()));
-86	        }
-87	    }
-88	
-89	    let result = builder.finish().await;
+19	impl Builder {
+20	    pub fn new() -> Self {
+21	        Self {
+22	            hir: hir::World::new(),
+23	        }
+24	    }
+25	
 ```
-This line number reported by gdb is not correct unless I'm missing something
-but we know by doing `down` that `builder.finish()` was called.
+And after returning from this we have returned from `PolicyBuilder::new()`.
+So we are now back in seedwing_policy_server::main.
 ```console
+(gdb) l 57,+18
+57	    let mut builder = PolicyBuilder::new();
+58	    let mut sources = Vec::new();
+59	    if let Some(directories) = matches.get_many::<String>("dir") {
+60	        for dir in directories {
+61	            let dir = PathBuf::from(dir);
+62	            if !dir.exists() {
+63	                log::error!("Unable to open directory: {}", dir.to_string_lossy());
+64	                exit(-3);
+65	            }
+66	            sources.push(Directory::new(dir));
+67	        }
+68	    }
+69	
+70	    //log::info!("loading policies from {}", dir);
+71	    for source in sources.iter() {
+72	        if let Err(result) = builder.build(source.iter()) {
+73	            errors.extend_from_slice(&result);
+74	        }
+75	    }
+```
+This will first gather the directories specified on the command line, if any,
+and store them in vector `sources`.  This vector will then be iterated over
+and for each item `builder.build` will be called:
+```console
+(gdb) l seedwing_policy_engine::lang::builder::Builder::new
+15	        Self::new()
+16	    }
+17	}
+18	
+19	impl Builder {
+20	    pub fn new() -> Self {
+21	        Self {
+22	            hir: hir::World::new(),
+23	        }
+24	    }
 (gdb) l
+25	
+26	    pub fn build<S, SrcIter>(&mut self, sources: SrcIter) -> Result<(), Vec<BuildError>>
+27	    where
+28	        Self: Sized,
+29	        S: Into<String>,
+30	        SrcIter: Iterator<Item = (SourceLocation, S)>,
 31	    {
 32	        self.hir.build(sources)
 33	    }
 34	
-35	    pub async fn finish(&mut self) -> Result<runtime::World, Vec<BuildError>> {
-36	        let mir = self.hir.lower()?;
-37	        let runtime = mir.lower()?;
-38	        Ok(runtime)
-39	    }
 ```
-And the lowest stack fram is for `self.hir.lower`:
+And this just delegates to `seedwing_policy_engine::lang::hir::World::build`:
 ```console
-(gdb) down
-(gdb) l
-419	
-420	        for pkg in &self.packages {
-421	            for (source, stream) in pkg.source_iter() {
-422	                log::info!("loading {}", source);
-423	                self.source_cache.add(source.clone(), stream.clone().into());
-424	                let unit = PolicyParser::default().parse(source.to_owned(), stream);
-425	                match unit {
-426	                    Ok(unit) => {
-427	                        core_units.push(unit);
-428	                    }
-(gdb) f
-#1  0x00005555558bff76 in seedwing_policy_engine::lang::hir::World::lower (self=0x7fffffffa4f0) at seedwing-policy-engine/src/lang/hir/mod.rs:424
-424	                let unit = PolicyParser::default().parse(source.to_owned(), stream);
+(gdb) l seedwing_policy_engine::lang::hir::World::build:370,399
+370	    pub fn build<S, SrcIter>(&mut self, sources: SrcIter) -> Result<(), Vec<BuildError>>
+371	    where
+372	        Self: Sized,
+373	        S: Into<String>,
+374	        SrcIter: Iterator<Item = (SourceLocation, S)>,
+375	    {
+376	        let mut errors = Vec::new();
+377	        for (source, stream) in sources {
+378	            log::info!("loading policies from {}", source);
+379	
+380	            let input = stream.into();
+381	
+382	            self.source_cache.add(source.clone(), input.clone().into());
+383	            let unit = PolicyParser::default().parse(source.clone(), input);
+384	            match unit {
+385	                Ok(unit) => self.add_compilation_unit(unit),
+386	                Err(err) => {
+387	                    for e in err {
+388	                        errors.push((source.clone(), e).into())
+389	                    }
+390	                }
+391	            }
+392	        }
+393	
+394	        if errors.is_empty() {
+395	            Ok(())
+396	        } else {
+397	            Err(errors)
+398	        }
+399	    }
+```
+We can see that the sources are iterated over and get parsed by
+[PolicyParser](#policyparser)
+
+### PolicyParser
+PolicyParser is used to parse source policies. It might help to get familiar
+with [Chumsky examples] to fully understand this section.
+
+So lets see a concrete examples by start a debugging session:
+```console
+$ rust-gdb --args target/debug/seedwing-policy-server
+Reading symbols from target/debug/seedwing-policy-server...
+
+(gdb) br seedwing_policy_engine::lang::parser::PolicyParser::parse
+Breakpoint 1 at 0x2c2be3: file seedwing-policy-engine/src/lang/parser/mod.rs, line 276.
+
+(gdb) r
+Breakpoint 1, seedwing_policy_engine::lang::parser::PolicyParser::parse<alloc::boxed::Box<dyn core::iter::traits::iterator::Iterator<Item=(char, core::ops::range::Range<usize>)>, alloc::alloc::Global>, seedwing_policy_engine::lang::parser::SourceLocation, alloc::string::String> (self=0x7fffffff6170, source=..., stream="\n\n\n/// Matches OID of 85.4.3, common name.\npattern common<pattern> = {\n  oid: \"85.4.3\",\n  value: pattern,\n}\n\n/// Matches OID of 85.4.10, organization name.\npattern organization<pattern> = {\n  oid: \"85"...) at seedwing-policy-engine/src/lang/parser/mod.rs:276
+276	        let tokens = lexer().parse(stream)?;
+```
+So lets start by listing the `parse` function:
+```console
+(gdb) l seedwing_policy_engine::lang::parser::PolicyParser::parse:263,291
+264	    pub fn parse<'a, Iter, Src, S>(
+265	        &self,
+266	        source: Src,
+267	        stream: S,
+268	    ) -> Result<CompilationUnit, Vec<ParserError>>
+269	    where
+270	        Self: Sized,
+271	        Iter: Iterator<Item = (ParserInput, <ParserError as Error<ParserInput>>::Span)> + 'a,
+272	        Src: Into<SourceLocation> + Clone,
+273	        S: Into<Stream<'a, ParserInput, <ParserError as Error<ParserInput>>::Span, Iter>>,
+274	    {
+275	        let tokens = lexer().parse(stream)?;
+276	        let tokens = remove_comments(&tokens);
+277	        let (compilation_unit, errors) = compilation_unit(source).parse_recovery_verbose(
+278	            Stream::from_iter(tokens.len()..tokens.len() + 1, tokens.iter().cloned()),
+279	        );
+280	
+281	        if !errors.is_empty() {
+282	            Err(errors)
+283	        } else if let Some(compilation_unit) = compilation_unit {
+284	            Ok(compilation_unit)
+285	        } else {
+286	            Err(vec![ParserError::custom(
+287	                0..0,
+288	                "Unable to parse; no further details available",
+289	            )])
+290	        }
+291	    }
 ```
 Like mentioned in the [TypeDefn](#typeDefn) section this will be parsing a
 single dogma source:
@@ -480,7 +632,7 @@ parsed.
 (gdb) p tokens.len
 $4 = 228
 ```
-I'm not listing the tokens vector but this can be done.
+I'm not listing the tokens vector, as it is quite long, but this can be done.
 ```console
 (gdb) f
 277	        let tokens = remove_comments(&tokens);
@@ -497,33 +649,38 @@ The above is just removing comments from the source. After that we have:
 279	            Stream::from_iter(tokens.len()..tokens.len() + 1, tokens.iter().cloned()),
 280	        );
 ```
-So let's step into `compilation_unit`.
+So let's take a look at `compilation_unit`.
 ```rust
-                                                      [input]      [output]
-pub fn compilation_unit<S>(source: S,) -> impl Parser<ParserInput, CompilationUnit, Error = ParserError> + Clone where S: Into<SourceLocation> + Clone, {
-    use_statement()
-        .padded()
-        .repeated()
-        .then(type_definition().padded().repeated())
-        .then_ignore(end())
-        .map(move |(use_statements, types)| {
-            let mut unit = CompilationUnit::new(source.clone().into());
-
-            for e in use_statements {
-                unit.add_use(e)
-            }
-
-            for e in types {
-                unit.add_type(e)
-            }
-
-            unit
-        })
-}
+(gdb) l seedwing_policy_engine::lang::parser::compilation_unit:366,390
+366	pub fn compilation_unit<S>(
+367	    source: S,
+368	) -> impl Parser<ParserInput, CompilationUnit, Error = ParserError> + Clone
+369	where
+370	    S: Into<SourceLocation> + Clone,
+371	{
+372	    use_statement()
+373	        .padded()
+374	        .repeated()
+375	        .then(type_definition().padded().repeated())
+376	        .then_ignore(end())
+377	        .map(move |(use_statements, types)| {
+378	            let mut unit = CompilationUnit::new(source.clone().into());
+379	
+380	            for e in use_statements {
+381	                unit.add_use(e)
+382	            }
+383	
+384	            for e in types {
+385	                unit.add_type(e)
+386	            }
+387	
+388	            unit
+389	        })
+390	}
 ```
-Chumsky is a parser combinator and the engine has parsers defined that handle
-the various tokens in the Dogma language.  `use_statement()` returns a Chumsky
-parser:
+[Chumsky] is a parser combinator and the seedwing_policy_engine has parsers
+defined that handle the various tokens in the Dogma language.  `use_statement()`
+returns a Chumsky parser:
 ```rust
 pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error = ParserError> + Clone {
     just("use")
@@ -538,7 +695,7 @@ pub fn use_statement() -> impl Parser<ParserInput, Located<Use>, Error = ParserE
 }
 ```
 `just` specifies that only that sequence of characters are accepted by the
-parser returned from this function. `padding` says that it is alright to
+parser returned from this function. `padding` says that it is alright to have
 whitespace characters before and/or after the `use` sequence.
 
 The `then` parser will cause this parser to yield a tuple of the first parser,
@@ -547,23 +704,23 @@ a .dog file can specify zero or more `use` statement(s), followed by one or more
 type definitions.
 
 The tuple produced is passed to `.map` where we can see that a new
-CompilationUnit is created, and all the use statement (if there are any) are
-added to the compilation unit. Likewise, the types are also added, and
-finally the unit is returned.
+CompilationUnit is created in `complation_unit`, and all the use statement
+(if there are any) are added to the compilation unit. Likewise, the types are
+also added, and finally the unit is returned.
 
 Now, the type of these `use` statements are
 `seedwing_policy_engine::lang::hir::TypeDefn` which will be in the next section.
 
 ### TypeDefn
-`types` is a field in a CompilationUnit and I'm not sure about what they are, we
-can see that it is a vector of `Typedefn`:
-```rust
-#[derive(Clone, Debug)]
-pub struct TypeDefn {
-    name: Located<String>,
-    ty: Located<Type>,
-    parameters: Vec<Located<String>>,
-    documentation: Option<String>,
+`types` is a field in a CompilationUnit and we can see that it is a vector of
+`Typedefn`:
+```console
+(gdb) ptype seedwing_policy_engine::lang::hir::TypeDefn
+type = struct seedwing_policy_engine::lang::hir::TypeDefn {
+  name: seedwing_policy_engine::lang::parser::Located<alloc::string::String>,
+  ty: seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::lang::hir::Type>,
+  parameters: alloc::vec::Vec<seedwing_policy_engine::lang::parser::Located<alloc::string::String>, alloc::alloc::Global>,
+  documentation: core::option::Option<alloc::string::String>,
 }
 ```
 Let's stick a break point in TypeDefn::new and see what we can figure out:
