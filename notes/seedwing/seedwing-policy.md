@@ -1834,8 +1834,126 @@ is updated to have the index. When that is done for all types then
 mir::World::lower will return the populated runtime::World instance. And
 builder::finish will return that World to the caller.
 
-
 __work in progress__
+
+### Compiling
+The previous sections dealt with the building part of the policy engine and
+the result of this is an instance of `seedwing_policy_engine::runtime::World`:
+```console
+(gdb) f
+#0  seedwing_policy_server::main::{async_block#0} () at seedwing-policy-server/src/main.rs:90
+90	    let result = builder.finish().await;
+```
+This is world is then cloned and passed to the PlaygroundState. Lets start the
+server and then set a break point in the Playground::compile function:
+```console
+$ rust-gdb --args target/debug/seedwing-policy-server
+Reading symbols from target/debug/seedwing-policy-server...
+(gdb) br seedwing-policy-server/src/playground.rs:77
+Breakpoint 1 at 0x5555557b023e: file seedwing-policy-server/src/playground.rs, line 77.
+(gdb) r
+...
+[2023-02-13T08:30:34Z INFO  seedwing_policy_engine::lang::mir] Compiling 135 patterns
+[2023-02-13T08:30:34Z INFO  seedwing_policy_server] starting up at http://0.0.0.0:8080/
+```
+We can now access the [playground](http://0.0.0.0:8080/playground/) and
+enter a rule:
+```
+pattern something = integer
+```
+And the press `Compile` which should allow the breakpoint we set to be hit:
+```console
+Thread 2 "actix-rt|system" hit Breakpoint 29, seedwing_policy_server::playground::{impl#4}::register::compile::{async_fn#0} () at seedwing-policy-server/src/playground.rs:77
+77	    match state.build(&content) {
+```
+And we can take a look at the compile function using:
+```console
+(gdb) l seedwing_policy_server::playground::{impl#4}::register::compile::{async_fn#0}:66,81
+71	) -> HttpResponse {
+72	    let mut content = BytesMut::new();
+73	    while let Some(Ok(bit)) = body.next().await {
+74	        content.extend_from_slice(&bit);
+75	    }
+76	
+77	    match state.build(&content) {
+78	        Ok(_) => HttpResponse::Ok().into(),
+79	        Err(e) => HttpResponse::BadRequest().body(e.to_string()),
+80	    }
+81	}
+```
+And we can inspect `state.build`:
+```console
+(gdb) l seedwing_policy_server::playground::PlaygroundState::build:26,52
+26	    pub fn build(&self, policy: &[u8]) -> Result<PolicyBuilder, String> {
+27	        let mut builder = self.builder.clone();
+28	        for source in self.sources.iter() {
+29	            if let Err(e) = builder.build(source.iter()) {
+30	                log::error!("err {:?}", e);
+31	                return Err(e
+32	                    .iter()
+33	                    .map(|b| b.to_string())
+34	                    .collect::<Vec<String>>()
+35	                    .join(","));
+36	            }
+37	        }
+38	        match core::str::from_utf8(policy) {
+39	            Ok(s) => {
+40	                if let Err(e) = builder.build(Ephemeral::new("playground", s).iter()) {
+41	                    log::error!("unable to build policy [{:?}]", e);
+42	                    return Err(format!("Compilation error: {e:?}"));
+43	                }
+44	            }
+45	            Err(e) => {
+46	                log::error!("unable to parse [{:?}]", e);
+47	                return Err(format!("Unable to parse POST'd input {e:?}"));
+48	            }
+49	        }
+50	        Ok(builder)
+51	    }
+52	}
+```
+Now, this looks familiar to what the server did for source directories that were
+specified on the command line. 
+```console
+(gdb) br seedwing_policy_server::playground::PlaygroundState::build
+Breakpoint 30 at 0x5555557af2ff: file seedwing-policy-server/src/playground.rs, line 2
+(gdb) c
+Continuing.
+
+Thread 2 "actix-rt|system" hit Breakpoint 30, seedwing_policy_server::playground::PlaygroundState::build (self=0x7ffff0017840, policy=&[u8](size=27) = {...}) at seedwing-policy-server/src/playground.rs:27
+27	        let mut builder = self.builder.clone();
+```
+In this case we don't have any sources (TODO: how are these sources added?).
+```console
+(gdb) p self.sources
+$6 = Vec(size=0)
+```
+So lets set a breakpoint further down:
+```console
+(gdb) br seedwing-policy-server/src/playground.rs:39
+Breakpoint 33 at 0x5555557af7fe: file seedwing-policy-server/src/playground.rs, line 39.
+(gdb) c
+40	                if let Err(e) = builder.build(Ephemeral::new("playground", s).iter()) {
+```
+First lets inspect `s` which should be the policy we entered:
+```console
+(gdb) p s
+$8 = "pattern something = integer"
+```
+Next, we have a type that we have not seen before, `Ephemeral`. so lets take a
+look at this
+type:
+```console
+(gdb) ptype seedwing_policy_engine::runtime::sources::Ephemeral
+type = struct seedwing_policy_engine::runtime::sources::Ephemeral {
+  source: seedwing_policy_engine::lang::parser::SourceLocation,
+  content: alloc::string::String,
+}
+```
+So we are created a new Ephemeral and calling `.iter` on it and then passing
+that into `seedwing_policy_engine::lang::builder::Builder::build`. And the
+rest we have already gone through previously in this document.
+
 
 [chumsky]: https://crates.io/crates/chumsky/0.9.0
 [chumsky examples]: https://github.com/danbev/learning-rust/tree/master/chumsky#chumsky
