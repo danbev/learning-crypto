@@ -323,6 +323,7 @@ This is a little confusing so lets try to sort this out. We have the following
 ```console
 (gdb) info types World
 ...
+seedwing_policy_engine::lang::mir::World;
 seedwing_policy_engine::lang::hir::World;
 seedwing_policy_engine::runtime::World;
 ```
@@ -345,6 +346,17 @@ type = struct seedwing_policy_engine::lang::hir::World {
   data_sources: alloc::vec::Vec<alloc::sync::Arc<dyn seedwing_policy_engine::data::DataSource>, alloc::alloc::Global>,
 }
 ```
+and one in `lang:mir`:
+```console
+(gdb) ptype seedwing_policy_engine::lang::mir::World
+type = struct seedwing_policy_engine::lang::mir::World {
+  type_slots: alloc::vec::Vec<alloc::sync::Arc<seedwing_policy_engine::lang::mir::TypeHandle>, alloc::alloc::Global>,
+  types: std::collections::hash::map::HashMap<seedwing_policy_engine::runtime::TypeName, usize, std::collections::hash::map::RandomState>,
+}
+```
+
+
+
 So I diverged a little but I was talking about the `register_function` for this:
 ```console
 23	    pkg.register_function("and".into(), And);
@@ -1108,16 +1120,10 @@ then call `finish`:
 38	        Ok(runtime)
 39	    }
 ```
-This takes us to [hir::Lowerer::lower](#hirlowererlower).
-
-### hir::Lowerer::lower
-After the package sources have been parsed, the CompilationUnit's are added to
-the `seedwing_policy_engine::lang::hir::World` instance which is done in
-`World::lower`.
-The final thing to happen in `World::lower` is that `Lowerer::lower` is called,
-passing in the CompilationUnit's, and the Packages:
+`self` in this case is `seedwing_policy_engine::lang::hir::World` so its `lower`
+function will be called:
 ```console
-(gdb) with listsize 0 -- l seedwing_policy_engine::lang::hir::Lowerer::lower
+(gdb) l seedwing_policy_engine::lang::hir::World::lower:413,448
 413	    pub fn lower(&mut self) -> Result<mir::World, Vec<BuildError>> {
 414	        self.add_package(crate::core::data::package(self.data_sources.clone()));
 415	
@@ -1133,27 +1139,211 @@ passing in the CompilationUnit's, and the Packages:
 425	                match unit {
 426	                    Ok(unit) => {
 427	                        core_units.push(unit);
-428	                    }
-429	                    Err(err) => {
-430	                        for e in err {
-431	                            errors.push((source.clone(), e).into())
-432	                        }
-433	                    }
-434	                }
-435	            }
-436	        }
-437	
-438	        for unit in core_units {
-439	            self.add_compilation_unit(unit);
-440	        }
-441	
-442	        if !errors.is_empty() {
-443	            return Err(errors);
-444	        }
-445	
-446	        Lowerer::new(&mut self.units, &mut self.packages).lower()
-447	    }
-448	}
+428	                        self.add_compilation_unit(unit);
+429	                    }
+430	                    Err(err) => {
+431	                        for e in err {
+432	                            errors.push((source.clone(), e).into())
+433	                        }
+434	                    }
+435	                }
+436	            }
+437	        }
+438	
+439	        for unit in core_units {
+440	            self.add_compilation_unit(unit);
+441	        }
+442	
+443	        if !errors.is_empty() {
+444	            return Err(errors);
+445	        }
+446	
+447	        Lowerer::new(&mut self.units, &mut self.packages).lower()
+448	    }
+```
+We have seen most of this previously, like `add_package`, and
+`PolicyParser::parse` so lets turn our attention to
+[hir::Lowerer::lower](#hirlowererlower).
+
+### hir::Lowerer::lower
+After the package sources have been parsed, the `CompilationUnit`'s are added to
+the `seedwing_policy_engine::lang::hir::World` instance which is done in
+`World::lower`.
+
+The final thing to happen in `World::lower` is that `Lowerer::lower` is called,
+passing in the `CompilationUnit`'s, and the `Packages`:
+```console
+(gdb) l seedwing_policy_engine::lang::hir::Lowerer::lower:461,626
+461	    pub fn lower(self) -> Result<mir::World, Vec<BuildError>> {
+462	        // First, perform internal per-unit linkage and type qualification
+463	        let mut world = mir::World::new();
+464	        let mut errors = Vec::new();
+465	
+466	        for unit in self.units.iter_mut() {
+467	            let unit_path = PackagePath::from(unit.source());
+468	
+469	            let mut visible_types = unit
+470	                .uses()
+471	                .iter()
+472	                .map(|e| (e.as_name().inner(), Some(e.type_name())))
+473	                .chain(unit.types().iter().map(|e| {
+474	                    (
+475	                        e.name().inner(),
+476	                        Some(Located::new(
+477	                            TypeName::new(None, e.name().inner()),
+478	                            e.location(),
+479	                        )),
+480	                    )
+481	                }))
+482	                .collect::<HashMap<String, Option<Located<TypeName>>>>();
+483	
+484	            //visible_types.insert("int".into(), None);
+485	            for primordial in world.known_world() {
+486	                visible_types.insert(primordial.name(), None);
+487	            }
+488	
+489	            for defn in unit.types() {
+490	                visible_types.insert(
+491	                    defn.name().inner(),
+492	                    Some(Located::new(
+493	                        unit_path.type_name(defn.name().inner()),
+494	                        defn.location(),
+495	                    )),
+496	                );
+497	            }
+498	
+499	            for defn in unit.types() {
+500	                let referenced_types = defn.referenced_types();
+501	
+502	                for ty in &referenced_types {
+503	                    if !ty.is_qualified() && !visible_types.contains_key(&ty.name()) {
+504	                        errors.push(BuildError::TypeNotFound(
+505	                            unit.source().clone(),
+506	                            ty.location().span(),
+507	                            ty.clone().as_type_str(),
+508	                        ))
+509	                    }
+510	                }
+511	            }
+512	
+513	            for defn in unit.types_mut() {
+514	                defn.qualify_types(&visible_types)
+515	            }
+516	        }
+517	
+518	        // next, perform inter-unit linking.
+519	
+520	        let mut known_world = world.known_world();
+521	
+522	        //world.push(TypeName::new(None, "int".into()));
+523	
+524	        //world.push("int".into());
+525	
+526	        for package in self.packages.iter() {
+527	            let package_path = package.path();
+528	
+529	            known_world.extend_from_slice(
+530	                &package
+531	                    .function_names()
+532	                    .iter()
+533	                    .map(|e| package_path.type_name(e.clone()))
+534	                    .collect::<Vec<TypeName>>(),
+535	            );
+536	        }
+537	
+538	        for unit in self.units.iter() {
+539	            let unit_path = PackagePath::from(unit.source());
+540	
+541	            let unit_types = unit
+542	                .types()
+543	                .iter()
+544	                .map(|e| unit_path.type_name(e.name().inner()))
+545	                .collect::<Vec<TypeName>>();
+546	
+547	            known_world.extend_from_slice(&unit_types);
+548	        }
+549	
+550	        if !errors.is_empty() {
+551	            return Err(errors);
+552	        }
+553	
+554	        for unit in self.units.iter() {
+555	            for defn in unit.types() {
+556	                // these should be fully-qualified now
+557	                let referenced = defn.referenced_types();
+558	
+559	                for each in referenced {
+560	                    if !known_world.contains(&each.clone().inner()) {
+561	                        errors.push(BuildError::TypeNotFound(
+562	                            unit.source().clone(),
+563	                            each.location().span(),
+564	                            each.clone().as_type_str(),
+565	                        ))
+566	                    }
+567	                }
+568	            }
+569	        }
+570	
+571	        for unit in self.units.iter() {
+572	            let unit_path = PackagePath::from(unit.source());
+573	
+574	            for ty in unit.types() {
+575	                let name = unit_path.type_name(ty.name().inner());
+576	                world.declare(name, ty.documentation.clone(), ty.parameters());
+577	            }
+578	        }
+579	
+580	        for package in self.packages.iter() {
+581	            let path = package.path();
+582	            for (fn_name, func) in package.functions() {
+583	                let path = path.type_name(fn_name);
+584	                world.declare(
+585	                    path,
+586	                    func.documentation(),
+587	                    func.parameters()
+588	                        .iter()
+589	                        .cloned()
+590	                        .map(|p| Located::new(p, 0..0))
+591	                        .collect(),
+592	                );
+593	            }
+594	        }
+595	
+596	        if !errors.is_empty() {
+597	            return Err(errors);
+598	        }
+599	
+600	        for package in self.packages.iter() {
+601	            let path = package.path();
+602	            for (fn_name, func) in package.functions() {
+603	                let path = path.type_name(fn_name);
+604	                world.define_function(path, func);
+605	            }
+606	        }
+607	
+608	        for unit in self.units.iter() {
+609	            let unit_path = PackagePath::from(unit.source());
+610	
+611	            for (path, ty) in unit.types().iter().map(|e| {
+612	                (
+613	                    Located::new(unit_path.type_name(e.name().inner()), e.location()),
+614	                    e.ty(),
+615	                )
+616	            }) {
+617	                world.define(path.inner(), ty);
+618	            }
+619	        }
+620	
+621	        if errors.is_empty() {
+622	            Ok(world)
+623	        } else {
+624	            Err(errors)
+625	        }
+626	    }
+(gdb) 
+```
+Notice that this function returnes an instance of
+`seedwing_policy_engine::lang::hir::World`.
 ```
 And we can see that Lowerer is declared as:
 ```console
@@ -1170,7 +1360,6 @@ There is a lot going on in `Lowerer::lower` so lets try to take it in steps:
 462	        let mut world = mir::World::new();
 463	        let mut errors = Vec::new();
 ```
-
 Now, there is another `World` in the module `seedwing_policy_engine::lang::mir`:
 ```console
 (gdb) with listsize 15 -- l seedwing_policy_engine::lang::mir::World::new
@@ -1186,7 +1375,6 @@ take a closer look:
 ```console
 (gdb) br seedwing_policy_engine::lang::mir::World::new
 Breakpoint 1 at 0x567660: file seedwing-policy-engine/src/lang/mir/mod.rs, line 212.
-(gdb) r
 (gdb) r
 Starting program: /home/danielbevenius/work/security/seedwing/seedwing-policy/target/debug/seedwing-policy-server 
 [Thread debugging using libthread_db enabled]
@@ -1578,8 +1766,73 @@ gdb) l 468
 482	
 ```
 I looks like the second iteration could be removed if the insert in the `chain`
-above used the `unit_path` instead. I'll open a pull request and see if this
-correct.
+above used the `unit_path` instead. I'll open a
+[pull request](https://github.com/seedwing-io/seedwing-policy/pull/69) and see
+if this correct.
+
+TODO: go through the rest of this function but for now I'm going to settle
+with that it populates the World instance and returnes it.
+
+After hir::lower() returns mir::lower will be called:
+```console
+(gdb) l seedwing_policy_engine::lang::builder::Builder::finish:35,39
+35	    pub async fn finish(&mut self) -> Result<runtime::World, Vec<BuildError>> {
+36	        let mir = self.hir.lower()?;
+37	        let runtime = mir.lower()?;
+38	        Ok(runtime)
+39
+```
+```console
+(gdb) ptype seedwing_policy_engine::lang::mir::World
+type = struct seedwing_policy_engine::lang::mir::World {
+  type_slots: alloc::vec::Vec<alloc::sync::Arc<seedwing_policy_engine::lang::mir::TypeHandle>, alloc::alloc::Global>,
+  types: std::collections::hash::map::HashMap<seedwing_policy_engine::runtime::TypeName, usize, std::collections::hash::map::RandomState>,
+}
+```
+
+```rust
+(gdb) l seedwing_policy_engine::lang::mir::World::lower:462,473
+462	    pub fn lower(self) -> Result<runtime::World, Vec<BuildError>> {
+463	        let mut world = runtime::World::new();
+464	
+465	        log::info!("Compiling {} patterns", self.types.len());
+466	
+467	        for (_slot, ty) in self.type_slots.iter().enumerate() {
+468	            world.add(ty.name.as_ref().unwrap().clone(), ty.clone());
+469	        }
+470	
+471	        Ok(world)
+472	    }
+473	}
+```
+And this will first create a runtime::World:
+```console
+(gdb) ptype seedwing_policy_engine::runtime::World
+type = struct seedwing_policy_engine::runtime::World {
+  types: std::collections::hash::map::HashMap<seedwing_policy_engine::runtime::TypeName, usize, std::collections::hash::map::RandomState>,
+  type_slots: alloc::vec::Vec<alloc::sync::Arc<seedwing_policy_engine::lang::lir::Type>, alloc::alloc::Global>,
+  trace: seedwing_policy_engine::lang::lir::EvalTrace,
+}
+```
+And the lower function will iterate over all the items in `type_slots` with
+`enumerate` (but the index is not currently used), and call add for each item:
+```console
+(gdb) l seedwing_policy_engine::runtime::World::add:432,439
+432	    pub(crate) fn add(&mut self, path: TypeName, handle: Arc<TypeHandle>) {
+433	        let ty = handle.ty();
+434	        let name = handle.name();
+435	        let parameters = handle.parameters().iter().map(|e| e.inner()).collect();
+436	        let converted = lir::convert(name, handle.documentation(), parameters, &ty);
+437	        self.type_slots.push(converted);
+438	        self.types.insert(path, self.type_slots.len() - 1);
+439	    }
+```
+`add` will call `seedwing_policy_engine::lang::lir::convert` which contains
+a match block for the mir type, and returns a lir type. This returned type is
+then added to this World instances `type_slot` vector, and the `types` hashmap
+is updated to have the index. When that is done for all types then
+mir::World::lower will return the populated runtime::World instance. And
+builder::finish will return that World to the caller.
 
 
 __work in progress__
