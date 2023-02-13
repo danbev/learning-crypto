@@ -3,11 +3,13 @@ Is a policy engine, like OPA for example. The policy language in Sweedwing is
 called Dogma, and in OPA it is Rego.
 
 # Table of Contents
-1, [policy-server walkthrough](#policy-server-walkthrough)
+1. [policy-server walkthrough](#policy-server-walkthrough)
 2. [CompilationUnit](#compilationunit)
 3. [PolicyParser](#policyparser)
 4. [TypeDefn](#typedefn)
 5. [hir::Lowerer::lower](#hirlowererlower)
+6. [Compiling](compiling)
+7. [Evaluate](evaulate)
 
 ### policy-server walkthrough
 Lets start a debugging session and break in the policy-servers main function.
@@ -1953,6 +1955,450 @@ type = struct seedwing_policy_engine::runtime::sources::Ephemeral {
 So we are created a new Ephemeral and calling `.iter` on it and then passing
 that into `seedwing_policy_engine::lang::builder::Builder::build`. And the
 rest we have already gone through previously in this document.
+
+### Evaluate
+In the previous section we discussed compiling a pattern in the playground. This
+section will take a look at evaluating a pattern.
+
+Simliar to the previous section, this section will also look at a function in
+playground, this time will be the `evaluate` function:
+```console
+(gdb) l  seedwing_policy_server::playground::{impl#6}::register::evaluate::{async_fn#0}:89,161
+95	) -> HttpResponse {
+96	    let mut content = BytesMut::new();
+97	    while let Some(Ok(bit)) = body.next().await {
+98	        content.extend_from_slice(&bit);
+99	    }
+100	    match serde_json::from_slice::<EvaluateRequest>(&content) {
+101	        Ok(body) => match serde_json::from_str::<serde_json::Value>(&body.value) {
+102	            Ok(payload) => match state.build(body.policy.as_bytes()) {
+103	                Ok(mut builder) => match builder.finish().await {
+104	                    Ok(world) => {
+105	                        let value = RuntimeValue::from(&payload);
+106	                        let mut full_path = "playground::".to_string();
+107	                        full_path += &path.replace('/', "::");
+108	
+109	                        match world
+110	                            .evaluate(
+111	                                &*full_path,
+112	                                value,
+113	                                EvalContext::new(
+114	                                    seedwing_policy_engine::lang::lir::EvalTrace::Enabled,
+115	                                ),
+116	                            )
+117	                            .await
+118	                        {
+119	                            Ok(result) => {
+120	                                let rationale = Rationalizer::new(&result);
+121	                                let rationale = rationale.rationale();
+122	
+123	                                if result.satisfied() {
+124	                                    HttpResponse::Ok().body(rationale)
+125	                                } else {
+126	                                    HttpResponse::NotAcceptable().body(rationale)
+127	                                }
+128	                            }
+129	                            Err(err) => {
+130	                                log::error!("err {:?}", err);
+131	                                HttpResponse::InternalServerError().finish()
+132	                            }
+133	                        }
+134	                    }
+135	                    Err(e) => {
+136	                        log::error!("err {:?}", e);
+137	                        let e = e
+138	                            .iter()
+139	                            .map(|b| b.to_string())
+140	                            .collect::<Vec<String>>()
+141	                            .join(",");
+142	                        HttpResponse::BadRequest().body(e.to_string())
+143	                    }
+144	                },
+145	                Err(e) => {
+146	                    log::error!("unable to build policy [{:?}]", e);
+147	                    HttpResponse::NotAcceptable().body(e.to_string())
+148	                }
+149	            },
+150	            Err(e) => {
+151	                log::error!("unable to parse [{:?}]", e);
+152	                HttpResponse::BadRequest()
+153	                    .body(format!("Unable to parse POST'd input {}", req.path()))
+154	            }
+155	        },
+156	        Err(e) => {
+157	            log::error!("unable to parse [{:?}]", e);
+158	            HttpResponse::BadRequest().body(format!("Unable to parse POST'd input {}", req.path()))
+159	        }
+160	    }
+161	}
+```
+Lets set a breakpoint in the start of this function:
+```console
+(gdb) br seedwing-policy-server/src/playground.rs:100
+Breakpoint 35 at 0x5555557ac7c2: seedwing-policy-server/src/playground.rs:97. (3 locations)
+```
+Lets continue with the previous example which defined a rule that looked like
+this:
+```
+pattern something = integer
+```
+And in the [playground](http://0.0.0.0:8080/playground/) we can enter any number
+, lets say `18` and then enter `something` as the pattern name. Then we can
+press the `Evaluate` button. This should allow are breakpoint be hit:
+```console
+Thread 2 "actix-rt|system" hit Breakpoint 1, seedwing_policy_server::playground::{impl#6}::register::evaluate::{async_fn#0} () at seedwing-policy-server/src/playground.rs:100
+100	    match serde_json::from_slice::<EvaluateRequest>(&content) {
+```
+If we step-into a few times:
+```console
+(gdb) f
+#0  seedwing_policy_server::playground::{impl#6}::register::evaluate::{async_fn#0} () at seedwing-policy-server/src/playground.rs:102
+102	            Ok(payload) => match state.build(body.policy.as_bytes()) {
+
+(gdb) l
+97	    while let Some(Ok(bit)) = body.next().await {
+98	        content.extend_from_slice(&bit);
+99	    }
+100	    match serde_json::from_slice::<EvaluateRequest>(&content) {
+101	        Ok(body) => match serde_json::from_str::<serde_json::Value>(&body.value) {
+102	            Ok(payload) => match state.build(body.policy.as_bytes()) {
+103	                Ok(mut builder) => match builder.finish().await {
+104	                    Ok(world) => {
+105	                        let value = RuntimeValue::from(&payload);
+106	                        let mut full_path = "playground::".to_string();
+```
+This `state.build` is the same function that we discussed in the Compile section
+earlier. I found it interesting that this is actually also compiling the policy
+again. We can see this by stepping into the build function and printing s the
+source variable `s`:
+```console
+(gdb) p s
+$4 = "pattern something = integer"
+```
+After that we are about to call `builder.finish` which we have also covered
+earlier. So lets looks at the next pattern matching clause:
+```
+(gdb) l 104,134
+104	                    Ok(world) => {
+105	                        let value = RuntimeValue::from(&payload);
+106	                        let mut full_path = "playground::".to_string();
+107	                        full_path += &path.replace('/', "::");
+108	
+109	                        match world
+110	                            .evaluate(
+111	                                &*full_path,
+112	                                value,
+113	                                EvalContext::new(
+114	                                    seedwing_policy_engine::lang::lir::EvalTrace::Enabled,
+115	                                ),
+116	                            )
+117	                            .await
+118	                        {
+119	                            Ok(result) => {
+120	                                let rationale = Rationalizer::new(&result);
+121	                                let rationale = rationale.rationale();
+122	
+123	                                if result.satisfied() {
+124	                                    HttpResponse::Ok().body(rationale)
+125	                                } else {
+126	                                    HttpResponse::NotAcceptable().body(rationale)
+127	                                }
+128	                            }
+129	                            Err(err) => {
+130	                                log::error!("err {:?}", err);
+131	                                HttpResponse::InternalServerError().finish()
+132	                            }
+133	                        }
+134	                    }
+```
+Lets start by inspecting the `payload` variable:
+```console
+(gdb) p payload
+$6 = serde_json::value::Value::Number(serde_json::number::Number {n: "18"})
+```
+We might have seen RuntimeValue before as a parameter to some function but notes
+really looked at it. We can use `info types RuntimeValue` to figure out the
+correct module name.
+```console
+(gdb) ptype seedwing_policy_engine::value::RuntimeValue
+type = enum seedwing_policy_engine::value::RuntimeValue {
+  Null,
+  String(alloc::string::String),
+  Integer(i64),
+  Decimal(f64),
+  Boolean(bool),
+  Object(seedwing_policy_engine::value::Object),
+  List(alloc::vec::Vec<alloc::sync::Arc<seedwing_policy_engine::value::RuntimeValue>, alloc::alloc::Global>),
+  Octets(alloc::vec::Vec<u8, alloc::alloc::Global>),
+}
+```
+If we step-into this function we will land in:
+```console
+(gdb) f
+#0  seedwing_policy_engine::value::json::{impl#1}::from (value=0x7ffff00550b8) at seedwing-policy-engine/src/value/json.rs:41
+41	        match value {
+```
+The source for this can listed using:
+```console
+(gdb) l seedwing_policy_engine::value::json::{impl#0}::from:15,15
+7	    fn from(value: JsonValue) -> Self {
+8	        match value {
+9	            JsonValue::Null => RuntimeValue::Null,
+10	            JsonValue::Bool(inner) => RuntimeValue::Boolean(inner),
+11	            JsonValue::Number(inner) => {
+12	                if inner.is_f64() {
+13	                    RuntimeValue::Decimal(inner.as_f64().unwrap())
+14	                } else if inner.is_i64() {
+15	                    RuntimeValue::Integer(inner.as_i64().unwrap())
+```
+In our case this function will return RuntimeValue::Integer:
+```console
+(gdb) p value
+$1 = seedwing_policy_engine::value::RuntimeValue::Integer(18)
+```
+So we are almost ready to call evaulate:
+```console
+(gdb) l 104,+15
+104	                    Ok(world) => {
+105	                        let value = RuntimeValue::from(&payload);
+106	                        let mut full_path = "playground::".to_string();
+107	                        full_path += &path.replace('/', "::");
+108	
+109	                        match world
+110	                            .evaluate(
+111	                                &*full_path,
+112	                                value,
+113	                                EvalContext::new(
+114	                                    seedwing_policy_engine::lang::lir::EvalTrace::Enabled,
+115	                                ),
+116	                            )
+117	                            .await
+118	                        {
+119	                            Ok(result) => {
+
+(gdb) p path
+$4 = actix_web::types::path::Path<alloc::string::String> ("something")
+
+(gdb) p full_path
+$5 = "playground::something"
+```
+Lets now step into `world.evaluate`:
+```console
+(gdb) l
+445	    pub async fn evaluate<P: Into<String>, V: Into<RuntimeValue>>(
+446	        &self,
+447	        path: P,
+448	        value: V,
+449	        mut ctx: EvalContext,
+450	    ) -> Result<EvaluationResult, RuntimeError> {
+451	        let value = Arc::new(value.into());
+452	        let path = TypeName::from(path.into());
+453	        let slot = self.types.get(&path);
+454	        if let Some(slot) = slot {
+```
+Notice that local new variable `path` is created using
+TypeName::from(path.into()):
+```console
+(gdb) p path
+$9 = seedwing_policy_engine::runtime::TypeName {package: core::option::Option<seedwing_policy_engine::runtime::PackagePath>::Some(seedwing_policy_engine::runtime::PackagePath {is_absolute: true, path: Vec(size=1) = {seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName> {inner: seedwing_policy_engine::runtime::PackageName ("playground"), location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 0, end: 0}}}}}), name: "something"}
+```
+And then we are going to 'lookup' the index into the slot_types vector by
+getting the index from the `types` hashmap:
+```console
+(gdb) l 453,458
+453	        let slot = self.types.get(&path);
+454	        if let Some(slot) = slot {
+455	            let ty = self.type_slots[*slot].clone();
+456	            let bindings = Bindings::default();
+457	            ty.evaluate(value.clone(), &mut ctx, &bindings, self).await
+458	        } else {
+
+(gdb) p *slot
+$14 = 4
+
+(gdb) p ty.ptr.pointer.data.inner
+$29 = seedwing_policy_engine::lang::lir::InnerType::Ref(seedwing_policy_engine::lang::SyntacticSugar::None, 0, Vec(size=0))
+(gdb) p ty.ptr.pointer.data.documentation
+$30 = core::option::Option<alloc::string::String>::Some("")
+(gdb) p ty.ptr.pointer.data.parameters
+$31 = Vec(size=0)
+
+(gdb) p bindings
+$16 = seedwing_policy_engine::lang::lir::Bindings {bindings: HashMap(size=0)}
+```
+After this `ty.evaluate` will be called.
+```console
+(gdb) l seedwing_policy_engine::lang::lir::Type::evaluate:196,204
+196	    pub fn evaluate<'v>(
+197	        self: &'v Arc<Self>,
+198	        value: Arc<RuntimeValue>,
+199	        ctx: &'v mut EvalContext,
+200	        bindings: &'v Bindings,
+201	        world: &'v World,
+202	    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
+203	        let trace = ctx.trace();
+204	        match &self.inner {
+```
+And here we are matching on the inner type of this Type. Notice that this
+function returns a Future. `self.inner` in our case is:
+```console
+(gdb) p ty.ptr.pointer.data.inner
+$29 = seedwing_policy_engine::lang::lir::InnerType::Ref(seedwing_policy_engine::lang::SyntacticSugar::None, 0, Vec(size=0))
+```
+so the following match block will be executed:
+```console
+(gdb) l seedwing-policy-engine/src/lang/lir/mod.rs:216,321
+216	            InnerType::Ref(sugar, slot, arguments) => Box::pin(async move {
+217	                #[allow(clippy::ptr_arg)]
+218	                fn build_bindings<'b>(
+219	                    value: Arc<RuntimeValue>,
+220	                    mut bindings: Bindings,
+221	                    ctx: &'b mut EvalContext,
+222	                    parameters: Vec<String>,
+223	                    arguments: &'b Vec<Arc<Type>>,
+224	                    world: &'b World,
+225	                ) -> Pin<Box<dyn Future<Output = Result<Bindings, RuntimeError>> + 'b>>
+226	                {
+227	                    Box::pin(async move {
+228	                        for (param, arg) in parameters.iter().zip(arguments.iter()) {
+229	                            if let InnerType::Ref(_sugar, slot, unresolved_bindings) = &arg.inner {
+230	                                if let Some(resolved_type) = world.get_by_slot(*slot) {
+231	                                    if resolved_type.parameters().is_empty() {
+232	                                        bindings.bind(param.clone(), resolved_type.clone())
+233	                                    } else {
+234	                                        let resolved_bindings = build_bindings(
+235	                                            value.clone(),
+236	                                            bindings.clone(),
+237	                                            ctx,
+238	                                            resolved_type.parameters(),
+239	                                            unresolved_bindings,
+240	                                            world,
+241	                                        )
+242	                                        .await?;
+243	                                        bindings.bind(
+244	                                            param.clone(),
+245	                                            Arc::new(Type::new(
+246	                                                resolved_type.name(),
+247	                                                resolved_type.documentation(),
+248	                                                resolved_type.parameters(),
+249	                                                InnerType::Bound(resolved_type, resolved_bindings),
+250	                                            )),
+251	                                        )
+252	                                    }
+253	                                }
+254	                            } else if let InnerType::Argument(name) = &arg.inner {
+255	                                bindings.bind(param.clone(), bindings.get(name).unwrap());
+256	                            } else if let InnerType::Deref(_inner) = &arg.inner {
+257	                                let result = arg
+258	                                    .evaluate(value.clone(), ctx, &Bindings::default(), world)
+259	                                    .await?;
+260	
+261	                                if result.satisfied() {
+262	                                    if let Some(output) = result.output() {
+263	                                        bindings.bind(param.clone(), Arc::new(output.into()))
+264	                                    } else {
+265	                                        bindings.bind(
+266	                                            param.clone(),
+267	                                            Arc::new(Type::new(
+268	                                                None,
+269	                                                None,
+270	                                                Vec::default(),
+271	                                                InnerType::Nothing,
+272	                                            )),
+273	                                        )
+274	                                    }
+275	                                } else {
+276	                                    bindings.bind(
+277	                                        param.clone(),
+278	                                        Arc::new(Type::new(
+279	                                            None,
+280	                                            None,
+281	                                            Vec::default(),
+282	                                            InnerType::Nothing,
+283	                                        )),
+284	                                    )
+285	                                }
+286	                            } else {
+287	                                bindings.bind(param.clone(), arg.clone())
+288	                            }
+289	                        }
+290	
+291	                        Ok(bindings)
+292	                    })
+293	                };
+294	
+295	                if let Some(ty) = world.get_by_slot(*slot) {
+296	                    let bindings = build_bindings(
+297	                        value.clone(),
+298	                        bindings.clone(),
+299	                        ctx,
+300	                        ty.parameters(),
+301	                        arguments,
+302	                        world,
+303	                    )
+304	                    .await?;
+305	
+306	                    let result = ty.evaluate(value.clone(), ctx, &bindings, world).await?;
+307	                    if let SyntacticSugar::Chain = sugar {
+308	                        Ok(EvaluationResult::new(
+309	                            Some(value.clone()),
+310	                            self.clone(),
+311	                            result.rationale().clone(),
+312	                            result.raw_output().clone(),
+313	                            trace.done(),
+314	                        ))
+315	                    } else {
+316	                        Ok(result)
+317	                    }
+318	                } else {
+319	                    Err(RuntimeError::NoSuchTypeSlot(*slot))
+320	                }
+321	            }),
+```
+So when this function returns, the Future will be awaited, and poll will call
+the future:
+```console
+457	            ty.evaluate(value.clone(), &mut ctx, &bindings, self).await
+```
+Lets set a break point in the Future:
+```console
+(gdb) br seedwing-policy-engine/src/lang/lir/mod.rs:295
+Breakpoint 5 at 0x555555a705ad: file seedwing-policy-engine/src/lang/lir/mod.rs, line 295.
+```
+
+First, we have function definition, `build_bindings`, followed by:
+```console
+gdb) l seedwing-policy-engine/src/lang/lir/mod.rs:295,304
+295	                if let Some(ty) = world.get_by_slot(*slot) {
+296	                    let bindings = build_bindings(
+297	                        value.clone(),
+298	                        bindings.clone(),
+299	                        ctx,
+300	                        ty.parameters(),
+301	                        arguments,
+302	                        world,
+303	                    )
+304	                    .await?;
+```
+The `ty` returned will be:
+```console
+(gdb) p ty.ptr.pointer.data
+$36 = seedwing_policy_engine::lang::lir::Type {name: core::option::Option<seedwing_policy_engine::runtime::TypeName>::Some(seedwing_policy_engine::runtime::TypeName {package: core::option::Option<seedwing_policy_engine::runtime::PackagePath>::None, name: "integer"}), documentation: core::option::Option<alloc::string::String>::None, parameters: Vec(size=0), inner: seedwing_policy_engine::lang::lir::InnerType::Primordial(seedwing_policy_engine::lang::PrimordialType::Integer)}
+```
+At this point the body of `build_bindings` will be executed. In this case there
+are no parameters so the bindings will just be returned.
+This will then recurse and ty.evaluate will be called but this time on then
+PrimordialType::Integer.
+
+
+
+```console
+(gdb) br seedwing-policy-engine/src/lang/lir/mod.rs:228
+```
+
+### Bindings
+TODO: 
+
 
 
 [chumsky]: https://crates.io/crates/chumsky/0.9.0
