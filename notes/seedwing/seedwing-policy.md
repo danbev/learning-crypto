@@ -3,9 +3,11 @@ Is a policy engine, like OPA for example. The policy language in Sweedwing is
 called Dogma, and in OPA it is Rego.
 
 # Table of Contents
-1. [CompilationUnit](#compilationunit)
-2. [TypeDefn](#typedefn)
-3. [Lowerer](#lowerer)
+1, [policy-server walkthrough](#policy-server-walkthrough)
+2. [CompilationUnit](#compilationunit)
+3. [PolicyParser](#policyparser)
+4. [TypeDefn](#typedefn)
+5. [hir::Lowerer::lower](#hirlowererlower)
 
 ### policy-server walkthrough
 Lets start a debugging session and break in the policy-servers main function.
@@ -1077,13 +1079,38 @@ This leaves us with the final argument which is `parameters`:
 $78 = Vec(size=1) = {
   seedwing_policy_engine::lang::parser::Located<alloc::string::String> {inner: "pattern", location: seedwing_policy_engine::lang::parser::Location {span: core::ops::range::Range<usize> {start: 58, end: 65}}}}
 ```
-
 So hopefully that helps understand what TypeDefn is.
 
 So we have now seen what CompoilationUnit's and that TypeDefn are a part of
-them. Now closer look at where these CompilationUnit's are used.
+them. To recap a little, we could create a
+`seedwing_policy_engine::lang::builder::Builder`, then add sources by complating
+`build`, and/or add `data` sources, and then call `finish`.
+```console
+(gdb) l seedwing-policy-engine/src/lang/builder.rs:8
+3	use crate::lang::parser::SourceLocation;
+4	use crate::runtime;
+5	use crate::runtime::cache::SourceCache;
+6	use crate::runtime::BuildError;
+7	
+8	#[derive(Clone)]
+9	pub struct Builder {
+10	    hir: hir::World,
+11	}
+12	
+```
+And then we would add sources by calling `build`, and/or add `data` sources, and
+then call `finish`:
+```console
+(gdb) l seedwing_policy_engine::lang::builder::Builder::finish:35,39
+35	    pub async fn finish(&mut self) -> Result<runtime::World, Vec<BuildError>> {
+36	        let mir = self.hir.lower()?;
+37	        let runtime = mir.lower()?;
+38	        Ok(runtime)
+39	    }
+```
+This takes us to [hir::Lowerer::lower](#hirlowererlower).
 
-### Lowerer
+### hir::Lowerer::lower
 After the package sources have been parsed, the CompilationUnit's are added to
 the `seedwing_policy_engine::lang::hir::World` instance which is done in
 `World::lower`.
