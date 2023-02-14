@@ -1710,7 +1710,7 @@ Next, we have the following:
 485	                visible_types.insert(primordial.name(), None);
 486	            }
 ```
-Notice that this is adding the primordial types to the hash visiable_types
+Notice that this is adding the primordial types to the hash `visible_types`
 HashMap. Currently, we have the following keys in this HashMap:
 ```console
 (gdb) visible_types
@@ -1741,8 +1741,9 @@ Next, we have an iteration over the CompilationUnit::types:
 495	                );
 496	            }
 ```
-Hmm, this looks odd to me...it looks like we are adding the types again. If we
-look pack to the code which iterated over the `uses` we also added the `types`:
+Hmm, this looks odd to me...it looks like we are adding the types again to the
+`visible_types` hashmap. If we look back at the code which iterated over the
+`uses`, we also added the `types`:
 ```rust
 gdb) l 468
 463	        let mut errors = Vec::new();
@@ -2387,8 +2388,8 @@ $36 = seedwing_policy_engine::lang::lir::Type {name: core::option::Option<seedwi
 ```
 At this point the body of `build_bindings` will be executed. In this case there
 are no parameters so the bindings will just be returned.
-This will then recurse and ty.evaluate will be called but this time on then
-PrimordialType::Integer.
+This will then recurse and `ty.evaluate` will be called but this time on then
+`PrimordialType::Integer`
 
 
 
