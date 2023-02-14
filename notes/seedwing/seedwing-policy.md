@@ -1768,10 +1768,140 @@ gdb) l 468
 481	                .collect::<HashMap<String, Option<Located<TypeName>>>>();
 482	
 ```
-I looks like the second iteration could be removed if the insert in the `chain`
-above used the `unit_path` instead. I'll open a
+So here we first add the `uses`, followed by the `types` to the `visible_types`
+HashMap (the HashMap gets created with those tuples produced by the map
+functions). The hashmap uses Strings as its keys.
+
+Lets set a break point on each of these and print out the string that will be
+used as the key in the hashmap.
+
+First lets print the length of the unit.types, and unit.uses vectors:
+```console
+(gdb) dprintf 468, "unit.types.len=%d, unit.uses.len=%d\n", unit.types.len, unit.uses.len
+```
+And lets also print out the path of the package (just the first two levels):
+```console
+(gdb) br 468
+Breakpoint 19 at 0x5555558ec785: file seedwing-policy-engine/src/lang/hir/mod.rs, line 468.
+(gdb) commands
+Type commands for breakpoint(s) 19, one per line.
+End with a line saying just "end".
+>p (*(unit_path.path.buf.ptr.pointer.pointer+0)).inner.__0
+>p (*(unit_path.path.buf.ptr.pointer.pointer+1)).inner.__0
+>continue
+>end
+```
+Lets set a breakpoint in the `uses` iteration:
+```
+(gdb) br 471
+Note: breakpoint 4 also set at pc 0x5555558d9ece.
+Breakpoint 7 at 0x5555558d9ece: file seedwing-policy-engine/src/lang/hir/mod.rs, line 471.
+(gdb) command
+Type commands for breakpoint(s) 7, one per line.
+End with a line saying just "end".
+>p e.as_name.inner.inner
+>end
+```
+
+And then one for the `chain` iterator adapter:
+```
+(gdb) br 474
+Breakpoint 4 at 0x5555558da02e: file seedwing-policy-engine/src/lang/hir/mod.rs, line 474.
+(gdb) commands
+Type commands for breakpoint(s) 4, one per line.
+End with a line saying just "end".
+>p (*(e)).inner.name.inner
+>end
+```
+And then finally one in the second iteration of `unit.types`:
+```console
+(gdb) br 490
+Breakpoint 5 at 0x5555558ecc27: file seedwing-policy-engine/src/lang/hir/mod.rs, line 490.
+(gdb) commands
+Type commands for breakpoint(s) 5, one per line.
+End with a line saying just "end".
+> p defn.inner.name.inner
+>end
+```
+We can save these breakpoints just incase gdb crashed:
+```console
+(gdb) save breakpoints use-breakpoints
+```
+These can then be "loaded' by using `(gdb) source use-breakpoints`
+
+Alright, lets we restart the session, and we will now stop at each breakpoint
+and also print out the string that will be used as keys:
+```console
+(gdb) r
+Start it from the beginning? (y or n) y
+Starting program: /home/danielbevenius/work/security/seedwing/seedwing-policy/target/debug/seedwing-policy-server 
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib64/libthread_db.so.1".
+[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading x509::oid
+[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading x509
+[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading cyclonedx::v1_4
+[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading cyclonedx::hash
+[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading jsf
+[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading jsf
+[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading jsf
+[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading spdx::license
+[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading iso::swid
+[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading kafka::opa
+[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading openvex
+[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading maven
+
+Breakpoint 19, seedwing_policy_engine::lang::hir::Lowerer::lower (self=...) at seedwing-policy-engine/src/lang/hir/mod.rs:468
+468	            let mut visible_types = unit
+$158 = "x509"
+$159 = "oid"
+Continuing.
+
+Breakpoint 1, seedwing_policy_engine::lang::hir::{impl#10}::lower::{closure#1} (e=0x5555585d45e0) at seedwing-policy-engine/src/lang/hir/mod.rs:474
+474	                        e.name().inner(),
+$160 = "common"
+```
+So that is the first of item of the unit.types vector to be added to the hashmap
+and it is inserted as "common". Notice that this unit does not have and entries
+is its `uses` vector.
+
+Next, we continue:
+```console
+(gdb) c
+Continuing.
+
+Breakpoint 4, seedwing_policy_engine::lang::hir::{impl#10}::lower::{closure#1} (e=0x5555585d46c0) at seedwing-policy-engine/src/lang/hir/mod.rs:474
+474	                        e.name().inner(),
+$25 = "organization"
+```
+And this is the second entry that gets inserted into the hashmap, this time
+using the key "organization".
+
+There are only 2 entries, `unit.types.len=2` above, in the `types` vector for
+the current unit, so the next time we continue, we will break in the second
+iteration of unit.types:
+```console
+(gdb) c
+Continuing.
+
+Breakpoint 7, seedwing_policy_engine::lang::hir::Lowerer::lower (self=...) at seedwing-policy-engine/src/lang/hir/mod.rs:490
+490	                    defn.name().inner(),
+$26 = "common"
+```
+This will overwrite the entry we added above. And if we continue:
+```console
+(gdb) c
+Continuing.
+
+Breakpoint 7, seedwing_policy_engine::lang::hir::Lowerer::lower (self=...) at seedwing-policy-engine/src/lang/hir/mod.rs:490
+490	                    defn.name().inner(),
+$29 = "organization"
+```
+And the same things happens here. Unless I'm missing something it looks like the
+second iteration could be removed, if the `insert` in the `chain iterator
+adapter` above used the `unit_path`. I'll open a
 [pull request](https://github.com/seedwing-io/seedwing-policy/pull/69) and see
 if this correct.
+
 
 TODO: go through the rest of this function but for now I'm going to settle
 with that it populates the World instance and returnes it.
