@@ -1837,24 +1837,25 @@ Start it from the beginning? (y or n) y
 Starting program: /home/danielbevenius/work/security/seedwing/seedwing-policy/target/debug/seedwing-policy-server 
 [Thread debugging using libthread_db enabled]
 Using host libthread_db library "/lib64/libthread_db.so.1".
-[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading x509::oid
-[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading x509
-[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading cyclonedx::v1_4
-[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading cyclonedx::hash
-[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading jsf
-[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading jsf
-[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading jsf
-[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading spdx::license
-[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading iso::swid
-[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading kafka::opa
-[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading openvex
-[2023-02-14T11:56:32Z INFO  seedwing_policy_engine::lang::hir] loading maven
+[2023-02-14T12:00:38Z INFO  seedwing_policy_engine::lang::hir] loading x509::oid
+[2023-02-14T12:00:38Z INFO  seedwing_policy_engine::lang::hir] loading x509
+[2023-02-14T12:00:38Z INFO  seedwing_policy_engine::lang::hir] loading cyclonedx::v1_4
+[2023-02-14T12:00:38Z INFO  seedwing_policy_engine::lang::hir] loading cyclonedx::hash
+[2023-02-14T12:00:38Z INFO  seedwing_policy_engine::lang::hir] loading jsf
+[2023-02-14T12:00:38Z INFO  seedwing_policy_engine::lang::hir] loading jsf
+[2023-02-14T12:00:39Z INFO  seedwing_policy_engine::lang::hir] loading jsf
+[2023-02-14T12:00:39Z INFO  seedwing_policy_engine::lang::hir] loading spdx::license
+[2023-02-14T12:00:39Z INFO  seedwing_policy_engine::lang::hir] loading iso::swid
+[2023-02-14T12:00:39Z INFO  seedwing_policy_engine::lang::hir] loading kafka::opa
+[2023-02-14T12:00:39Z INFO  seedwing_policy_engine::lang::hir] loading openvex
+[2023-02-14T12:00:39Z INFO  seedwing_policy_engine::lang::hir] loading maven
+unit.types.len=2, unit.uses.len=0
 
 Breakpoint 19, seedwing_policy_engine::lang::hir::Lowerer::lower (self=...) at seedwing-policy-engine/src/lang/hir/mod.rs:468
 468	            let mut visible_types = unit
-$158 = "x509"
-$159 = "oid"
-Continuing.
+$161 = "x509"
+$162 = "oid"
+Continuing
 
 Breakpoint 1, seedwing_policy_engine::lang::hir::{impl#10}::lower::{closure#1} (e=0x5555585d45e0) at seedwing-policy-engine/src/lang/hir/mod.rs:474
 474	                        e.name().inner(),
