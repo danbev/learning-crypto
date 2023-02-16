@@ -10,6 +10,7 @@ called Dogma, and in OPA it is Rego.
 5. [hir::Lowerer::lower](#hirlowererlower)
 6. [Compiling](compiling)
 7. [Evaluate](evaulate)
+7. [Bindings](bindings)
 
 ### policy-server walkthrough
 Lets start a debugging session and break in the policy-servers main function.
@@ -2487,6 +2488,11 @@ so the following match block will be executed:
 320	                }
 321	            }),
 ```
+Alright, so it is not clear to me what this function does so lets try to sort
+it out.
+The first thing to notice is that the
+
+
 So when this function returns, the Future will be awaited, and poll will call
 the future:
 ```console
@@ -2529,7 +2535,175 @@ This will then recurse and `ty.evaluate` will be called but this time on then
 ```
 
 ### Bindings
-TODO: 
+So where are Bindings first encountered?
+A DataSource can be added to a builder and this is done when we specify then
+`--data` command line option to the `cli` or the `server`.
+```rust
+(gdb) l seedwing-policy-server/src/main.rs:88,93
+88	    if let Some(directories) = matches.get_many::<String>("data") {
+89	        for each in directories {
+90	            log::info!("loading data from {:?}", each);
+91	            builder.data(DirectoryDataSource::new(each.into()));
+92	        }
+93	    }
+```
+Lets set a breakpoint there:
+```console
+(gdb) br seedwing-policy-server/src/main.rs:88
+Breakpoint 2 at 0x5555557b8060: file seedwing-policy-server/src/main.rs, line 88.
+```
+Recall that the `--data` option takes directory and the option can be specified
+multiple times. And for each other the data directories a new
+DirectoryDataSource will be created and added to the Builder.
+```console
+(gdb) printf "%s\n", (*each).vec.buf.ptr.pointer.pointer 
+sample-data
+```
+So after this the data_sources in the hir World instance will have been
+populated. The next time this is touches in in World::lower.
+```console
+(gdb) br seedwing-policy-engine/src/lang/hir/mod.rs:415
+(gdb) c
+Continuing.
+
+Breakpoint 3, seedwing_policy_engine::lang::hir::World::lower (self=0x7fffffff9be8) at seedwing-policy-engine/src/lang/hir/mod.rs:415
+415	        self.add_package(crate::core::data::package(self.data_sources.clone()));
+```
+And this we have seen before, but previously we did not have any data sources
+set so the vector was empty. This time we have an entry. If we step-into
+`crate::core::data::package` we find:
+```console
+(gdb) l
+7	
+8	use crate::core::data::from::From;
+9	
+10	pub fn package(data_sources: Vec<Arc<dyn DataSource>>) -> Package {
+11	    let mut pkg = Package::new(PackagePath::from_parts(vec!["data"]));
+12	    pkg.register_function("from".into(), From::new(data_sources));
+13	    pkg
+14	}
+```
+If we look at `From::new` we find:
+```console
+(gdb) l
+23	impl From {
+24	    pub fn new(data_sources: Vec<Arc<dyn DataSource>>) -> Self {
+25	        Self {
+26	            data_sources: Arc::new(data_sources),
+27	        }
+28	    }
+29	}
+```
+Notice that From::new takes the whole vector and then stores in its
+`data_sources` vector field. After this `register_function` will add the
+type implementing the trait `Function`.
+One thing I noticed was the `parameters` function for From:
+```console
+gdb) l seedwing_policy_engine::core::data::from::{impl#2}::parameters:45,47
+45	    fn parameters(&self) -> Vec<String> {
+46	        vec![PATH.into()]
+47	    }
+
+(gdb) l 16,16
+16	const PATH: &str = "path";
+```
+I don't understand this at the moment but I've seen this `path` in debug output
+and it might be relevant. Oh, wait. Parameters are `parameters` to the function
+I think. So when we call the function we will specify a path of the file that
+we want to get data from.  So I was thinking that the file was specified as
+a normal argument to the function, something like:
+```
+pattern components = *data::from("rule_data.yml")
+```
+But that is incorrect, as parameter is specifed like a generic type instead like
+this:
+```
+pattern components = *data::from<"rule_data.yml">
+```
+
+If we take a closer look at the `From::call` function we can see that it takes
+a reference to a `Bindings` as a parameter:
+```console
+(gdb) l seedwing_policy_engine::core::data::from::{impl#2}::call:49,56
+49	    fn call<'v>(
+50	        &'v self,
+51	        _input: Arc<RuntimeValue>,
+52	        _ctx: &'v EvalContext,
+53	        bindings: &'v Bindings,
+54	        _world: &'v World,
+55	    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+56	        Box::pin(async move {
+(gdb) l
+57	            if let Some(val) = bindings.get(PATH) {
+58	                if let Some(ValueType::String(path)) = val.try_get_resolved_value() {
+59	                    println!("DataSource from....{}", path);
+60	                    for ds in &*self.data_sources {
+61	                        if let Ok(Some(value)) = ds.get(path.clone()) {
+62	                            return Ok(Output::Transform(Arc::new(value)).into());
+63	                        }
+64	                    }
+65	                }
+66	            }
+```
+We can see that `path` is:
+```console
+(gdb) printf "%s\n", path.vec.buf.ptr.pointer.pointer 
+rule_data.yml
+```
+But we we inspect the length of the data_sources vector it is zero:
+```console
+(gdb) p self.data_sources.ptr.pointer.data.len
+$33 = 0
+```
+Hmm, so looking into this a little closer it turns out that the playground.rs
+will clone the `builder` (which contains the hir::World):
+```rust
+                App::new()
+                    .app_data(web::Data::new(world.clone()))
+                    .app_data(web::Data::new(monitor.clone()))
+                    .app_data(web::Data::new(statistics.clone()))
+                    .app_data(web::Data::new(Documentation(raw_docs)))
+                    .app_data(web::Data::new(Examples(raw_examples)))
+                    .app_data(web::Data::new(PlaygroundState::new(
+                        builder.clone(),
+                        sources.clone(),
+                    )))
+```
+The problem is that `World::clone` does not clone the data_sources, so the
+vector will be left in its default state (zero elements):
+```rust
+impl Clone for World {
+    fn clone(&self) -> Self {
+        let mut h = World::new();
+        h.packages = self.packages.clone();
+        h
+    }
+}
+```
+Updating this to also clone the data_sources worked ([PR](https://github.com/seedwing-io/seedwing-policy/pull/83).
+
+Back in `lower` the package returned will then be added to the `packages`
+vector. 
+
+```console
+(gdb) ptype seedwing_policy_engine::lang::lir::Bindings
+type = struct seedwing_policy_engine::lang::lir::Bindings {
+  bindings: std::collections::hash::map::HashMap<alloc::string::String, alloc::sync::Arc<seedwing_policy_engine::lang::lir::Type>, std::collections::hash::map::RandomState>,
+}
+```
+So we can see that Bindings has one member which is a HashMap with Strings as
+the keys and Type as the values.
+Lets verify that the From function gets defined:
+```console
+(gdb) br 593
+Breakpoint 4 at 0x555555a3e64d: file seedwing-policy-engine/src/lang/hir/mod.rs, line 593.
+(gdb) commands
+Type commands for breakpoint(s) 4, one per line.
+End with a line saying just "end".
+>printf "%s\n", fn_name.vec.buf.ptr.pointer.pointer
+>end
+```
+
 
 
 
