@@ -2167,9 +2167,354 @@ playground, this time will be the `evaluate` function:
 ```
 Lets set a breakpoint in the start of this function:
 ```console
-(gdb) br seedwing-policy-server/src/playground.rs:100
-Breakpoint 35 at 0x5555557ac7c2: seedwing-policy-server/src/playground.rs:97. (3 locations)
+(gdb) br seedwing-policy-server/src/playground.rs:114
+Breakpoint 3 at 0x555555748ac5: file seedwing-policy-server/src/playground.rs, line 115.
 ```
+And lets step into `seedwing_policy_engine::runtime::World`:
+```rust
+(gdb) l
+452	    pub async fn evaluate<P: Into<String>, V: Into<RuntimeValue>>(
+453	        &self,
+454	        path: P,
+455	        value: V,
+456	        mut ctx: EvalContext,
+457	    ) -> Result<EvaluationResult, RuntimeError> {
+458	        let value = Arc::new(value.into());
+459	        let path = TypeName::from(path.into());
+460	        let slot = self.types.get(&path);
+461	        if let Some(slot) = slot {
+```
+So we have `value` which is a RuntimeValue
+```console
+(gdb) ptype seedwing_policy_engine::value::RuntimeValue
+type = enum seedwing_policy_engine::value::RuntimeValue {
+  Null,
+  String(alloc::string::String),
+  Integer(i64),
+  Decimal(f64),
+  Boolean(bool),
+  Object(seedwing_policy_engine::value::Object),
+  List(alloc::vec::Vec<alloc::sync::Arc<seedwing_policy_engine::value::RuntimeValue>, alloc::alloc::Global>),
+  Octets(alloc::vec::Vec<u8, alloc::alloc::Global>),
+}
+```
+```console
+(gdb) p path
+$11 = "playground::people"
+(gdb) p value
+$12 = seedwing_policy_engine::value::RuntimeValue::String(alloc::string::String {vec: alloc::vec::Vec<u8, alloc::alloc::Global> {buf: alloc::raw_vec::RawVec<u8, alloc::alloc::Global> {ptr: core::ptr::unique::Unique<u8> {pointer: core::ptr::non_null::NonNull<u8> {pointer: 0x7fffe80d84b0}, _marker: core::marker::PhantomData<u8>}, cap: 3, alloc: alloc::alloc::Global}, len: 3}})
+```
+
+```console
+(gdb) l
+456	        mut ctx: EvalContext,
+457	    ) -> Result<EvaluationResult, RuntimeError> {
+458	        let value = Arc::new(value.into());
+459	        let path = TypeName::from(path.into());
+460	        let slot = self.types.get(&path);
+461	        if let Some(slot) = slot {
+462	            let ty = self.type_slots[*slot].clone();
+463	            let bindings = Bindings::default();
+464	            ty.evaluate(value.clone(), &mut ctx, &bindings, self).await
+465	        } else {
+(gdb) p *slot
+$37 = 6
+```
+So we are using the path of `playground::people` and getting the index (slot)
+of that path from the `type_slots` hashmap. The index is then used to lookup
+the type from the `types` vector.
+And notice that we are creating a new Bindings instance as well.
+Next we are calling `evaluate` on the type.
+It is not clear to me what type is stored in `playground::people` but lets take
+a look and see:
+```console
+(gdb) p (*ty.ptr.pointer).data
+```
+Reading the output of the above command is hard. But we can use `ptype` to
+see the fields that are available:
+```console
+(gdb) ptype seedwing_policy_engine::lang::lir::Type
+type = struct seedwing_policy_engine::lang::lir::Type {
+  name: core::option::Option<seedwing_policy_engine::runtime::TypeName>,
+  documentation: core::option::Option<alloc::string::String>,
+  parameters: alloc::vec::Vec<alloc::string::String, alloc::alloc::Global>,
+  inner: seedwing_policy_engine::lang::lir::InnerType,
+}
+```
+Now, if we want to inspect the `name` field we will get an Option type.
+```console
+gdb) p (*ty.ptr.pointer).data.name
+$15 = core::option::Option<seedwing_policy_engine::runtime::TypeName>::Some(seedwing_policy_engine::runtime::TypeName {package: core::option::Option<seedwing_policy_engine::runtime::PackagePath>::Some(seedwing_policy_engine::runtime::PackagePath {is_absolute: true, path: alloc::vec::Vec<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>, alloc::alloc::Global> {buf: alloc::raw_vec::RawVec<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>, alloc::alloc::Global> {ptr: core::ptr::unique::Unique<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>> {pointer: core::ptr::non_null::NonNull<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>> {pointer: 0x7ffff00da3d0}, _marker: core::marker::PhantomData<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>>}, cap: 1, alloc: alloc::alloc::Global}, len: 1}}), name: alloc::string::String {vec: alloc::vec::Vec<u8, alloc::alloc::Global> {buf: alloc::raw_vec::RawVec<u8, alloc::alloc::Global> {ptr: core::ptr::unique::Unique<u8> {pointer: core::ptr::non_null::NonNull<u8> {pointer: 0x7ffff00da340}, _marker: core::marker::PhantomData<u8>}, cap: 6, alloc: alloc::alloc::Global}, len: 6}}})
+```
+And we can inspect that output and find the pointer to a string inside:
+```console
+(gdb) printf "%s\n", 0x7ffff00da340
+people
+```
+The pattern used is this:
+```
+pattern people = lang::or<*data::from<"people.yaml">>
+```
+
+Next, will will call:
+```console
+ty.evaluate(value.clone(), &mut ctx, &bindings, self).await
+```
+And notice the `.await` on the end which means that this function returns
+a Future.
+```console
+199	    pub fn evaluate<'v>(
+200	        self: &'v Arc<Self>,
+201	        value: Arc<RuntimeValue>,
+202	        ctx: &'v EvalContext,
+203	        bindings: &'v Bindings,
+204	        world: &'v World,
+205	    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
+206	        let trace = ctx.trace(value.clone(), self.clone());
+207	        match &self.inner {
+```
+Notice that this function returns a Pin<Box<dyn Future<...>. So Pin is used when
+we have self-references, where we don't want the data to be moved which will
+invalidate the pointers to other fields, and here we are pining on the heap so
+Box is used (which allocates on the heap).
+
+So this will match on the inner type and stepping we will land on line:
+```console
+216	            InnerType::Ref(sugar, slot, arguments) => trace.run(Box::pin(async move {
+(gdb) l
+211	                    self.clone(),
+212	                    Rationale::Anything,
+213	                    Output::Identity,
+214	                ))
+215	            })),
+216	            InnerType::Ref(sugar, slot, arguments) => trace.run(Box::pin(async move {
+217	                #[allow(clippy::ptr_arg)]
+218	                fn build_bindings<'b>(
+219	                    value: Arc<RuntimeValue>,
+220	                    mut bindings: Bindings,
+```
+The match arm here returns Box::pin, well atleast after going through the
+tracing first.
+
+We first have an inner function definition named `build_bindings`. And after
+that we have the creating of the Box:pin:
+```console
+216	            InnerType::Ref(sugar, slot, arguments) => trace.run(Box::pin(async move {
+217	                #[allow(clippy::ptr_arg)]
+218	                fn build_bindings<'b>(
+219	                    value: Arc<RuntimeValue>,
+220	                    mut bindings: Bindings,
+(gdb) l
+221	                    ctx: &'b EvalContext,
+222	                    parameters: Vec<String>,
+223	                    arguments: &'b Vec<Arc<Type>>,
+224	                    world: &'b World,
+225	                ) -> Pin<Box<dyn Future<Output = Result<Bindings, RuntimeError>> + 'b>>
+226	                {
+227	                    Box::pin(async move {
+228	                        for (param, arg) in parameters.iter().zip(arguments.iter()) {
+229	                            if let InnerType::Ref(_sugar, slot, unresolved_bindings) = &arg.inner {
+230	                                if let Some(resolved_type) = world.get_by_slot(*slot) {
+```
+And notice that what is Boxed and then Pinned, is an async block which will be
+turned into a Future by the compiler. And it uses move as it moves the values
+for the future context. So we will have a Future in the Box which is pinned and
+this means that the code in the async block is not executed at this point but
+is passed to `trace.run` function.
+```rust
+impl<'ctx> TraceHandle<'ctx> {
+    fn run<'v>(
+        mut self,
+        block: Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>,
+    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>>
+    where
+        'ctx: 'v,
+    {
+        if self.start.is_some() {
+            Box::pin(async move {
+                if let Some(correlation) = self.context.correlation().await {
+                    self.context
+                        .start(correlation, self.input.clone(), self.ty.clone())
+                        .await;
+                    let mut result = block.await;
+                    let elapsed = self.start.map(|e| e.elapsed());
+                    self.context
+                        .complete(correlation, self.ty.clone(), &mut result, elapsed)
+                        .await;
+                    result
+                } else {
+                    block.await
+                }
+            })
+        } else {
+            block
+        }
+    }
+}
+```
+Notice the call
+```rust
+                    let mut result = block.await;
+```
+Lets set a break point in the actual future code:
+```console
+(gdb) br seedwing-policy-engine/src/lang/lir/mod.rs:228
+```
+And if we step we will see that we return from this function and then .await
+it.
+The first thing in the async block was a inner function named `build_bindings`
+which will be called in the following line which is the actual first line of
+code to be executed in the async block:
+```rust
+                if let Some(ty) = world.get_by_slot(*slot) {
+                    let bindings = build_bindings(
+                        value.clone(),
+                        bindings.clone(),
+                        ctx,
+                        ty.parameters(),
+                        arguments,
+                        world,
+                    )
+                    .await;
+```
+
+Lets look at the first line and try to understand what this block i doing:
+```rust
+                        for (param, arg) in parameters.iter().zip(arguments.iter()) {
+```
+This is taking the parameters, and the arguments and zipping them so that we
+get a param and it's argument. Now recall that a parameter is some thing that
+a function can accept, and an argument is what is actually passed.  If we looks
+at the `From` Function implementation we find that parameters is defined as:
+```rust
+impl Function for From {
+    fn parameters(&self) -> Vec<String> {
+        vec![PATH.into()]
+    }
+```
+
+```console
+(gdb) printf "%s\n", (*param).vec.buf.ptr.pointer.pointer 
+path�
+
+(gdb) p (*(*arg).ptr.pointer).data.inner
+(gdb) printf "%s\n", 0x7ffff00db510
+people.yaml
+```
+So we can see that we have `people.yaml` as the param, and `path` as the arg.
+```console
+(gdb) p (*(*arg).ptr.pointer).data.inner
+$51 = seedwing_policy_engine::lang::lir::InnerType::Const(seedwing_policy_engine::lang::lir::ValueType::String(alloc::string::String {vec: alloc::vec::Vec<u8, alloc::alloc::Global> {buf: alloc::raw_vec::RawVec<u8, alloc::alloc::Global> {ptr: core::ptr::unique::Unique<u8> {pointer: co
+```
+So in this case we have a `ValueType`?
+```console
+(gdb) f
+#0  seedwing_policy_engine::lang::lir::{impl#1}::evaluate::{async_block#1}::build_bindings::{async_block#0} () at seedwing-policy-engine/src/lang/lir/mod.rs:287
+287	                                bindings.bind(param.clone(), arg.clone())
+(gdb) l
+282	                                            InnerType::Nothing,
+283	                                        )),
+284	                                    )
+285	                                }
+286	                            } else {
+287	                                bindings.bind(param.clone(), arg.clone())
+288	                            }
+```
+So notice that in this case all that is happening is that bindings.bind is
+called with the param and arg that we showed above. And bind just inserts those
+values into its hashmap. So the hashmap will contain `path` as the key.
+And after that an Ok result with the Bindings will be returned by this
+function (`build_bindings`).
+```console
+(gdb) l
+302	                        world,
+303	                    )
+304	                    .await;
+305	
+306	                    let bindings = bindings.unwrap();
+307	                    let result = ty.evaluate(value.clone(), ctx, &bindings, world).await?;
+```
+The type is the following:
+```console
+(gdb) p (*(ty.ptr.pointer)).data.name
+$70 = core::option::Option<seedwing_policy_engine::runtime::TypeName>::Some(seedwing_policy_engine::runtime::TypeName {package: core::option::Option<seedwing_policy_engine::runtime::PackagePath>::Some(seedwing_policy_engine::runtime::PackagePath {is_absolute: true, path: alloc::vec::Vec<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>, alloc::alloc::Global> {buf: alloc::raw_vec::RawVec<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>, alloc::alloc::Global> {ptr: core::ptr::unique::Unique<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>> {pointer: core::ptr::non_null::NonNull<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>> {pointer: 0x7ffff021a960}, _marker: core::marker::PhantomData<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>>}, cap: 1, alloc: alloc::alloc::Global}, len: 1}}), name: alloc::string::String {vec: alloc::vec::Vec<u8, alloc::alloc::Global> {buf: alloc::raw_vec::RawVec<u8, alloc::alloc::Global> {ptr: core::ptr::unique::Unique<u8> {pointer: core::ptr::non_null::NonNull<u8> {pointer: 0x7ffff021a9b0}, _marker: core::marker::PhantomData<u8>}, cap: 4, alloc: alloc::alloc::Global}, len: 4}}})
+
+(gdb) printf "%s\n", 0x7ffff021a9b0
+from
+```
+So we are calling `evaluate` of the ty which we can find in
+seedwing-policy-engine/src/lang/lir/mod.rs:
+```console
+199	    pub fn evaluate<'v>(
+200	        self: &'v Arc<Self>,
+201	        value: Arc<RuntimeValue>,
+(gdb) l
+202	        ctx: &'v EvalContext,
+203	        bindings: &'v Bindings,
+204	        world: &'v World,
+205	    ) -> Pin<Box<dyn Future<Output = Result<EvaluationResult, RuntimeError>> + 'v>> {
+206	        let trace = ctx.trace(value.clone(), self.clone());
+207	        match &self.inner {
+208	            InnerType::Anything => trace.run(Box::pin(async move {
+209	                Ok(EvaluationResult::new(
+210	                    value.clone(),
+211	                    self.clone(),
+```
+Notice that we this is the same `evaluate` function as before, but this times
+the the Type (self.inner) is different:
+```console
+gdb) p (*(*self).ptr.pointer).data.inner
+$77 = seedwing_policy_engine::lang::lir::InnerType::Primordial(seedwing_policy_engine::lang::PrimordialType::Function(seedwing_policy_engine::lang::SyntacticSugar::None, seedwing_policy_engine::runtime::TypeName {package: core::option::Option<seedwing_policy_engine::runtime::PackagePath>::Some(seedwing_policy_engine::runtime::PackagePath {is_absolute: true, path: alloc::vec::Vec<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>, alloc::alloc::Global> {buf: alloc::raw_vec::RawVec<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>, alloc::alloc::Global> {ptr: core::ptr::unique::Unique<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>> {pointer: core::ptr::non_null::NonNull<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>> {pointer: 0x7ffff021a9d0}, _marker: core::marker::PhantomData<seedwing_policy_engine::lang::parser::Located<seedwing_policy_engine::runtime::PackageName>>}, cap: 1, alloc: alloc::alloc::Global}, len: 1}}), name: alloc::string::String {vec: alloc::vec::Vec<u8, alloc::alloc::Global> {buf: alloc::raw_vec::RawVec<u8, alloc::alloc::Global> {ptr: core::ptr::unique::Unique<u8> {pointer: core::ptr::non_null::NonNull<u8> {pointer: 0x7ffff021aac0}, _marker: core::marker::PhantomData<u8>}, cap: 4, alloc: alloc::alloc::Global}, len: 4}}}, alloc::sync::Arc<dyn seedwing_policy_engine::core::Function> {ptr: core::ptr::non_null::NonNull<alloc::sync::ArcInner<dyn seedwing_policy_engine::core::Function>> {pointer: *const alloc::sync::ArcInner<dyn seedwing_policy_engine::core::Function> {pointer: 0x7ffff00309a0, vtable: 0x555558538e50}}, phantom: core::marker::PhantomData<alloc::sync::ArcInner<dyn seedwing_policy_engine::core::Function>>}))
+```
+So we should match the seedwing_policy_engine::lang::lir::InnerType::Primordial
+arm:
+```console
+(gdb) l
+335	                        Rationale::InvalidArgument(name.clone()),
+336	                        Output::None,
+337	                    ))
+338	                }
+339	            })),
+340	            InnerType::Primordial(inner) => match inner {
+                    ... match arms for all other PrimordialType's
+
+414	                PrimordialType::Function(_sugar, _name, func) => trace.run(Box::pin(async move {
+415	                    let result = func.call(value.clone(), ctx, bindings, world).await?;
+416	                    Ok(EvaluationResult::new(
+417	                        value.clone(),
+418	                        self.clone(),
+419	                        Rationale::Function(
+420	                            result.output().is_some(),
+421	                            result.rationale().map(Box::new),
+422	                            result.supporting(),
+423	                        ),
+424	                        result.output(),
+(gdb) l
+425	                    ))
+426	                })),
+427	            },
+
+(gdb) br 415
+Breakpoint 4 at 0x55555587555d: /home/danielbevenius/work/security/seedwing/seedwing-policy/seedwing-policy-engine/src/lang/lir/mod.rs:415. (2 locations)
+(gdb) c
+Continuing.
+
+Thread 2 "actix-rt|system" hit Breakpoint 4, seedwing_policy_engine::lang::lir::{impl#1}::evaluate::{async_block#9} () at seedwing-policy-engine/src/lang/lir/mod.rs:415
+415	                    let result = func.call(value.clone(), ctx, bindings, world).await?;
+```
+So what is `value` in this case?
+```console
+(gdb) p (*value.ptr.pointer).data
+$84 = seedwing_policy_engine::value::RuntimeValue::String(alloc::string::String {vec: alloc::vec::Vec<u8, alloc::alloc::Global> {buf: alloc::raw_vec::RawVec<u8, alloc::alloc::Global> {ptr: core::ptr::unique::Unique<u8> {pointer: core::ptr::non_null::NonNull<u8> {pointer: 0x7ffff00a15a0}, _marker: core::marker::PhantomData<u8>}, cap: 3, alloc: alloc::alloc::Global}, len: 3}})
+(gdb) printf "%s\n", 0x7ffff00a15a0
+jim
+```
+And we also have the bindings which were created as we saw above. The world
+instance provides access all the types that can be accessed.
+
+
+
+
 Lets continue with the previous example which defined a rule that looked like
 this:
 ```
@@ -2682,8 +3027,6 @@ impl Clone for World {
 ```
 Updating this to also clone the data_sources worked ([PR](https://github.com/seedwing-io/seedwing-policy/pull/83).
 
-Back in `lower` the package returned will then be added to the `packages`
-vector. 
 
 ```console
 (gdb) ptype seedwing_policy_engine::lang::lir::Bindings
@@ -2703,7 +3046,7 @@ End with a line saying just "end".
 >printf "%s\n", fn_name.vec.buf.ptr.pointer.pointer
 >end
 ```
-
+_wip_
 
 
 
