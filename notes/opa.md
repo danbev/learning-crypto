@@ -8,7 +8,7 @@ $ chmod 744 opa
 ```
 
 ### Rego
-Is the policy language used in OPA which was inspired by Datalog which is
+Is the policy language used in OPA which was inspired by Datalog which it
 extendes to operate on json.
 
 ### REPL
@@ -31,7 +31,7 @@ package example
   "example": {}
 }
 ```
-And is if add properties to it using:
+And we can add properties to it using:
 ```console
 > data
 {
@@ -40,7 +40,7 @@ And is if add properties to it using:
   }
 }
 ```
-And we can also add object:
+And we can also add an object:
 ```console
 > something := { "one": 1, "two": 2}
 Rule 'something' re-defined in package example. Type 'show' to see rules.
@@ -79,7 +79,10 @@ Arrays:
 | 2 | {"name":"MrSinilinden"} |
 +---+-------------------------+
 ```
-```console> import future.keywords
+
+```console
+> import future.keywords
+
 > q contains name if {
 |  some p in people
 |  name := p.name
@@ -98,7 +101,7 @@ Rule 'q' defined in package repl. Type 'show' to see rules.
 This allows us to evaluate a rule.
 
 The following example will return true if the rule specified, which in this
-case is `allow_if_has_fletch` is true:
+case is `allow_if_has_fletch`, is true:
 ```console
 $ ../opa eval --data policy.rego 'data.example.allow_if_has_fletch' --input input.txt 
 {
@@ -121,7 +124,7 @@ $ ../opa eval --data policy.rego 'data.example.allow_if_has_fletch' --input inpu
 But rules don't have to only return boolean values, they can return pretty much
 anything. 
 
-For example, there is a rule named `get_names` which returns a string:
+For example, here is a rule named `get_names` which returns a string:
 ```console
 $ ../opa eval --data policy.rego 'data.example.get_names' --input input.json 
 {
