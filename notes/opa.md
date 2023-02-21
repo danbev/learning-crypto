@@ -148,7 +148,17 @@ The output can also be shown in `raw` format:
 ```console
 $ ../opa eval --format raw --data policy.rego 'data.example.get_names' --input input.txt
 Fletch
+
 ```
+
+### Some
+The keyword in Rego is used to declare rule local variables, for example:
+```
+some required_task in _missing_tasks(latest_required_tasks)
+```
+I first though this mean that required_task would contain any element in the
+collection after `in` but that was incorrect. Instead this is a way of declaring
+a local variable `required_task` which will be scoped to the current rule.
 
 ### Input vs Data
 I was a little confused about input vs data. But data is simply a json that can
