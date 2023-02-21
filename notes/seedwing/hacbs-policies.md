@@ -5,8 +5,8 @@ This document will take a look at the Hybrid Application Cloud Build Services
 The goal is to make sure that the policy rules could be written in the Dogma
 language, and if not open issues for functionality that may be missing.
 
-## Working branch
-[hacbs-policy-translation](https://github.com/danbev/seedwing-policy/tree/hacbs-policy-translation)
+## Working repository
+[hacbs-dogma-policies](https://github.com/danbev/hacbs-dogma-policies)
 
 ## HACBS Policy Rules
 The HACBS policy rules can be found in [policy] which contains the following
@@ -42,46 +42,23 @@ evaluated.
 So this should verify that the input json document contains at least on task
 element in `tasks` array.
 ```console
-$ cargo r -q --bin seedwing-policy-cli -- \
-    --data ./hacbs/data \
-     --policy ./hacbs/pipeline/required_tasks.dog \
-     eval --input ./hacbs/test/input/pipeline/required_tasks_no_tasks.json \
-     --name required_tasks::at-least-one-task
-evaluate pattern: required_tasks::at-least-one-task
-Type: required_tasks::at-least-one-task
-Satisfied: false
-Value:
-  kind: <<string>>
-  metadata: <<object>>
-  spec: <<object>>
-Rationale:
-  ...
+$ cargo t -- --show-output at_least_one_task
+   Compiling hacbs-dogma-policies v0.1.0 (/home/danielbevenius/work/security/seedwing/hacbs-dogma-policies)
+    Finished test [unoptimized + debuginfo] target(s) in 7.42s
+     Running tests/tests.rs (target/debug/deps/tests-16c82c8c48b6735c)
 
-pattern match failed
+running 2 tests
+test pipeline::required_tasks::at_least_one_task ... ok
+test pipeline::required_tasks::at_least_one_task_no_tasks ... ok
+
+successes:
+
+successes:
+    pipeline::required_tasks::at_least_one_task
+    pipeline::required_tasks::at_least_one_task_no_tasks
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
 ```
-And testing with input that does have entries in the `tasks` array:
-```console
-$ cargo r -q --bin seedwing-policy-cli -- \
-    --data ./hacbs/data \
-     --policy ./hacbs/pipeline/required_tasks.dog \
-     eval --input ./hacbs/test/input/pipeline/required_tasks.json \
-     --name required_tasks::at-least-one-task
-
-evaluate pattern: required_tasks::at-least-one-task
-Type: required_tasks::at-least-one-task
-Satisfied: true
-Value:
-  kind: <<string>>
-  metadata: <<object>>
-  spec: <<object>>
-Rationale:
-  ...
-
-ok!
-```
-While running test this way works it will mean that there will be alot of
-different input files for different tests. Writing the test in Rust would avoid
-this I'm gettin a feeling that that might be the prefered option.
 
 __wip__
 
