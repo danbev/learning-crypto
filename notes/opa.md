@@ -217,3 +217,66 @@ The `data.json` file in this case will just be an empty json object. The file
 ```
 The .wasm file is the compiled rego policy as a wasm (module).
 
+
+### opa eval
+
+sample.rego
+```
+package test
+
+allow {
+  input == 42
+}
+```
+input.txt
+```
+42
+```
+
+Running this using `eval` using the following command will result in the
+following error:
+```console
+$ opa eval 'allow_if_has_fletch' -d policy.rego -i input.txt 
+{
+  "errors": [
+    {
+      "message": "var _ is unsafe",
+      "code": "rego_unsafe_var_error",
+      "location": {
+        "file": "",
+        "row": 1,
+        "col": 1
+      }
+    },
+    {
+      "message": "var allow_if_has_fletch is unsafe",
+      "code": "rego_unsafe_var_error",
+      "location": {
+        "file": "",
+        "row": 1,
+        "col": 1
+      }
+    }
+  ]
+}
+```
+We need to specify the `--package`:
+```console
+$ opa eval 'allow_if_has_fletch' -d policy.rego -i input.txt --package example
+{
+  "result": [
+    {
+      "expressions": [
+        {
+          "value": true,
+          "text": "allow_if_has_fletch",
+          "location": {
+            "row": 1,
+            "col": 1
+          }
+        }
+      ]
+    }
+  ]
+}
+```
