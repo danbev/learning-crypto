@@ -16,7 +16,7 @@ reference
 First we need a create a cluster to work with:
 ```console
 $ kind create cluster
-``
+```
 
 ### Installing Enterprise Contract Policy (ECP) controller
 Install the ECP Custom Resource Definitions (CRD):
