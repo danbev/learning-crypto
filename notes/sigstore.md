@@ -50,9 +50,9 @@ Header:
   "alg": "RS256",
   "kid": "9a3e6e2cf1821e020288a8c380a6856b16aae69f"
 }
-```json
-Payload:
 ```
+Payload:
+```json
 {
   "iss": "https://oauth2.sigstore.dev/auth",
   "sub": "CgY0MzIzNTESJmh0dHBzOiUyRiUyRmdpdGh1Yi5jb20lMkZsb2dpbiUyRm9hdXRo",
