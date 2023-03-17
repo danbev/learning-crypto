@@ -18,11 +18,14 @@ An attestation is a json object and the outer-most layer is the `Envelope`:
 {
   "payloadType": "application/vnd.in-toto+json",
   "payload": "<Base64(Statement)>",
-  "signatures": [{"sig": "<Base64(Signature)>"}]
-}
+  "signatures": [
+    { "keyid": "<KEYID", "sig": "<Base64(SIGNATURE)>" },
+  ]
 ```
+
 Notice that the `payload` is a base64 encoded `Statement`. This format follows
-the [DSSE](./dsse.md) format.
+the [DSSE](./dsse.md) format. As mentioned in the DSSE notes the signatures
+is the `signatures` array  of signature elements.
 
 The `payloadType` could be JSON, CBOR, or ProtoBuf.
 
@@ -441,6 +444,41 @@ and there is an open pull issue for adding
 
 ---------------
 
+### Validation
+This section contains notes about in-toto [attestation validation].
+That document defines the input to the validation as follows
+
+* blob to verify
+* the DSSE envelope
+* recognizedAttesters
+  This is a collection of name/publicKey pairs
+* acceptableDigestAlgorithms
+
+The `recognizedAttesters` I think allow us to specify a name and associate a
+publickey or certificate with that name.
+
+For example, we might have a envelope that looks like this:
+```
+{
+  "payload": "<Base64(SERIALIZED_BODY)>",
+  "payloadType": "<PAYLOAD_TYPE>",
+  "signatures": [
+    { "keyid": "", "cert": "<Base64(CERTIFICATE1)>, "sig": "<Base64(SIGNATURE1)>" },
+    { "keyid": "", "cert": "<Base64(CERTIFICATE2)>, "sig": "<Base64(SIGNATURE2)>" },
+  ]
+}
+```
+And we could provide `recognizedAttesters` like:
+```
+"dan": "<Base64(CERTIFICATE1)>"  //
+```
+Now, we have two signatures and lets say we only want to verify the first one.
+We don't have a keyid to specify as it is empty, so we need to specify the
+base64 encoded certificate. And we also give it a name that is easier to
+refer to.
+
+
+
 ### SLSA github generator notes
 So how does the above builder generate the in-toto predicate?  
 Lets take a look at https://github.com/slsa-framework/slsa-github-generator.
@@ -663,3 +701,4 @@ func (stg *StaticTokenGetter) GetIDToken(_ *oidc.Provider, _ oauth2.Config) (*OI
 
 ```
 
+[attestation validation]: https://github.com/in-toto/attestation/blob/main/docs/validation.md

@@ -267,7 +267,7 @@ envelopes which is not included in the DSSE specification. For example
   ]
 }
 ```
-So the provides the certificae which can be used to validate this attestation.
+So this provides the certificate which can be used to validate this attestation.
 And recall from above the signature is over the [PAE](#PreAuthenicatedEncoding),
 so basically the payloadType and the payload. And we could also have multiple
 signatures which could be where you want multiple parties to sign. So we might
