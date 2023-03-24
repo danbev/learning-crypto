@@ -121,7 +121,7 @@ And the public key looks like this:
 The issue here is with the `keyid` which is generated using the public key pem.
 When the private key is generated this field may contain a final new line which
 is included in the hash/digest, which becomes the keyid. But when the public
-key is generated any final new line is striped, which causes a different
+key is generated any final new line is stripped, which causes a different
 hash/digest to be generated and different keyid's are the result.
 
 [#453](https://github.com/secure-systems-lab/securesystemslib/pull/453)
