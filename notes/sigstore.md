@@ -1635,3 +1635,16 @@ not checked for, instead the if we print out the cert field it will be:
 ```
 I think this could be improved and the `401` handled. Also it would be nice to
 see if the error message from the server could be improved in this situation.
+
+### OIDC Issuers/providers
+The following will print the html page with seletion of providers to choose
+from.
+```console
+$ curl -s `curl -s  https://oauth2.sigstore.dev/auth/.well-known/openid-configuration | jq -r '.authorization_endpoint'` | grep https | sed 's/\%252F/\//g' | sed 's/<a href="\/auth\/auth\///' | sed 's/\" target=\"_self">$//g'
+        https://github.com/login/oauth
+        https://accounts.google.com
+        https://login.microsoftonline.com
+
+```
+
+
