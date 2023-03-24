@@ -245,8 +245,83 @@ pub struct Spec {
     pub data: Data,
 }
 ```
-Now, we serde tries to deserialise the json we had above it will not be able to
-as the json does not contain a signature field.
+Now, when serde tries to deserialise the json we have above it will not be able
+to as the json does not contain a signature field. In our case the `Spec` in
+this case should be [Intoto Spec]:
+```rust
+#[derive(Clone, Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct Intoto {
+    #[serde(rename = "kind")]
+    pub kind: String,
+    #[serde(rename = "apiVersion")]
+    pub api_version: String,
+    #[serde(rename = "spec")]
+    pub spec: serde_json::Value,
+}
+```
+
+The contents of the body will look this when the kind is intoto:
+```
+{
+  "apiVersion": "0.0.1",
+  "kind": "intoto",
+
+  "spec": {
+    "content": {
+      "hash": {
+        "algorithm": "sha256",
+        "value": "13ce08f7ba256f394700b6ee68afcf85dc06c438587551319d3e150a247de0a1"},
+        "payloadHash": {
+          "algorithm": "sha256",
+          "value": "39e86413a7f13a1e20d1bb915df4fab8a58677e78a6b335bb2e614be8bef1dc8"}
+     },
+     "publicKey": "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFcWlMdUFyUmNaQ1kxczY1MHJnS1VEcGo3ZitiOAo5SE11M0svUERhVWNSOWtjeXlYWThxNlUrVEZUa2M5dTg0d0pUc1plMjF3QlBkL1NUUEV6bzBKcnpRPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg=="
+  }
+}
+```
+
+Perhaps we can change the definition of Body to be something like the following:
+```rust
+/// Stores the response returned by Rekor after making a new entry
+#[derive(Default, Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LogEntry {
+    pub uuid: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub attestation: Option<Attestation>,
+    pub body: Body,
+    pub integrated_time: i64,
+    pub log_i_d: String,
+    pub log_index: i64,
+    pub verification: Verification,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(tag = "kind")]
+#[allow(non_camel_case_types)]
+pub enum Body {
+    alpine(AlpineAllOf),
+    helm(HelmAllOf),
+    jar(JarAllOf),
+    rfc3161(Rfc3161AllOf),
+    rpm(RpmAllOf),
+    tuf(TufAllOf),
+    intoto(IntotoAllOf),
+    hashedrekord(HashedrekordAllOf),
+    rekord(RekordAllOf),
+}
+```
+This would allow the body of LogEntry to be following for an Intotot kind:
+```console
+intoto(IntotoAllOf { api_version: "0.0.1", spec: Object {"content": Object {"hash": Object {"algorithm": String("sha256"), "value": String("13ce08f7ba256f394700b6ee68afcf85dc06c438587551319d3e150a247de0a1")}, "payloadHash": Object {"algorithm": String("sha256"), "value": String("39e86413a7f13a1e20d1bb915df4fab8a58677e78a6b335bb2e614be8bef1dc8")}}, "publicKey": String("LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFcWlMdUFyUmNaQ1kxczY1MHJnS1VEcGo3ZitiOAo5SE11M0svUERhVWNSOWtjeXlYWThxNlUrVEZUa2M5dTg0d0pUc1plMjF3QlBkL1NUUEV6bzBKcnpRPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==")} })
+```
+And for a hashedrekord kind it would look like this:
+```console
+hashedrekord(HashedrekordAllOf { api_version: "0.0.1", spec: Object {"data": Object {"hash": Object {"algorithm": String("sha256"), "value": String("c7ead87fa5c82d2b17feece1c2ee1bda8e94788f4b208de5057b3617a42b7413")}}, "signature": Object {"content": String("MEUCIHWACbBnw+YkJCy2tVQd5i7VH6HgkdVBdP7HRV1IEsDuAiEA19iJNvmkE6We7iZGjHsTkjXV8QhK9iXu0ArUxvJF1N8="), "publicKey": Object {"content": String("LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFeEhUTWRSQk80ZThCcGZ3cG5KMlozT2JMRlVrVQpaUVp6WGxtKzdyd1lZKzhSMUZpRWhmS0JZclZraGpHL2lCUjZac2s3Z01iYWZPOG9FM01lUEVvWU93PT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==")}}} })
+```
+
+
+__wip__
 
 
 [RekorType]: https://github.com/sigstore/rekor/blob/5b7385d35968ddba72debc3529889d12ce83ef84/pkg/types/types.go#L35
@@ -257,3 +332,4 @@ as the json does not contain a signature field.
 [V001Entry]: https://github.com/sigstore/rekor/blob/5b7385d35968ddba72debc3529889d12ce83ef84/pkg/types/intoto/v0.0.1/entry.go#L59
 [sigstore::rekor::models::log_entry::Body]: https://github.com/sigstore/sigstore-rs/blob/8f084e9916e78eb0df75d7753f21c2a3da848f1a/src/rekor/models/log_entry.rs#L43
 [Spec]: https://github.com/sigstore/sigstore-rs/blob/8f084e9916e78eb0df75d7753f21c2a3da848f1a/src/rekor/models/hashedrekord.rs#L39
+[Intoto Spec]: https://github.com/sigstore/sigstore-rs/blob/8f084e9916e78eb0df75d7753f21c2a3da848f1a/src/rekor/models/intoto.rs#L16
