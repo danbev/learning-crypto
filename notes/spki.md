@@ -24,7 +24,7 @@ $ openssl ec -in ec.pem -pubout -outform der -out ec.pub.der
 $ openssl ec -inform der -pubin -in ec.pub.der -noout -text
 $ openssl pkcs8 -in ec.pem -outform der -out ec.pk8.der -topk8 -nocrypt
 ```
-Now, if we inspect the publid key we extracted above:
+Now, if we inspect the public key we extracted above:
 ```console
 $ cat ec.pub
 -----BEGIN PUBLIC KEY-----
