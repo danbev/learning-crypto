@@ -283,14 +283,11 @@ And for a hashedrekord kind it would look like this:
 hashedrekord(HashedrekordAllOf { api_version: "0.0.1", spec: Object {"data": Object {"hash": Object {"algorithm": String("sha256"), "value": String("c7ead87fa5c82d2b17feece1c2ee1bda8e94788f4b208de5057b3617a42b7413")}}, "signature": Object {"content": String("MEUCIHWACbBnw+YkJCy2tVQd5i7VH6HgkdVBdP7HRV1IEsDuAiEA19iJNvmkE6We7iZGjHsTkjXV8QhK9iXu0ArUxvJF1N8="), "publicKey": Object {"content": String("LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFeEhUTWRSQk80ZThCcGZ3cG5KMlozT2JMRlVrVQpaUVp6WGxtKzdyd1lZKzhSMUZpRWhmS0JZclZraGpHL2lCUjZac2s3Z01iYWZPOG9FM01lUEVvWU93PT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==")}}} })
 ```
 
-
-__wip__
+[Pull request #244](https://github.com/sigstore/sigstore-rs/pull/244) was opened
+with a suggestion for fixing this issue.
 
 
 [RekorType]: https://github.com/sigstore/rekor/blob/5b7385d35968ddba72debc3529889d12ce83ef84/pkg/types/types.go#L35
-
-
-
 [openapi specification]: https://github.com/sigstore/rekor/blob/5b7385d35968ddba72debc3529889d12ce83ef84/openapi.yaml#L423
 [V001Entry]: https://github.com/sigstore/rekor/blob/5b7385d35968ddba72debc3529889d12ce83ef84/pkg/types/intoto/v0.0.1/entry.go#L59
 [sigstore::rekor::models::log_entry::Body]: https://github.com/sigstore/sigstore-rs/blob/8f084e9916e78eb0df75d7753f21c2a3da848f1a/src/rekor/models/log_entry.rs#L43
