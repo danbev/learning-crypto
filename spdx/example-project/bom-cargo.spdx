@@ -1,0 +1,26 @@
+SPDXVersion: SPDX-2.2
+DataLicense: CC0-1.0
+SPDXID: SPDXRef-DOCUMENT
+DocumentName: example-project-0.1.0
+DocumentNamespace: http://spdx.org/spdxpackages/example-project-0.1.0-8e31a2e1-7ef2-498b-b20f-4e798cd97b27
+Creator: Tool: spdx-sbom-generator-v0.0.15
+Created: 2023-04-06T07:08:32Z
+
+
+##### Package representing the example-project
+
+PackageName: example-project
+SPDXID: SPDXRef-Package-example-project
+PackageVersion: 0.1.0
+PackageSupplier: Organization: example-project
+PackageDownloadLocation: NOASSERTION
+FilesAnalyzed: false
+PackageChecksum: SHA1: 7bbc4806633910f9699b8ab3ec19668b7d89e309
+PackageHomePage: NOASSERTION
+PackageLicenseConcluded: NOASSERTION
+PackageLicenseDeclared: NOASSERTION
+PackageCopyrightText: NOASSERTION
+PackageLicenseComments: NOASSERTION
+PackageComment: NOASSERTION
+
+Relationship: SPDXRef-DOCUMENT DESCRIBES SPDXRef-Package-example-project

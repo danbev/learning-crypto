@@ -1,0 +1,42 @@
+{
+	"spdxVersion": "SPDX-2.2",
+	"dataLicense": "CC0-1.0",
+	"SPDXID": "SPDXRef-DOCUMENT",
+	"name": "example-project-0.1.0",
+	"documentNamespace": "http://spdx.org/spdxpackages/example-project-0.1.0-08438f50-4d7d-47d9-aad6-70667e16fa79",
+	"creationInfo": {
+		"created": "2023-04-06T07:48:47Z",
+		"creators": [
+			"Tool: spdx-sbom-generator-v0.0.15"
+		]
+	},
+	"packages": [
+		{
+			"name": "example-project",
+			"SPDXID": "SPDXRef-Package-example-project",
+			"versionInfo": "0.1.0",
+			"supplier": "Organization: example-project",
+			"downloadLocation": "NOASSERTION",
+			"filesAnalyzed": false,
+			"checksums": [
+				{
+					"algorithm": "SHA1",
+					"checksumValue": "7bbc4806633910f9699b8ab3ec19668b7d89e309"
+				}
+			],
+			"homepage": "NOASSERTION",
+			"licenseConcluded": "NOASSERTION",
+			"licenseDeclared": "NOASSERTION",
+			"copyrightText": "NOASSERTION",
+			"licenseComments": "NOASSERTION",
+			"comment": "NOASSERTION"
+		}
+	],
+	"relationships": [
+		{
+			"spdxElementId": "SPDXRef-DOCUMENT",
+			"relatedSpdxElement": "SPDXRef-Package-example-project",
+			"relationshipType": "DESCRIBES"
+		}
+	]
+}
