@@ -90,5 +90,71 @@ Notice that the format is not json which I'm used to seeing. JSON format is
 also possible and can be generated using `make spdx-json` and the
 `make attest-json`.
 
+One thing I noticed when using the json format is that there are additional
+`\n\t` in the json predicate field which I was not expecting:
+```console
+$ cat spdx-2.2-statement.json | jq -r '.payload' | base64 -d  | jq
+{
+  "_type": "https://in-toto.io/Statement/v0.1",
+  "predicateType": "https://spdx.dev/Document",
+  "subject": [
+    {
+      "name": "ttl.sh/danbev-spdx-example-container",
+      "digest": {
+        "sha256": "e5ca0e505f1cced20b16711015e9145a98b9400b9b2db28ec274b3866de52aae"
+      }
+    }
+  ],
+  "predicate": "{\n\t\"spdxVersion\": \"SPDX-2.2\",\n\t\"dataLicense\": \"CC0-1.0\",\n\t\"SPDXID\": \"SPDXRef-DOCUMENT\",\n\t\"name\": \"example-project-0.1.0\",\n\t\"documentNamespace\": \"http://spdx.org/spdxpackages/example-project-0.1.0-08438f50-4d7d-47d9-aad6-70667e16fa79\",\n\t\"creationInfo\": {\n\t\t\"created\": \"2023-04-06T07:48:47Z\",\n\t\t\"creators\": [\n\t\t\t\"Tool: spdx-sbom-generator-v0.0.15\"\n\t\t]\n\t},\n\t\"packages\": [\n\t\t{\n\t\t\t\"name\": \"example-project\",\n\t\t\t\"SPDXID\": \"SPDXRef-Package-example-project\",\n\t\t\t\"versionInfo\": \"0.1.0\",\n\t\t\t\"supplier\": \"Organization: example-project\",\n\t\t\t\"downloadLocation\": \"NOASSERTION\",\n\t\t\t\"filesAnalyzed\": false,\n\t\t\t\"checksums\": [\n\t\t\t\t{\n\t\t\t\t\t\"algorithm\": \"SHA1\",\n\t\t\t\t\t\"checksumValue\": \"7bbc4806633910f9699b8ab3ec19668b7d89e309\"\n\t\t\t\t}\n\t\t\t],\n\t\t\t\"homepage\": \"NOASSERTION\",\n\t\t\t\"licenseConcluded\": \"NOASSERTION\",\n\t\t\t\"licenseDeclared\": \"NOASSERTION\",\n\t\t\t\"copyrightText\": \"NOASSERTION\",\n\t\t\t\"licenseComments\": \"NOASSERTION\",\n\t\t\t\"comment\": \"NOASSERTION\"\n\t\t}\n\t],\n\t\"relationships\": [\n\t\t{\n\t\t\t\"spdxElementId\": \"SPDXRef-DOCUMENT\",\n\t\t\t\"relatedSpdxElement\": \"SPDXRef-Package-example-project\",\n\t\t\t\"relationshipType\": \"DESCRIBES\"\n\t\t}\n\t]\n}"
+}
+```
+It looks like the json was created using "pretty printing" or whatever it would
+be called:
+```console
+$ cat spdx-2.2-statement.json | jq -r '.payload' | base64 -d  | jq -r '.predicate'
+{
+	"spdxVersion": "SPDX-2.2",
+	"dataLicense": "CC0-1.0",
+	"SPDXID": "SPDXRef-DOCUMENT",
+	"name": "example-project-0.1.0",
+	"documentNamespace": "http://spdx.org/spdxpackages/example-project-0.1.0-08438f50-4d7d-47d9-aad6-70667e16fa79",
+	"creationInfo": {
+		"created": "2023-04-06T07:48:47Z",
+		"creators": [
+			"Tool: spdx-sbom-generator-v0.0.15"
+		]
+	},
+	"packages": [
+		{
+			"name": "example-project",
+			"SPDXID": "SPDXRef-Package-example-project",
+			"versionInfo": "0.1.0",
+			"supplier": "Organization: example-project",
+			"downloadLocation": "NOASSERTION",
+			"filesAnalyzed": false,
+			"checksums": [
+				{
+					"algorithm": "SHA1",
+					"checksumValue": "7bbc4806633910f9699b8ab3ec19668b7d89e309"
+				}
+			],
+			"homepage": "NOASSERTION",
+			"licenseConcluded": "NOASSERTION",
+			"licenseDeclared": "NOASSERTION",
+			"copyrightText": "NOASSERTION",
+			"licenseComments": "NOASSERTION",
+			"comment": "NOASSERTION"
+		}
+	],
+	"relationships": [
+		{
+			"spdxElementId": "SPDXRef-DOCUMENT",
+			"relatedSpdxElement": "SPDXRef-Package-example-project",
+			"relationshipType": "DESCRIBES"
+		}
+	]
+}
+```
+
 [opensbom-generator]: https://github.com/opensbom-generator/spdx-sbom-generator/releases
 [bom-cargo.spdx]: ../spdx/example-project/bom-cargo.spdx
