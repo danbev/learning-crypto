@@ -10,7 +10,7 @@ keys:
 	cosign generate-key-pair
 
 sign:
-	cosign sign --key cosign.key ${IMAGE_NAME}
+	cosign sign -y --key cosign.key ${IMAGE_NAME}
 
 triangulate:
 	cosign triangulate ${IMAGE_NAME}
@@ -26,3 +26,6 @@ manifest:
 
 manifest-raw:
 	crane manifest ${IMAGE_NAME} | jq -R
+
+attest:
+	cosign attest -y -v --key cosign.key --predicate some-predicate ${IMAGE_NAME}
