@@ -135,9 +135,9 @@ impl World {
     }
 ```
 Notice that initially `units`, which is a vector of CompilationUnits (if you
-for get a type you can always use
+forget a type you can always use
 `ptype seedwing_policy_engine::lang::hir::World`), is empty. The
-`world.add_package` functions that follow will populate this vector with
+`world.add_package` functions that follows will populate this vector with
 "core" CompilationUnits. These can be found in:
 ```console
 (gdb) shell ls seedwing-policy-engine/src/core/
@@ -188,8 +188,8 @@ type = struct seedwing_policy_engine::package::Package {
 ```
 *Side-note*:
 Tab-completion works pretty well in gdb so it can be used to efficiently write
-commands. One thing I've found though is that gdb crashed often if I don't
-provide two `e` when table complating the seedwing package.
+commands. One thing I've found though is that gdb often crashes if I don't
+provide two `e`'s when tab-completing the seedwing package.
 
 So we can see that Package has a path:
 ```console
@@ -2510,11 +2510,110 @@ $84 = seedwing_policy_engine::value::RuntimeValue::String(alloc::string::String 
 jim
 ```
 And we also have the bindings which were created as we saw above. The world
-instance provides access all the types that can be accessed.
+instance provides access all the types that can be accessed. Lets add a
+breakpoint in From::call as it is easy skip over it in the debugger:
+```console
+(gdb) br seedwing-policy-engine/src/core/data/from.rs:57
+(gdb) c
+
+(gdb) br seedwing-policy-engine/src/data/mod.rs:26
+Breakpoint 6 at 0x555555a2a90a: file seedwing-policy-engine/src/data/mod.rs, line 26.
+```
+
+```console
+(gdb) l -
+49	    fn call<'v>(
+50	        &'v self,
+51	        _input: Arc<RuntimeValue>,
+52	        _ctx: &'v EvalContext,
+53	        bindings: &'v Bindings,
+54	        _world: &'v World,
+55	    ) -> Pin<Box<dyn Future<Output = Result<FunctionEvaluationResult, RuntimeError>> + 'v>> {
+56	        Box::pin(async move {
+57	            if let Some(val) = bindings.get(PATH) {
+58	                if let Some(ValueType::String(path)) = val.try_get_resolved_value() {
+59	                    for ds in &*self.data_sources {
+60	                        if let Ok(Some(value)) = ds.get(path.clone()) {
+61	                            return Ok(Output::Transform(Arc::new(value)).into());
+62	                        }
+63	                    }
+64	                }
+65	            }
+66	
+67	            Ok(Output::None.into())
+68	        })
+69	    }
+70	}
+```
+And now we might understand the call to `bindings.get` which I did not the
+first time around. It will get the value which should be `people.yaml`:
+```console
+(gdb) printf "%s\n", path.vec.buf.ptr.pointer.pointer 
+people.yaml
+```
+And if we continue down into `ds.get` we will find:
+```console
+(gdb) l -
+23	
+24	impl DataSource for DirectoryDataSource {
+25	    fn get(&self, path: String) -> Result<Option<RuntimeValue>, RuntimeError> {
+26	        let target = self.root.join(path);
+27	
+28	        if target.exists() {
+29	            if target.is_dir() {
+30	                Err(RuntimeError::FileUnreadable(target))
+31	            } else if let Some(name) = target.file_name() {
+32	                log::info!("read from file: {:?}", name);
+33	                if name.to_string_lossy().ends_with(".json") {
+34	                    // parse as JSON
+35	                    if let Ok(file) = File::open(target.clone()) {
+36	                        let json: Result<serde_json::Value, _> = serde_json::from_reader(file);
+37	                        match json {
+38	                            Ok(json) => Ok(Some(json.into())),
+39	                            Err(e) => Err(RuntimeError::JsonError(target, e)),
+40	                        }
+41	                    } else {
+42	                        Err(RuntimeError::FileUnreadable(target))
+43	                    }
+44	                } else if name.to_string_lossy().ends_with(".yaml")
+45	                    || name.to_string_lossy().ends_with(".yml")
+46	                {
+47	                    // parse as YAML
+48	                    if let Ok(file) = File::open(target.clone()) {
+49	                        let yaml: Result<serde_json::Value, _> = serde_yaml::from_reader(file);
+50	                        match yaml {
+51	                            Ok(yaml) => Ok(Some(yaml.into())),
+52	                            Err(e) => Err(RuntimeError::YamlError(target, e)),
+53	                        }
+54	                    } else {
+55	                        Err(RuntimeError::FileUnreadable(target))
+56	                    }
+57	                } else if let Ok(mut file) = File::open(target.clone()) {
+58	                    // just octets
+59	                    let mut octets = Vec::new();
+60	                    file.read_to_end(&mut octets);
+61	                    Ok(Some(RuntimeValue::Octets(octets)))
+62	                } else {
+63	                    Err(RuntimeError::FileUnreadable(target))
+64	                }
+65	            } else {
+66	                Ok(None)
+67	            }
+68	        } else {
+69	            Ok(None)
+70	        }
+71	    }
+
+
+```
 
 
 
 
+```console
+(gdb) printf "%s\n", target.inner.inner.inner.buf.ptr.pointer.pointer 
+sample-data/people.yaml
+```
 Lets continue with the previous example which defined a rule that looked like
 this:
 ```
@@ -3048,6 +3147,38 @@ End with a line saying just "end".
 ```
 _wip_
 
+
+### Debugging tests
+```console
+$ rust-gdb --args ./target/debug/deps/seedwing_policy_engine-df446fc26f52dbfe list_count --show-output
+Reading symbols from ./target/debug/deps/seedwing_policy_engine-df446fc26f52dbfe...
+```
+Don't forget the `--show-output` when running a test as otherwise println!
+statements will not get displayed which can be confusing.
+
+
+So one thing that was not obvious to me straight away was writing rules that
+need to handle the same value. For example, take the following input:
+```
+{                                                        
+  "items": [1, 2, 3, 4],                                                 
+  "nr": 3                                                                
+}       
+```
+And lets say that I want to write a pattern that checks for that the `items`
+field is an array of numbers, and also check that the `nr` field matches the
+length of this array.
+
+What we can do is to create separate patterns for each of these fields and
+then compose them into a complete rule/pattern:
+```
+pattern something = {                                                  
+  items: list::all<integer>                                            
+}                                                                      
+pattern items_count = {                                                
+  nr: list::count()                                                    
+}                                                                      
+```
 
 
 [chumsky]: https://crates.io/crates/chumsky/0.9.0
