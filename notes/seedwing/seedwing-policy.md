@@ -8,9 +8,11 @@ called Dogma, and in OPA it is Rego.
 3. [PolicyParser](#policyparser)
 4. [TypeDefn](#typedefn)
 5. [hir::Lowerer::lower](#hirlowererlower)
-6. [Compiling](compiling)
-7. [Evaluate](evaulate)
-7. [Bindings](bindings)
+6. [Compiling](#compiling)
+7. [Evaluate](#evaulate)
+8. [Bindings](#bindings)
+9. [Located](#located)
+
 
 ### policy-server walkthrough
 Lets start a debugging session and break in the policy-servers main function.
@@ -3178,6 +3180,39 @@ pattern something = {
 pattern items_count = {                                                
   nr: list::count()                                                    
 }                                                                      
+```
+
+### Located
+Located is a struct which can be found in engine/src/lang/parser/mod.rs:
+```rust
+pub struct Located<T> {
+    inner: T,
+    location: Location,
+}
+
+impl<T> Located<T> {
+    pub fn new<L: Into<Location>>(inner: T, location: L) -> Self {
+        Self {
+            location: location.into(),
+            inner,
+        }
+    }
+```
+Notice that is is generic over T so `inner`can be any type. And a Located
+instance has a location:
+```rust
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
+pub struct Location {
+    span: SourceSpan,
+}
+pub type SourceSpan = std::ops::Range<usize>;
+```
+So we would be able to create a new Located using any type and specifying 
+a std::ops::Range:
+```rust
+    let range = 0..0usize;
+    //let range = std::ops::Range { start: 0, end: 0 };
+    let some_located_string = Located::new("something".to_string(), range);
 ```
 
 
