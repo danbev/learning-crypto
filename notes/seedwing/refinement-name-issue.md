@@ -178,7 +178,7 @@ In our case we don't have any metadata annotations on our type(pattern) so we
 skip that function/parser.
 We do have a name, which is `dog` that is parsed by the `simple_type_name`
 parser. This if followed by optional type parameters, but our type does
-not use any parameters, which could have been something like:
+not use any parameters, which would have been something like this if it did:
 ```
   pattern dog<something> = {
     ...
@@ -215,7 +215,7 @@ And we can see that we are parsing the `=` part of the pattern:
 ```
 Now, the following `then` looked a little strange to me the first time but this
 is just a block which returns a parser on the last row.
-In our case we did not have any parameters so `params` will be None and
+In our case we did not have any parameters so `params` will be `None` and
 `visible_parameters` will be an empty vector.
 
 Next, `type_expr` will be called passing in the empty params vector:
@@ -361,16 +361,17 @@ pub fn field_definition(
         })
 }
 ```
-Note that the field_name parser will called, followed by an optional `?`, and
-then a colon.
-After that the parser, `ty` that was passed in will be executed by `then(ty)`.
-So at this point the parser has parsed:
+Note that the `field_name` parser will be called, followed by an optional `?`,
+and then a colon.
+
+After that the parser will call `ty` that was passed in will be executed by
+`then(ty)`.  So at this point the parser has parsed:
 ```
       parsed this so far
       ↓
   name: string,
 ``` 
-Back in `ty` will go through the same proceess, maybe parse a `!`, and then
+Back in `ty, it`will go through the same proceess, maybe parse a `!`, and then
 maybe parse a `*`, and the proceed to parse `string`. This will be a `type_ref`
 in object_type:
 ```rust
@@ -385,9 +386,10 @@ parsed:
        trained: boolean(true),
     }
 ```
-This would lead us back to field_definition, and first the field_name will be
-parsed. And once agains this is parsed as a (or by) type_ref, and the followed
-by a colon, then `ty` will run again with this part of the input:
+This would lead us back to `field_definition`, and first `field_name` will be
+parsed, this time to parse the `trained` field name. And once again this is
+parsed by `type_ref`, and then followed by a colon, then `ty` will run again
+with this part of the input:
 ```
     pattern dog = {
        name: string,
@@ -395,25 +397,119 @@ by a colon, then `ty` will run again with this part of the input:
        trained: boolean(true),
     }
 ```
-Now, this time through the `ty` parser will parse this as a constant type:
+Now, this time through the `ty` parser will parse this as a type_ref type:
 ```rust
-                .or(const_type())
+                .or(type_ref(expr.clone(), visible_parameters))
+                .or(object_type(expr.clone()))
                 .then(postfix(expr).repeated()),
 ```
-Followed this time by a postfix which will pick up the refinement `(true)`. 
+So `type_ref` will parse the `boolean` part of the expression `boolean(true)`:
+```
+type_ref name: PatternName { package: None, name: "boolean" }
+```
+So that will have parsed the `boolean` part of the expresssion. We will move
+us to:
+```
+    pattern dog = {
+       name: string,
+                       ↓
+       trained: boolean(true),
+    }
+```
+What I think "SHOULD" happen now is that the `postfix` parser will parse the 
+`(true)`. But this does not seem to be the case, when I'm seeing when debugging
+is that `const_type` will called. 
 
+This is that the parser look like in `ty`:
+```
+    just("!")
+        .padded()
+        .or_not()
+        .then(just("*").padded().repeated())
+        .then(
+            parenthesized_expr(expr.clone())
+                .or(expr_ty())
+                .or(list_ty(expr.clone()))
+                .or(const_type())
+                .or(type_ref(expr.clone(), visible_parameters))
+                .debug("efter type_ref")
+                .or(object_type(expr.clone()))
+                .then(postfix(expr).repeated()),
+        )
+        .map_with_span(|((not, deref), (primary, postfix)), span| {
+```
+So `type_ref` has parsed the field correctly, but that should be it, const_type
+should not be parsing anything in this case. That is the responsibility of
+`postfix`.
 
+Hmm, so `const_type` is called and will call `boolean_literal`:will in 
+engine/src/lang/parser/literal.rs (there are two functions named like this and
+I first tried updating the other function which obviously did not work).
+And if we look at that function we can see that it parses a `just(true)`:
+```rust
+pub fn boolean_literal(
+) -> impl Parser<ParserInput, Located<ValuePattern>, Error = ParserError> + Clone {
+    choice((
+        just("true").map(|value| {
+            println!("boolean_literal......{value:?}");
+            ValuePattern::Boolean(true)
+        }),
+        just("false").map(|_| ValuePattern::Boolean(false)),
+    ))
+    .map_with_span(Located::new)
+}
+```
+This is interesting, the pattern it matches is `true`, not `(true)` which is
+the pattern that we are currently looking at. What I think is happening is that
+the current parser is recursive and because it is now handling `(true)` that
+is being handled by the "outer" parser. This will then eat the parentheses and
+then `true` will be available to the parsers in the list above to handle. This
+will not allow `const_type` to handle it, and after that the postfix will be
+handled. But in this particulare case I don't thing we want 
+parenthesized_expr to handle this and instead let it pass through to postfix
+which will add this as a refinement type.
 
+_wip_
+
+So the above parsers will output two tuples, the `~`(not), the `*`(deref),
+the primary (which is one of the or's (expr_ty, list_ty, const_type, type_ref,
+object_type), and then a postfix (refinement or traversal).
+
+This is then followed by a `map_with_span`:
+```rust
+
+        .map_with_span(|((not, deref), (primary, postfix)), span| {
+            println!("primary: {primary:?}");
+            let mut core = if postfix.is_empty() {
+                primary
+            } else {
+                let mut terms = Vec::new();
+                terms.push(primary);
+
+                for each in postfix {
+                    match each {
+                        Postfix::Refinement(refinement) => {
+                            if let Some(refinement) = refinement {
+                                println!("refinement: {refinement:?}");
+                                terms.push(Located::new(
+                                    Pattern::Refinement(Box::new(refinement.clone())),
+                                    refinement.location(),
+                                ));
+                            }
+                        }
+                        Postfix::Traversal(step) => {
+                            terms.push(Located::new(
+                                Pattern::Traverse(step.clone()),
+                                step.location(),
+                            ));
+                        }
+                    }
+                }
+
+                Located::new(Pattern::Chain(terms), span)
+            };
+```
 One thing to keep in mind is that these function are returning parsers. The
 println statements I've included will be run when these "parser factory/builder"
 functions are called. When the `parse` function is called the actual parsers
 will run.
-
-```
-    {
-       name: string,
-       trained: boolean(true),
-    }
-```
-So the starting `{` will cause the object_type parser to be executed. That
-parser will parse a field_definition which will be the `name: string` field.
