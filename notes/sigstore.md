@@ -1692,3 +1692,72 @@ $ rekor-cli get --log-index 17176049 --format json | jq
   "LogID": "c0d23d6ad406973f9559f3ba2d1ca01f84147d8ffc5b8445c224f98b9591801d"
 }
 ```
+
+### Cosign blob attestations
+
+The use case here is that we want to verify an attestation, and the example here
+will be the sigstore-js npm package (but this will hopefully be the same for
+all npm packages that use npm publish provenance).
+
+We can start by accessing the attestation url:
+```console
+$ curl -s https://registry.npmjs.org/sigstore/1.3.0  | jq -r '.dist.attestations.url'
+https://registry.npmjs.org/-/npm/v1/attestations/sigstore@1.3.0
+```
+With that url we can find the DSSE envelope using:
+```console
+$ curl -s https://registry.npmjs.org/-/npm/v1/attestations/sigstore@1.3.0 | jq '.attestations[0].bundle.dsseEnvelope'
+{
+  "payload": "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjAuMSIsInN1YmplY3QiOlt7Im5hbWUiOiJwa2c6bnBtL3NpZ3N0b3JlQDEuMy4wIiwiZGlnZXN0Ijp7InNoYTUxMiI6Ijc2MTc2ZmZhMzM4MDhiNTQ2MDJjN2MzNWRlNWM2ZTlhNGRlYjk2MDY2ZGJhNjUzM2Y1MGFjMjM0ZjRmMWY0YzZiMzUyNzUxNWRjMTdjMDZmYmUyODYwMDMwZjQxMGVlZTY5ZWEyMDA3OWJkM2EyYzZmM2RjZjNiMzI5YjEwNzUxIn19XSwicHJlZGljYXRlVHlwZSI6Imh0dHBzOi8vc2xzYS5kZXYvcHJvdmVuYW5jZS92MC4yIiwicHJlZGljYXRlIjp7ImJ1aWxkVHlwZSI6Imh0dHBzOi8vZ2l0aHViLmNvbS9ucG0vY2xpL2doYS92MiIsImJ1aWxkZXIiOnsiaWQiOiJodHRwczovL2dpdGh1Yi5jb20vYWN0aW9ucy9ydW5uZXIifSwiaW52b2NhdGlvbiI6eyJjb25maWdTb3VyY2UiOnsidXJpIjoiZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS9zaWdzdG9yZS9zaWdzdG9yZS1qc0ByZWZzL2hlYWRzL21haW4iLCJkaWdlc3QiOnsic2hhMSI6ImRhZThiZDhlYjQzM2E0MTQ3YjQ2NTVjMDBmZTczZTBmMjJiYzBmYjEifSwiZW50cnlQb2ludCI6Ii5naXRodWIvd29ya2Zsb3dzL3JlbGVhc2UueW1sIn0sInBhcmFtZXRlcnMiOnt9LCJlbnZpcm9ubWVudCI6eyJHSVRIVUJfRVZFTlRfTkFNRSI6InB1c2giLCJHSVRIVUJfUkVGIjoicmVmcy9oZWFkcy9tYWluIiwiR0lUSFVCX1JFUE9TSVRPUlkiOiJzaWdzdG9yZS9zaWdzdG9yZS1qcyIsIkdJVEhVQl9SRVBPU0lUT1JZX0lEIjoiNDk1NTc0NTU1IiwiR0lUSFVCX1JFUE9TSVRPUllfT1dORVJfSUQiOiI3MTA5NjM1MyIsIkdJVEhVQl9SVU5fQVRURU1QVCI6IjEiLCJHSVRIVUJfUlVOX0lEIjoiNDczNTM4NDI2NSIsIkdJVEhVQl9TSEEiOiJkYWU4YmQ4ZWI0MzNhNDE0N2I0NjU1YzAwZmU3M2UwZjIyYmMwZmIxIiwiR0lUSFVCX1dPUktGTE9XX1JFRiI6InNpZ3N0b3JlL3NpZ3N0b3JlLWpzLy5naXRodWIvd29ya2Zsb3dzL3JlbGVhc2UueW1sQHJlZnMvaGVhZHMvbWFpbiIsIkdJVEhVQl9XT1JLRkxPV19TSEEiOiJkYWU4YmQ4ZWI0MzNhNDE0N2I0NjU1YzAwZmU3M2UwZjIyYmMwZmIxIn19LCJtZXRhZGF0YSI6eyJidWlsZEludm9jYXRpb25JZCI6IjQ3MzUzODQyNjUtMSIsImNvbXBsZXRlbmVzcyI6eyJwYXJhbWV0ZXJzIjpmYWxzZSwiZW52aXJvbm1lbnQiOmZhbHNlLCJtYXRlcmlhbHMiOmZhbHNlfSwicmVwcm9kdWNpYmxlIjpmYWxzZX0sIm1hdGVyaWFscyI6W3sidXJpIjoiZ2l0K2h0dHBzOi8vZ2l0aHViLmNvbS9zaWdzdG9yZS9zaWdzdG9yZS1qc0ByZWZzL2hlYWRzL21haW4iLCJkaWdlc3QiOnsic2hhMSI6ImRhZThiZDhlYjQzM2E0MTQ3YjQ2NTVjMDBmZTczZTBmMjJiYzBmYjEifX1dfX0=",
+  "payloadType": "application/vnd.in-toto+json",
+  "signatures": [
+    {
+      "sig": "MEQCIAYR4pbfGEzpbBjJc9m8/VeE7qudH9f9MqgtnyiOUxMVAiBSvgyuJpGNN1FpXQB7JbEv0JgqMwgVSuAI2XbDWQAmfA==",
+      "keyid": ""
+    }
+  ]
+}
+```
+With the envelope we can then use it in a seedwing policy and use 
+`intoto::verify-envelope` to verify it.
+
+
+
+```console
+$ cd sigstore/attestations
+```
+We will be using an existing attestation in Rekor for this example.
+
+Lets start by downloading the attestation and saving it to a file:
+```
+$ rekor-cli get --uuid 24296fb24b8ad77a2074cd21a9282ea75d7dea9b7f4ed9e1a5b5c4bfbe163ee67878cc411cb25cba --format json| jq -r '.Attestation' | jq > attestation
+```
+Next we can get the public_key:
+```console
+$ rekor-cli get --uuid 24296fb24b8ad77a2074cd21a9282ea75d7dea9b7f4ed9e1a5b5c4bfbe163ee67878cc411cb25cba --format json| jq -r '.Body.IntotoObj.content.envelope.signatures[0].publicKey' | base64 -d | openssl x509 -pubkey -noout > public_key
+```
+And then the signature:
+```console
+$ rekor-cli get --uuid 24296fb24b8ad77a2074cd21a9282ea75d7dea9b7f4ed9e1a5b5c4bfbe163ee67878cc411cb25cba --format json| jq -r '.Body.IntotoObj.content.envelope.signatures[0].sig' > signature
+```
+
+So the `attestation` contains a subject which looks like this:
+```
+$ cat attestation | jq '.subject[0]'
+{
+  "name": "pkg:npm/sigstore@1.3.0",
+  "digest": {
+    "sha512": "76176ffa33808b54602c7c35de5c6e9a4deb96066dba6533f50ac234f4f1f4c6b3527515dc17c06fbe2860030f410eee69ea20079bd3a2c6f3dcf3b329b10751"
+  }
+}
+```
+The digest is a sha512 hash of the .tgz of the npm package:
+```console
+$ wget `curl -s https://registry.npmjs.org/sigstore/1.3.0 | jq '.dist.tarball' | tr -d '"'`
+```
+We can confirm this by calculating the sha512 hash ourselves using:
+```console
+$ sha512sum sigstore-1.3.0.tgz 
+76176ffa33808b54602c7c35de5c6e9a4deb96066dba6533f50ac234f4f1f4c6b3527515dc17c06fbe2860030f410eee69ea20079bd3a2c6f3dcf3b329b10751  sigstore-1.3.0.tgz
+```
+
