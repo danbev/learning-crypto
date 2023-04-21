@@ -1,3 +1,8 @@
+### saas build issue
+I ran into this issue when building the frontend of seedwing policy engine, but
+I've also run into it on other projects that use trunk.
+
+The error generated is the following:
 ```console
 $ cargo t
    Compiling seedwing-policy-engine v0.1.0 (/home/danielbevenius/work/security/seedwing/seedwing-policy/engine)
@@ -64,3 +69,8 @@ $ whereis sass
 sass: /home/danielbevenius/.rvm/gems/ruby-3.0.0/bin/sass /home/danielbevenius/.nvm/versions/node/v18.14.0/bin/sass
 ```
 
+Fixing the PATH environment variables to include the Node.js sass will allow
+the trunk build to proceed:
+```console
+$ env PATH=/home/danielbevenius/.nvm/versions/node/v18.14.0/bin:$PATH cargo t
+```
