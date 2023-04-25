@@ -7,7 +7,7 @@ A client is someone who installs a software product and they want to be able to
 make sure that no steps were changed, removed, or added. And they want to
 verify that the software comes from the designated product owner.
 
-`in-toto` means the whole which is from latin and in this context refers to it
+`in-toto` means `the whole` which is from latin and in this context refers to it
 taking the whole process into account (I think).
 
 One thing that I did not consider was that in-toto's verification can also
@@ -80,7 +80,7 @@ $ cat testing.link
  }
 }
 ```
-So there are now signatures here so there is no way of verifying but that task
+So there are no signatures here so there is no way of verifying, but that task
 can be performed afterwards. So we first have to have a keypair to use:
 ```console
 $ in-toto-keygen func-test
@@ -126,20 +126,17 @@ $ cat testing.fd223b69.link
  }
 }
 ```
-Now, since we only need are private key to sign we can actually delete it now:
+Now, since we only need our private key to sign we can actually delete it now:
 ```console
 $ rm func-test
 ```
-And to verify we use the same command:
+And to verify we use the same command but with the `--verfify` option:
 ```console
 $ in-toto-sign -k func-test.pub -f testing.fd223b69.link --verify
 $ echo $?
 0
 ```
-So that was ok. But this required that we create keypair which is not really
-great because anyone can create one and sign something in the same way we did
-above. 
-
+So that was ok. 
 
 ### in-toto-keygen
 ```console
@@ -189,10 +186,10 @@ This section contains some notes while reading
 the [in-toto-spec v0.9](https://github.com/in-toto/docs/blob/v0.9/in-toto-spec.md)
 
 #### Steps
-These are the steps are to performed by the functionaries
+These are the steps are to performed by the functionaries.
 
 #### Inspections
-These are operations that are performed at verification time.
+These are operations that are performed at `verification` time.
 
 #### threshold
 Should be an integer and is for when more than functionary needs to perform a
@@ -212,7 +209,7 @@ able to find any such constructs in the main 0.9 documentation. The reason for
 this is that attestations are currently being developed.
 
 This is currently under development but there is a [attestation spec] and
-related to [ITE-5]. An attestation is authenticated metadata about something
+related [ITE-5]. An attestation is authenticated metadata about something
 which in this case is a software artifact.
 
 As an example, an attestion could be about how the software was built (including
@@ -228,9 +225,8 @@ An attestation is a json object that and the outermost layer is the Envelope:
   "signatures": [{"sig": "<Base64(Signature)>"}]
 }
 ```
-Notice that the payload is a base64 encoded Statement. Aparently this format
-follows the [dsse](./dsse.md) format.
-The payloadType could be JSON, CBOR, or ProtoBuf.
+Notice that the payload is a base64 encoded Statement. This format follows the
+[dsse](./dsse.md) format.  The payloadType could be JSON, CBOR, or ProtoBuf.
 
 The structure of the `Statement`  looks something like this before it is
 base64 encoded:
@@ -247,15 +243,16 @@ base64 encoded:
 }
 ```
 The subjects bind this attestation to a set of software artifacts.
+
 Each software artifact is given a name and a digest. The digest contains name
 of the hashing algorithm used and the digest (the outcome of the hash function).
 The name could be a file name but it can also be left unspecified using `_`.
 
-This leads us to the `Predicate` structure which is just like it is showed above
-and has a type and any object as the content of the predicate.
-This is the innermost part of the attestation and can contain pretty much
-any metadata related to the Statement object's subjects. The type of predicate
-provides a way to knowing how to interpret the predicate field.
+This leads us to the `predicate` element which is just like it is showed above
+and has a type and an object as the content of the predicate.
+The predicate is the innermost part of the attestation and can contain pretty
+much any metadata related to the Statement object's subjects. The type of
+predicate provides a way to knowing how to interpret the predicate field.
 Examples of predicate types are `SLSA Provenance`, `Link` from in-toto 0.9 which
 was what the earlier examples in this document used. It can also be `SPDX`
 document type.
