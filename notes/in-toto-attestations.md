@@ -752,7 +752,7 @@ like this:
   {
     "name": "generate SPDX",
     "predicates": ["https://spdx.dev/Document/v2.3"],
-    "expectedProducts": [ { "language": "dogma", "rule": "spdx::compatible<["OSL-2.0", "GPL-2.0"}],
+    "expectedProducts": [ { "language": "dogma", "rule": "pattern = ..."],
     "functionaries": "dan",
     "threshold": 1
   }
