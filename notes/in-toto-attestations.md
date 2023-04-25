@@ -751,6 +751,7 @@ like this:
 "steps": [
   {
     "name": "generate SPDX",
+    "command": "...",
     "predicates": ["https://spdx.dev/Document/v2.3"],
     "expectedProducts": [ { "language": "dogma", "rule": "pattern = ..."],
     "functionaries": "dan",
@@ -760,10 +761,50 @@ like this:
 ```
 Here we want to verify that the SPDX document produced using the rule specified
 in `expectedProducts`. The rule is specified using Dogma which is the rule
-language of the Seedwing policy engine.
+language of the Seedwing policy engine. This would be performed by the
+signer/producer of the artifact.
+
+A consumer will want to verify predicates which is done following the rules in
+`inspect` element of a layout file. This can look like an `inspection` currently
+does which contains a command, but also with the addition of this specification
+it may look like this:
+```
+name: string
+subject: [Pattern]
+predicates: [TypeURI]
+expectedAttributes: [ConstraintType]
+
+Pattern:
+  pattern: string
+```
+It is not clear to me what a `pattern` would look like. The specification
+contains the following:
+```
+Instead of command, the schema has a subject field that accepts one or more
+patterns. The claims from all attestations part of the verification whose
+subjects match the specified patterns are collated. The inspection’s constraints
+are then applied to the claims pertaining to the subjects.
+```
+
+The following is my guess (I may be way off) of what this might look like:
+```json
+"inspect": [
+  {
+    "name": "verify SPDX license",
+    "subject": ["bom-cargo.json", "bom-cargo.spdx"],
+    "predicates": ["https://spdx.dev/Document/v2.3"],
+    "expectedAttributes": [ { "language": "dogma", "rule": "spdx::compatible<[\"OSL-2.0\", \"GPL-2.0\", \"CC-BY-SA-2.0\"]"],
+  }
+],
+```
+Here the subject patterns would match any of the spdx bom, in json or spdx
+format and the rule would verify that the spdx version is one of the license
+specified.
 
 So I think that in-toto would have integration points with the policy engines
-(OPA/CUE/CEL?) to be able to write rules in the languages that they support?
+(OPA/CUE/CEL?/Seedwing) to be able to write rules in the languages that they
+support and verify those rules?
+
 
 [ITE-6]: https://github.com/in-toto/ITE/blob/4a73086a33eea8262e26070238318fd0e39900d0/ITE/6/README.md
 [ITE-10]: https://github.com/in-toto/ITE/blob/4a73086a33eea8262e26070238318fd0e39900d0/ITE/10/README.adoc
