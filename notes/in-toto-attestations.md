@@ -704,4 +704,68 @@ func (stg *StaticTokenGetter) GetIDToken(_ *oidc.Provider, _ oauth2.Config) (*OI
 
 ```
 
+### ITE 10
+This section contains notes related to [ITE-10] from a policy engine
+perspective and mainly me trying to understand ITE-10.
+
+Currently `steps`, and `inspect` elements can contains rules, for example:
+```
+  "steps": [
+      {
+        "_type": "step",
+        "threshold": 1,
+        "name": "clone-project",
+        "expected_materials": [],
+        "expected_products": [
+          [
+            "CREATE",
+            "source-distributed"
+          ],
+          ...
+```
+Here, `expected_products` contains `CREATE` which is a rule that states that
+the directory source-distributed should be created by the command (not shown
+above). 
+
+The proposal is that the following schema be used for step declarations to
+verify predicates (signed attestations about the subject), for example:
+```
+name: string
+command: string
+predicates: [TypeURI]
+expectedMaterials: [ConstraintType]
+expectedProducts: [ConstraintType]
+expectedAttributes: [ConstraintType]
+functionaries: [string]
+threshold: int
+
+ConstraintType:
+language: string  // Rego/CUE/CEL/Dogma(Seedwing)
+rule: {}
+```
+
+As an example, lets say we have a step that generates a SPDX document for the
+subject/artifact in a project. We could then have a step that looked something
+like this:
+```json
+"steps": [
+  {
+    "name": "generate SPDX",
+    "predicates": ["https://spdx.dev/Document/v2.3"],
+    "expectedProducts": [ { "language": "dogma", "rule": "spdx::compatible<["OSL-2.0", "GPL-2.0"}],
+    "functionaries": "dan",
+    "threshold": 1
+  }
+],
+```
+Here we want to verify that the SPDX document produced using the rule specified
+in `expectedProducts`. The rule is specified using Dogma which is the rule
+language of the Seedwing policy engine.
+
+So I think that in-toto would have integration points with the policy engines
+(OPA/CUE/CEL?) to be able to write rules in the languages that they support?
+
+[ITE-6]: https://github.com/in-toto/ITE/blob/4a73086a33eea8262e26070238318fd0e39900d0/ITE/6/README.md
+[ITE-10]: https://github.com/in-toto/ITE/blob/4a73086a33eea8262e26070238318fd0e39900d0/ITE/10/README.adoc
 [attestation validation]: https://github.com/in-toto/attestation/blob/main/docs/validation.md
+
