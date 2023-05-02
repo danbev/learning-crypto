@@ -9,7 +9,7 @@ wasm. Wasm has the potential to be more performat than JavaScript.
 For a standalone example of yew see [yew-example].
 
 ### frontend
-The frontend uses trunk to build the wasm. When we run `trunk build`, Trunk will
+The frontend uses [trunk] to build the wasm. When we run `trunk build`, Trunk will
 compile the project
 [cargo](https://github.com/thedodd/trunk/blob/7769a17e517391b3b4077c21062725aa1600346d/src/pipelines/rust.rs#L233) using:
 ```console
@@ -136,6 +136,6 @@ gets served. It will still call out to policy-server using Rest api calls and
 the policy-server will use the policy-engine to fullfill those requests. 
 
 [yew-example]: https://github.com/danbev/learning-rust/tree/master/yew-example
-
+[trunk]: https://github.com/danbev/learning-rust/blob/master/notes/trunk.md
 
 
