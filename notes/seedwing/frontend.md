@@ -20,12 +20,20 @@ And one of its dependencies is the policy engine:
 seedwing-policy-engine = { path = "../engine", default-features = false, features = [] }
 ```
 Notice that this specifies no default features and no features. Now, one thing
-to keep in mind is that the front end is a `bin` project. It uses wasm-bindgen
+to keep in mind is that the frontend is a `bin` project. It uses wasm-bindgen
 to take care of the bindings between JavaScript and wasm. The frontend uses
 some types from the policy engine but mostly it makes Restful calls to the
 server. So what will be compiled from the policy-engine is only what the
-front end uses. So if we start the frontend using `trunk serve` and try to
-accesss something from the policy server api endpoint that will fail with a
+frontend uses. So don't think that because trunk/cargo can compile the
+frontend project using the above command it is possible to compile the policy-
+engine project using:
+```console
+$ cargo b --target=wasm32-unknown-unknown --no-default-features --features=""
+```
+This will currently not work.
+
+Now if we start the frontend using `trunk serve` and try to accesss something
+from the policy server api endpoint that will fail with a
 connection refused. We need the policy server running so that it can handle
 the calls. And the policy server is a normal (non-wasm) server binary but it
 can embedd the frontend (the single page web app) but the Rest API calls will
