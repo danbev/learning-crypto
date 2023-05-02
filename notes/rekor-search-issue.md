@@ -20,6 +20,7 @@ The hash is specified  using `--sha` and is the hash of an intoto attestation.
       "sig": "MEQCIASjypkm8V/uVJQTn/ttOIYr0Ck50CLfSagQkS11eyR/AiA3eHPYVYrGmcFhly6X9f15bDilUBeXuPj8g2x4SFCADQ=="
     }                                                                           
   ]                                                                             
+}
 ```
 And the decoded payload looks like this:
 ```console
@@ -68,6 +69,9 @@ And the hash value is just the `sha256sum` of the payload:
 $ echo "eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjAuMSIsInByZWRpY2F0ZVR5cGUiOiJodHRwczovL3Nsc2EuZGV2L3Byb3ZlbmFuY2UvdjAuMiIsInN1YmplY3QiOm51bGwsInByZWRpY2F0ZSI6eyJidWlsZGVyIjp7ImlkIjoiaHR0cHM6Ly90ZWt0b24uZGV2L2NoYWlucy92MiJ9LCJidWlsZFR5cGUiOiJ0ZWt0b24uZGV2L3YxYmV0YTEvVGFza1J1biIsImludm9jYXRpb24iOnsiY29uZmlnU291cmNlIjp7fSwicGFyYW1ldGVycyI6e319LCJidWlsZENvbmZpZyI6eyJzdGVwcyI6W3siZW50cnlQb2ludCI6IiMhL3Vzci9iaW4vZW52IHNoXG5lY2hvICdnY3IuaW8vZm9vL2JhcicgfCB0ZWUgL3Rla3Rvbi9yZXN1bHRzL1RFU1RfVVJMXG5lY2hvIFwiZGFuYmV2LXRla3Rvbi1jaGFpbnMtZXhhbXBsZVwiIHwgc2hhMjU2c3VtIHwgdHIgLWQgJy0nIHwgdGVlIC90ZWt0b24vcmVzdWx0cy9URVNUX0RJR0VTVCIsImFyZ3VtZW50cyI6bnVsbCwiZW52aXJvbm1lbnQiOnsiY29udGFpbmVyIjoiY3JlYXRlLWltYWdlIiwiaW1hZ2UiOiJkb2NrZXIuaW8vbGlicmFyeS9idXN5Ym94QHNoYTI1NjpiNWQ2ZmUwNzEyNjM2Y2ViNzQzMDE4OWRlMjg4MTllMTk1ZTg5NjYzNzJlZGZjMmQ5NDA5ZDc5NDAyYTBkYzE2In0sImFubm90YXRpb25zIjpudWxsfV19LCJtZXRhZGF0YSI6eyJidWlsZFN0YXJ0ZWRPbiI6IjIwMjMtMDMtMjJUMDk6NTc6MTVaIiwiYnVpbGRGaW5pc2hlZE9uIjoiMjAyMy0wMy0yMlQwOTo1NzoxOVoiLCJjb21wbGV0ZW5lc3MiOnsicGFyYW1ldGVycyI6ZmFsc2UsImVudmlyb25tZW50IjpmYWxzZSwibWF0ZXJpYWxzIjpmYWxzZX0sInJlcHJvZHVjaWJsZSI6ZmFsc2V9fX0=" | base64 -d | sha256sum
 3e3da42ea26ecdb7b826fa15d9ee5b73ad58187fc702ae2098937b946bc2e01c
 ```
+But this is not the same!! The payload hash is a hash of the Rekor rekord not
+of the payload in attestations :( 
+
 Now, with the `rekor-cli` tool we can now look up one of the uuid's returned.
 ```console
 Found matching entries (listed by UUID):
