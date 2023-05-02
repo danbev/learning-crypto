@@ -240,7 +240,7 @@ If we think about the keyid and its purpose which was to identify a publickey
 the certificate is providing the publickey directly (recall that the certificate
 binds an entity to a publickey).
 
-So the provides the certificate which can be used to validate this attestation.
+So this provides the certificate which can be used to validate this attestation.
 And recall from above the signature is over the [PAE](#PreAuthenicatedEncoding),
 so basically the payloadType and the payload. And we could also have multiple
 signatures which could be where you want multiple parties to sign. So we might
@@ -267,13 +267,5 @@ envelopes which is not included in the DSSE specification. For example
   ]
 }
 ```
-So this provides the certificate which can be used to validate this attestation.
-And recall from above the signature is over the [PAE](#PreAuthenicatedEncoding),
-so basically the payloadType and the payload. And we could also have multiple
-signatures which could be where you want multiple parties to sign. So we might
-want out build system to sign this but in addition perhaps one of the core
-maintainers also needs to sign it, in which case we would have two entries in
-the signatures array.
-
 
 [protocol]: https://github.com/secure-systems-lab/dsse/blob/master/protocol.md
