@@ -38,7 +38,59 @@ After this we should have a .wasm file in
 This is the working [branch] that contains the changes for this investigation
 work.
 
+The next step is to create a .wit file for the engine. This is created in
+a directory named `wit` the engine crates directory:
+```
+default world component {
+  export something: func(s: string) -> string
+}
+```
+This is copied from an example and still using the same names as the example
+just to verify that things work. After that I'll rename them.
+
+And we need to add the wit-bindgen crate as a dependency to Cargo.toml:
+```toml
+wit-bindgen = { git = "https://github.com/bytecodealliance/wit-bindgen", version = "0.5.0" }
+```
+With that in place we can add the following macro to src/lib.rs:
+```rust
+wit_bindgen::generate!("component");
+
+struct Something;
+
+impl Component for Something {
+     fn something(s: String) -> String {
+         format!("something was passed: {s}")
+     }
+}                                                                               
+export_component!(Something);
+```
+Again, this is just the same as the [wit-bindgen-example] used to verify that
+part works.
+
+We should now be able to build the core WebAssembly module (which will then be
+used to generate the WebAssembly component):
+```console
+$ cargo b --target=wasm32-wasi --no-default-features --features="" 
+   Compiling seedwing-policy-engine v0.1.0 (/home/danielbevenius/work/security/seedwing/seedwing-policy/engine)
+error[E0433]: failed to resolve: could not find `mem` in `core`
+  --> engine/src/lib.rs:29:1
+   |
+29 | wit_bindgen::generate!("component");
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `mem` in `core`
+   |
+   = note: this error originates in the macro `wit_bindgen::generate` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `seedwing-policy-engine` due to previous error
+```
+
 _work in progress_
+
+```console
+$ wasm-tools component new ../target/wasm32-wasi/debug/seedwing_policy_engine.wasm -o seedwing_policy-engine-component.wasm
+```
+
 
 [wit-bindgen]: https://github.com/danbev/learning-wasi/blob/master/notes/wit-bindgen.md
 [frontend]: ./frontend.md
