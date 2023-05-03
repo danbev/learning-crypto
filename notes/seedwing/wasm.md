@@ -126,6 +126,18 @@ the macro is somehow using core::mem somewhere and this crates core is being
 used and it does not have `mem` module and hence the error is what I'm thinking
 at the moment.
 
+I've got wit-bindgen checked out and we can replace the git dependency with a
+local path:
+```toml
+wit-bindgen = { path = "/home/danielbevenius/work/wasm/wit-bindgen/crates/guest-rust", version = "0.6.0" }
+```
+It was not obvious to me that I had to specify the path `crates/guest-rust` at
+first and I though that just using "/home/danielbevenius/work/wasm/wit-bindgen/"
+would have worked (and was what I tried initially). It seems like cargo will
+search a git repository to find the crate with the specified dependency name.
+With this I'm able to make changes to the macro which can be found in
+[generate].
+
 
 _work in progress_
 
@@ -141,3 +153,4 @@ $ wasm-tools component new ../target/wasm32-wasi/debug/seedwing_policy_engine.wa
 [creating-components-wasi]: https://github.com/bytecodealliance/wit-bindgen#creating-components-wasi
 [core]: https://doc.rust-lang.org/core/
 [mem]: https://doc.rust-lang.org/core/mem/index.html
+[generate]: https://github.com/bytecodealliance/wit-bindgen/blob/8bd0fb32ed68a32e1661c630725d886470fdb632/crates/rust-macro/src/lib.rs#L10
