@@ -35,7 +35,11 @@ this is a start.
 After this we should have a .wasm file in
 `../target/wasm32-wasi/debug/seedwing_policy_engine.wasm`.
 
+This is the working [branch] that contains the changes for this investigation
+work.
+
 _work in progress_
 
 [wit-bindgen]: https://github.com/danbev/learning-wasi/blob/master/notes/wit-bindgen.md
 [frontend]: ./frontend.md
+[branch]: https://github.com/danbev/seedwing-policy/tree/wasi
