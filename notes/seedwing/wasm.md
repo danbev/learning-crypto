@@ -84,6 +84,48 @@ error[E0433]: failed to resolve: could not find `mem` in `core`
 For more information about this error, try `rustc --explain E0433`.
 error: could not compile `seedwing-policy-engine` due to previous error
 ```
+Lets add the `-Z macro-backtrace` and see if that provides more information:
+```console
+$ env RUSTFLAGS="-Z macro-backtrace" cargo +nightly b -vv --target=wasm32-wasi --no-default-features --features="" 
+...
+  Compiling tokio v1.27.0
+error: Only features sync,macros,io-util,rt,time are supported on wasm.
+   --> /home/danielbevenius/.cargo/registry/src/github.com-1ecc6299db9ec823/tokio-1.27.0/src/lib.rs:488:1
+    |
+488 | compile_error!("Only features sync,macros,io-util,rt,time are supported on wasm.");
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+```
+So that did not work. I tried adding trace_macros!(true); around the
+macro to see if that provided any additional information. This expanded the
+other macros but interestingly not the generate macro, and I still get this
+error:
+```console
+error[E0433]: failed to resolve: could not find `mem` in `core`
+  --> engine/src/lib.rs:31:1
+   |
+31 | wit_bindgen::generate!("component");
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ could not find `mem` in `core`
+   |
+   = note: this error originates in the macro `wit_bindgen::generate` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+For more information about this error, try `rustc --explain E0433`.
+error: could not compile `seedwing-policy-engine` due to previous error
+```
+So what is the difference between the [wit-bindgen-example]?  
+Well it does not use the wasm32-wasi target but instead wasm32-unknown-unknown.
+But I've tried changing the example to use wasm32-wasi and it compile without
+this error. 
+
+So the [core] crate contains a [mem] module and it seems to me that this is
+colliding with:
+```rustc
+mod core; 
+```
+If I comment out all the modules it will compile successfully. So I'm guessing
+the macro is somehow using core::mem somewhere and this crates core is being
+used and it does not have `mem` module and hence the error is what I'm thinking
+at the moment.
+
 
 _work in progress_
 
@@ -95,3 +137,7 @@ $ wasm-tools component new ../target/wasm32-wasi/debug/seedwing_policy_engine.wa
 [wit-bindgen]: https://github.com/danbev/learning-wasi/blob/master/notes/wit-bindgen.md
 [frontend]: ./frontend.md
 [branch]: https://github.com/danbev/seedwing-policy/tree/wasi
+[wit-bindgen-example]: https://github.com/danbev/learning-wasi/tree/master/wit-bindgen-example
+[creating-components-wasi]: https://github.com/bytecodealliance/wit-bindgen#creating-components-wasi
+[core]: https://doc.rust-lang.org/core/
+[mem]: https://doc.rust-lang.org/core/mem/index.html
