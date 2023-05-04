@@ -71,7 +71,7 @@ part works.
 We should now be able to build the core WebAssembly module (which will then be
 used to generate the WebAssembly component):
 ```console
-$ cargo b --target=wasm32-wasi --no-default-features --features="" 
+$ cargo b -p seedwing_policy_engine --target=wasm32-wasi --no-default-features --features="" 
    Compiling seedwing-policy-engine v0.1.0 (/home/danielbevenius/work/security/seedwing/seedwing-policy/engine)
 error[E0433]: failed to resolve: could not find `mem` in `core`
   --> engine/src/lib.rs:29:1
@@ -221,6 +221,26 @@ Error: failed to encode a component from module
 Caused by:
     module requires an import interface named `__wbindgen_placeholder__`
 ```
+If we take a look at the wasm module we can see that is has the following 
+imports:
+```
+  (import "__wbindgen_placeholder__" "__wbindgen_describe"
+    (func $wasm_bindgen::__wbindgen_describe (type 10))
+  )
+  (import "__wbindgen_externref_xform__" "__wbindgen_externref_table_grow" 
+    (func $wasm_bindgen::externref::__wbindgen_externref_table_grow (type 9))
+  )
+  (import "__wbindgen_externref_xform__" "__wbindgen_externref_table_set_null" 
+    (func $wasm_bindgen::externref::__wbindgen_externref_table_set_null (type 10))
+  )
+  (import "__wbindgen_placeholder__" "__wbindgen_throw" 
+    (func $wasm_bindgen::__wbindgen_throw (type 12))
+  )
+```
+It is complaining about the first and last import above but not the other ones
+which might be something to consider. And the functions are describe and
+throw. This looks strange to me as I was not expecting anything named
+`wasm_bindgen`. The engine crate does not depend on wasm-bindgen
 
 _work in progress_
 
