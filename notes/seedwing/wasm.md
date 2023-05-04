@@ -281,6 +281,19 @@ $ cargo tree --target wasm32-wasi
 So `reqwest` does have a dependency to wasm-bindgen and perhaps somehow causing
 the imports to be generated? 
 
+If we look in [Cargo.toml](https://github.com/seanmonstar/reqwest/blob/eeca649a3d70c353043b2e42684c6d74f4ba5cae/Cargo.toml#L163) we can see the following dependencies:
+```toml
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+js-sys = "0.3.45"
+serde_json = "1.0"
+wasm-bindgen = "0.2.68"
+wasm-bindgen-futures = "0.4.18"
+wasm-streams = { version = "0.2", optional = true }
+```
+The target_arch is `wasm32` in this case so these dependencies will be included.
+And if we take a look at [errors.rs] we can see...
+
+
 
 _work in progress_
 
@@ -294,3 +307,4 @@ _work in progress_
 [generate]: https://github.com/bytecodealliance/wit-bindgen/blob/8bd0fb32ed68a32e1661c630725d886470fdb632/crates/rust-macro/src/lib.rs#L10
 [emit]: https://github.com/bytecodealliance/wit-bindgen/blob/8bd0fb32ed68a32e1661c630725d886470fdb632/crates/rust/src/lib.rs#L1365
 [PR]: https://github.com/bytecodealliance/wit-bindgen/pull/568
+[errors.rs]: https://github.com/seanmonstar/reqwest/blob/eeca649a3d70c353043b2e42684c6d74f4ba5cae/src/error.rs#L218
