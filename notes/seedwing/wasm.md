@@ -204,12 +204,25 @@ I've opened a [PR] containing this suggestion and will see what the maintainers
 think. There are actually more of the same changes required but that is the one
 that we encountered.
 
-_work in progress_
+So with that out of the way and using a path dependency to a local branch of
+wit-bindgen the compilation step works and we have a core wasm module generated
+(../target/wasm32-wasi/debug/seedwing_policy_engine.wasm).
 
+The next step to turn that core wasm module into a wasm component which we can
+do using the `wasm-tools component` command:
 ```console
-$ wasm-tools component new ../target/wasm32-wasi/debug/seedwing_policy_engine.wasm -o seedwing_policy-engine-component.wasm
+$ wasm-tools component new \ 
+  ../target/wasm32-wasi/debug/seedwing_policy_engine.wasm \
+  --adapt wasi_snapshot_preview1.wasm \ 
+  -o seedwing_policy-engine-wasi.wasm
+
+Error: failed to encode a component from module
+
+Caused by:
+    module requires an import interface named `__wbindgen_placeholder__`
 ```
 
+_work in progress_
 
 [wit-bindgen]: https://github.com/danbev/learning-wasi/blob/master/notes/wit-bindgen.md
 [frontend]: ./frontend.md
