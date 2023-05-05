@@ -396,11 +396,13 @@ JavasScript version first:
 ```console
 $ cd js
 $ npm i
-$ npm run bindings
+```
+Now we generate the JavaScript bindings for the component using:
+```console
 $ npm run bindings
 
 > js@1.0.0 bindings
-> npx jco transpile $npm_package_config_wasm_file -o dist
+> npx jco transpile $npm_package_config_wasm_file -o dist -w
 
 
 Transpiled JS Component Files:
@@ -413,7 +415,7 @@ Transpiled JS Component Files:
  - dist/seedwing_policy-engine-component.core.wasm    152 MiB
  - dist/seedwing_policy-engine-component.core2.wasm  12.9 KiB
  - dist/seedwing_policy-engine-component.d.ts        0.37 KiB
- - dist/seedwing_policy-engine-component.js
+ - dist/seedwing_policy-engine-component.js 
 ```
 And we can the run this Node.js using:
 ```console
