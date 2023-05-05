@@ -290,10 +290,22 @@ wasm-bindgen = "0.2.68"
 wasm-bindgen-futures = "0.4.18"
 wasm-streams = { version = "0.2", optional = true }
 ```
-The target_arch is `wasm32` in this case so these dependencies will be included.
-And if we take a look at [errors.rs] we can see...
+And if we look in [errors.rs] we can see the following:
+```rust
+#[cfg(target_arch = "wasm32")]
+impl From<crate::error::Error> for wasm_bindgen::JsValue {
+    fn from(err: Error) -> wasm_bindgen::JsValue {
+        js_sys::Error::from(err).into()
+    }
+}
+```
+And this is indeed the case as the target_arch in our case is wasm32. So that
+at least explains why we are seeing wasm-bindgen imports. But in our case we
+don't want this. 
 
-
+To verify this tried commenting out the `reqwest` dependency, and also `guac`
+which also has `reqwest` as a dependency then the above import is gone and the
+`wasm-tools` command succeeds.
 
 _work in progress_
 
