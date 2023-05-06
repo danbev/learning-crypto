@@ -441,6 +441,50 @@ evaluation features.
 So lets start real simple and start with exposing the version which is a
 function that is in `src/lib.rs`, the same file that we added the something
 example function to test wit-bindgen out above.
+Lets rename the wit to engine.wit add also remove the something function and
+instead export the version function:
+```
+default world engine {
+  export version: func() -> string
+}
+```
+And we will also need to update src/lib.rs to:
+```rust
+wit_bindgen::generate!("engine");
+....
+
+struct Core;
+
+impl Engine for Core {
+    fn version() -> String {
+        crate::version().to_string()
+    }
+}
+
+export_engine!(Core);
+```
+I need to dig into the requirement of the Core struct here as it is not clear
+to me but it seems like we need something to export. With those changes we
+can compile using cargo, generate the component using wasm-tools.
+We also need to update the JavaScript example to reflect these changes:
+```js
+import { version  } from './dist/seedwing_policy-engine-component.js';
+
+console.log(`Seedwing Policy Engine version: ${version()}`);
+```
+And after running the `jco` tools we can invoke this example using:
+```console
+$ npm run example
+
+> js@1.0.0 example
+> node index.mjs
+
+Seedwing Policy Engine version: 0.1.0
+```
+So that is the first integration of the policy engine using bindgen. Next,
+I need to to some exploration work with the wit format and figure out how to
+structure it (we can separate types/interfaces into separate .wit file and
+use/import them into other to create a wit package).
 
 So how should we deal with reqwest?  
 Like we discussed above reqwest will use wasm-bindgen if that target
