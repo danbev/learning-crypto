@@ -430,6 +430,25 @@ Alright, so we have not yet created any interfaces or types specific to the
 policy engine but this at least provides a start and structure around it to and
 that we can build upon.
 
+Now, while I'd like to take a look at coming up with a "fix" for reqwest I think
+that it might make sense to move forward and create some basic interface for
+the policy engine even if it is limited in funtionality. The motivation for this
+is that the modules that are more advanced and use features like reqwest and
+possibly sigstore might not always be required. For example, for the in-toto
+potential usage it would probably be enough to the the basic rule language
+evaluation features.
+
+So lets start real simple and start with exposing the version which is a
+function that is in `src/lib.rs`, the same file that we added the something
+example function to test wit-bindgen out above.
+
+So how should we deal with reqwest?  
+Like we discussed above reqwest will use wasm-bindgen if that target
+arch is `wasm32`. This is the case for both `wasm32-unknown-unknown` and
+`wasm32-wasi`. And like we mentioned in our case where we want to use
+wit-bindings.
+
+
 _work in progress_
 
 [wit-bindgen]: https://github.com/danbev/learning-wasi/blob/master/notes/wit-bindgen.md
