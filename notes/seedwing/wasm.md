@@ -445,32 +445,37 @@ Lets rename the wit to engine.wit add also remove the something function and
 instead export the version function:
 ```
 default world engine {
-  export version: func() -> string
+  export engine: self.wit
+}
+
+interface wit {
+  version: func() -> string
 }
 ```
-And we will also need to update src/lib.rs to:
+And we will also need to update src/wit.rs to:
 ```rust
+use crate::wit::engine::Engine;
+
 wit_bindgen::generate!("engine");
-....
 
-struct Core;
+struct Exports;
 
-impl Engine for Core {
+impl Engine for Exports {
     fn version() -> String {
         crate::version().to_string()
     }
 }
 
-export_engine!(Core);
+export_engine!(Exports);
 ```
 I need to dig into the requirement of the Core struct here as it is not clear
 to me but it seems like we need something to export. With those changes we
 can compile using cargo, generate the component using wasm-tools.
 We also need to update the JavaScript example to reflect these changes:
 ```js
-import { version  } from './dist/seedwing_policy-engine-component.js';
+import { engine  } from './dist/seedwing_policy-engine-component.js';
 
-console.log(`Seedwing Policy Engine version: ${version()}`);
+console.log(`Seedwing Policy Engine version: ${engine.version()}`);
 ```
 And after running the `jco` tools we can invoke this example using:
 ```console
@@ -486,14 +491,14 @@ I need to to some exploration work with the wit format and figure out how to
 structure it (we can separate types/interfaces into separate .wit file and
 use/import them into other to create a wit package).
 
+_work in progress_
+
 So how should we deal with reqwest?  
 Like we discussed above reqwest will use wasm-bindgen if that target
 arch is `wasm32`. This is the case for both `wasm32-unknown-unknown` and
 `wasm32-wasi`. And like we mentioned in our case where we want to use
-wit-bindings.
+wit-bindings. One thing that might be worth investigating is using [wasi-http].
 
-
-_work in progress_
 
 [wit-bindgen]: https://github.com/danbev/learning-wasi/blob/master/notes/wit-bindgen.md
 [frontend]: ./frontend.md
@@ -507,3 +512,4 @@ _work in progress_
 [PR]: https://github.com/bytecodealliance/wit-bindgen/pull/568
 [errors.rs]: https://github.com/seanmonstar/reqwest/blob/eeca649a3d70c353043b2e42684c6d74f4ba5cae/src/error.rs#L218
 [cfd guards]: https://github.com/danbev/seedwing-policy/commit/c893660a99f87d3e326a7509348dac65d44c0ad2
+[wasi-http]: https://github.com/WebAssembly/wasi-http
