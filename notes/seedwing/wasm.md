@@ -502,7 +502,7 @@ wit-bindings. One thing that might be worth investigating is using [wasi-http].
 
 [wit-bindgen]: https://github.com/danbev/learning-wasi/blob/master/notes/wit-bindgen.md
 [frontend]: ./frontend.md
-[branch]: https://github.com/danbev/seedwing-policy/tree/wasi
+[branch]: https://github.com/danbev/seedwing-policy/tree/wit-bindgen
 [wit-bindgen-example]: https://github.com/danbev/learning-wasi/tree/master/wit-bindgen-example
 [creating-components-wasi]: https://github.com/bytecodealliance/wit-bindgen#creating-components-wasi
 [core]: https://doc.rust-lang.org/core/
