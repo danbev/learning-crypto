@@ -491,6 +491,109 @@ I need to to some exploration work with the wit format and figure out how to
 structure it (we can separate types/interfaces into separate .wit file and
 use/import them into other to create a wit package).
 
+After some exploration coding there is an initial example of evaluating a
+policy. For this another function has been exported name eval:
+```
+  /// Runs a policy.
+  ///
+  /// policies: additional policies to be include/available to the policy rules.
+  /// data: this is a list of data that will be available to the policies .
+  /// policy: the policy containing the patterns to be evaluated.
+  /// name: the name of the patter to evaluate.
+  /// input: the input to be evaluated.
+  eval: func(policies: list<string>,
+            data: list<string>,
+            policy: string,
+            name: string,
+            input: string,) -> string
+```
+The `policies` and `data` parameters are currently not supported but I'll look
+into them later as they are not needed for the simplest possible example. The
+issue with them is that they currently take a list of directories and in this
+case I think they should just be list of strings to avoid any filesytem calls.
+Anyway, with this we can the update `src/wit.rs` and add the `eval` function
+and then build (there is a temp Makefile) to help development of this:
+```console
+$ make wit-compile
+$ make wit-components
+$ make wit-js-build
+cd js && npm run bindings && npm run example
+
+> js@1.0.0 bindings
+> npx jco transpile $npm_package_config_wasm_file -o dist -w
+
+
+Transpiled JS Component Files:
+
+ - dist/exports/engine.d.ts                          0.17 KiB
+ - dist/imports/environment.d.ts                     0.09 KiB
+ - dist/imports/exit.d.ts                            0.16 KiB
+ - dist/imports/filesystem.d.ts                      2.31 KiB
+ - dist/imports/preopens.d.ts                        0.47 KiB
+ - dist/imports/random.d.ts                           0.1 KiB
+ - dist/imports/streams.d.ts                         0.39 KiB
+ - dist/seedwing_policy-engine-component.core.wasm    166 MiB
+ - dist/seedwing_policy-engine-component.core2.wasm  14.2 KiB
+ - dist/seedwing_policy-engine-component.d.ts        0.47 KiB
+ - dist/seedwing_policy-engine-component.js            17 KiB
+
+
+> js@1.0.0 example
+> node index.mjs
+
+Seedwing Policy Engine version: 0.1.0
+result: Ok(EvaluationResult { input: String("{\"name\":\"goodboy\",\"trained\":true}"), ty: Pattern { name: Some(PatternName { package: Some(PackagePath { path: [PackageName("wit")] }), name: "dog" }), metadata: PatternMeta { documentation: Documentation(None), unstable: false, deprecation: None, reporting: Reporting { severity: None, explanation: None, authoritative: false } }, examples: [], parameters: [], inner: ObjectPattern {
+    fields: [
+        Field {
+            name: "name",
+            ty: Pattern {
+                name: None,
+                metadata: PatternMeta {
+                    documentation: Documentation(
+                        None,
+                    ),
+                    unstable: false,
+                    deprecation: None,
+                    reporting: Reporting {
+                        severity: None,
+                        explanation: None,
+                        authoritative: false,
+                    },
+                },
+                examples: [],
+                parameters: [],
+                inner: ref 1<[]>,
+            },
+            optional: false,
+        },
+        Field {
+            name: "trained",
+            ty: Pattern {
+                name: None,
+                metadata: PatternMeta {
+                    documentation: Documentation(
+                        None,
+                    ),
+                    unstable: false,
+                    deprecation: None,
+                    reporting: Reporting {
+                        severity: None,
+                        explanation: None,
+                        authoritative: false,
+                    },
+                },
+                examples: [],
+                parameters: [],
+                inner: ref 2<[]>,
+            },
+            optional: false,
+        },
+    ],
+} }, rationale: NotAnObject, output: Identity, trace: None })
+```
+Note that the result is printed from the Rust code and I'm going to take a
+look at how to return this from the function.
+
 _work in progress_
 
 So how should we deal with reqwest?  
