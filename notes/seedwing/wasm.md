@@ -514,9 +514,7 @@ case I think they should just be list of strings to avoid any filesytem calls.
 Anyway, with this we can the update `src/wit.rs` and add the `eval` function
 and then build (there is a temp Makefile) to help development of this:
 ```console
-$ make wit-compile
-$ make wit-components
-$ make wit-js-build
+$ make wit-build
 cd js && npm run bindings && npm run example
 
 > js@1.0.0 bindings
@@ -542,57 +540,66 @@ Transpiled JS Component Files:
 > node index.mjs
 
 Seedwing Policy Engine version: 0.1.0
-result: Ok(EvaluationResult { input: String("{\"name\":\"goodboy\",\"trained\":true}"), ty: Pattern { name: Some(PatternName { package: Some(PackagePath { path: [PackageName("wit")] }), name: "dog" }), metadata: PatternMeta { documentation: Documentation(None), unstable: false, deprecation: None, reporting: Reporting { severity: None, explanation: None, authoritative: false } }, examples: [], parameters: [], inner: ObjectPattern {
-    fields: [
-        Field {
-            name: "name",
-            ty: Pattern {
-                name: None,
-                metadata: PatternMeta {
-                    documentation: Documentation(
-                        None,
-                    ),
-                    unstable: false,
-                    deprecation: None,
-                    reporting: Reporting {
-                        severity: None,
-                        explanation: None,
-                        authoritative: false,
-                    },
-                },
-                examples: [],
-                parameters: [],
-                inner: ref 1<[]>,
-            },
-            optional: false,
-        },
-        Field {
-            name: "trained",
-            ty: Pattern {
-                name: None,
-                metadata: PatternMeta {
-                    documentation: Documentation(
-                        None,
-                    ),
-                    unstable: false,
-                    deprecation: None,
-                    reporting: Reporting {
-                        severity: None,
-                        explanation: None,
-                        authoritative: false,
-                    },
-                },
-                examples: [],
-                parameters: [],
-                inner: ref 2<[]>,
-            },
-            optional: false,
-        },
-    ],
-} }, rationale: NotAnObject, output: Identity, trace: None })
+Result:  {
+  input: '{"name":"goodboy","trained":true}',
+  pattern: 'Pattern { name: Some(PatternName { package: Some(PackagePath { path: [PackageName("wit")] }), name: "dog" }), metadata: PatternMeta { documentation: Documentation(None), unstable: false, deprecation: None, reporting: Reporting { severity: None, explanation: None, authoritative: false } }, examples: [], parameters: [], inner: ObjectPattern {\n' +
+    '    fields: [\n' +
+    '        Field {\n' +
+    '            name: "name",\n' +
+    '            ty: Pattern {\n' +
+    '                name: None,\n' +
+    '                metadata: PatternMeta {\n' +
+    '                    documentation: Documentation(\n' +
+    '                        None,\n' +
+    '                    ),\n' +
+    '                    unstable: false,\n' +
+    '                    deprecation: None,\n' +
+    '                    reporting: Reporting {\n' +
+    '                        severity: None,\n' +
+    '                        explanation: None,\n' +
+    '                        authoritative: false,\n' +
+    '                    },\n' +
+    '                },\n' +
+    '                examples: [],\n' +
+    '                parameters: [],\n' +
+    '                inner: ref 1<[]>,\n' +
+    '            },\n' +
+    '            optional: false,\n' +
+    '        },\n' +
+    '        Field {\n' +
+    '            name: "trained",\n' +
+    '            ty: Pattern {\n' +
+    '                name: None,\n' +
+    '                metadata: PatternMeta {\n' +
+    '                    documentation: Documentation(\n' +
+    '                        None,\n' +
+    '                    ),\n' +
+    '                    unstable: false,\n' +
+    '                    deprecation: None,\n' +
+    '                    reporting: Reporting {\n' +
+    '                        severity: None,\n' +
+    '                        explanation: None,\n' +
+    '                        authoritative: false,\n' +
+    '                    },\n' +
+    '                },\n' +
+    '                examples: [],\n' +
+    '                parameters: [],\n' +
+    '                inner: ref 2<[]>,\n' +
+    '            },\n' +
+    '            optional: false,\n' +
+    '        },\n' +
+    '    ],\n' +
+    '} }',
+  rationale: 'NotAnObject',
+  output: 'Identity'
+}
 ```
-Note that the result is printed from the Rust code and I'm going to take a
-look at how to return this from the function.
+The fields in the result are still strings but I'll take a stab at adding
+actual types to the .wit so that the users can work with types and not just
+strings.
+
+I ran into an [issue] when adding a `record` type named `evaluation-result` but
+can work around it for now. 
 
 _work in progress_
 
@@ -616,3 +623,4 @@ wit-bindings. One thing that might be worth investigating is using [wasi-http].
 [errors.rs]: https://github.com/seanmonstar/reqwest/blob/eeca649a3d70c353043b2e42684c6d74f4ba5cae/src/error.rs#L218
 [cfd guards]: https://github.com/danbev/seedwing-policy/commit/c893660a99f87d3e326a7509348dac65d44c0ad2
 [wasi-http]: https://github.com/WebAssembly/wasi-http
+[issue]: https://github.com/bytecodealliance/jco/issues/69
