@@ -3215,7 +3215,88 @@ a std::ops::Range:
     let some_located_string = Located::new("something".to_string(), range);
 ```
 
+### ObjectPattern
+Is defined in engine/src/lang/hir/mod.rs:
+```rust
+#[derive(Clone, Debug, PartialEq)]
+pub struct ObjectPattern {
+    fields: Vec<Located<Field>>,
+}
+```
+
+### Field
+Field is a struct defined in engine/src/lang/hir/mod.rs:
+```rust
+pub struct Field {
+    name: Located<String>,
+    ty: Located<Pattern>,
+    optional: bool,
+    metadata: Metadata,
+}
+```
+We can see that a field has a name of type Located which remember is generic
+over any type and also adds the range/span which links the generic type to the
+source it came from.
+A Field also has a type (ty) which is an enum variant of the
+[lang::hir::Pattern](#pattern) enum.
+
+
+### Pattern
+Is defined in engine/src/lang/hir/mod.rs:
+```rust
+#[derive(Clone, PartialEq)]
+pub enum Pattern {
+    Anything,
+    Ref(SyntacticSugar, Located<PatternName>, Vec<Located<Pattern>>),
+    Deref(Box<Located<Pattern>>),
+    Parameter(Located<String>),
+    Const(Located<ValuePattern>),
+    Object(ObjectPattern),
+    Expr(Located<Expr>),
+    Join(Vec<Located<Pattern>>),
+    Meet(Vec<Located<Pattern>>),
+    List(Vec<Located<Pattern>>),
+    // postfix
+    Chain(Vec<Located<Pattern>>),
+    Traverse(Located<String>),
+    Refinement(Box<Located<Pattern>>),
+    Not(Box<Located<Pattern>>),
+    Nothing,
+}
+```
+So we could create a variant `Const` using:
+```console
+    use crate::lang::lir::ValuePattern;
+    let const_true = Pattern::Const(Located::new(ValuePattern::Boolean(true), 0..0));
+    println!("{:?}", const_true);
+```
+
+And an example of a Refinement:
+```rust
+    let refinement = Pattern::Refinement(Box::new(Located::new(
+        Pattern::Const(Located::new(ValuePattern::Boolean(false), 0..0)),
+        0..0,
+    )));
+    println!("{:?}", refinement);
+```
+
+### Wasm
+Currently Seedwing frontend is build using Trunk which takes used wasm-bindgen
+to take care of the JavaScript<->Wasm integration. Recall that Wasm only has
+four data types, i32, i64, f32, and f64. This means that functions can only
+take those types as arguments. wasm-bindgen takes care of this converting
+complex data types like strings from these values back into JavaScript object
+types. This works very nicely and works well for the frontend server.
+
+But it might be nice to be able to have a similar integration that wasm-bindgen
+provides for JavaScript with other languages as well.
+
+
+What if we provided [WIT] type definitions...
+
+
 
 [chumsky]: https://crates.io/crates/chumsky/0.9.0
 [chumsky examples]: https://github.com/danbev/learning-rust/tree/master/chumsky#chumsky
 [rust-gdb]: https://github.com/danbev/learning-rust/blob/master/notes/gdb.md
+[WIT]: https://github.com/WebAssembly/component-model/blob/main/design/mvp/WIT.md
