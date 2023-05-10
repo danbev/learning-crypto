@@ -601,6 +601,76 @@ strings.
 I ran into an [issue] when adding a `record` type named `evaluation-result` but
 can work around it for now. 
 
+Next, we should now be able to define types for return type of the `eval`
+function which looks like this:
+```
+  eval: func(policies: list<string>,
+            data: list<string>,
+            policy: string,
+            name: string,
+            input: string,) -> result<evaluation-result, string>
+```
+And `evaluation-result` is currently defined like this:
+```
+  record evaluation-result {
+    input: string,
+    pattern: string,
+    rationale: string,
+    output: string,
+  }
+```
+We want to these type to match the types used in the code base. 
+`RuntimeValue` look like this:
+```rust
+pub enum RuntimeValue {
+    Null,
+    String(Arc<str>),
+    Integer(i64),
+    Decimal(f64),
+    Boolean(bool),
+    Object(Object),
+    List(Vec<Arc<RuntimeValue>>),
+    Octets(#[serde(with = "RuntimeValueBase64")] Vec<u8>),
+}
+```
+So we need to create a type for this enum and there is an `variant` in the wit
+specification so lets try using it: 
+```
+  variant runtime-value {
+    null,
+    %string(string),
+    integer(s64),
+    decimal(float64),
+    //object(record),
+    // This will generate the error "type `rt` depends on itself"
+    //%list(list<runtime-value>),
+  }
+```
+Notice that we need to escape identifiers what have the same names as wit
+keywords, like string and list above, using `%`.
+Next I was not able to specify the list as having elements of this same type.
+```console
+$ make wit-compile 
+cargo b -p seedwing-policy-engine --target=wasm32-wasi --no-default-features --features=""
+   Compiling seedwing-policy-engine v0.1.0 (/home/danielbevenius/work/security/seedwing/seedwing-policy/engine)
+error: failed to parse package: /home/danielbevenius/work/security/seedwing/seedwing-policy/engine/wit
+       
+       Caused by:
+           type `rt` depends on itself
+                --> /home/danielbevenius/work/security/seedwing/seedwing-policy/engine/wit/engine.wit:25:16
+                 |
+              25 |     %list(list<rt>),
+                 |                ^-
+       
+       Stack backtrace:
+```
+I think that this is pretty common in Rust but Rust is not the only language
+that wit caters for remember, so there might be reasons for not allowing this.
+I'll raise an [issue](https://github.com/bytecodealliance/wit-bindgen/issues/572)
+to ask about this to find out the reason for not allowing this and perhaps find
+out if there is a way around it.
+
+
 _work in progress_
 
 So how should we deal with reqwest?  
