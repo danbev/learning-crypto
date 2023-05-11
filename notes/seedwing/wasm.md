@@ -668,7 +668,44 @@ I think that this is pretty common in Rust but Rust is not the only language
 that wit caters for remember, so there might be reasons for not allowing this.
 I'll raise an [issue](https://github.com/bytecodealliance/wit-bindgen/issues/572)
 to ask about this to find out the reason for not allowing this and perhaps find
-out if there is a way around it.
+out if there is a way around it. This is a know 
+[issue/limitation](https://github.com/WebAssembly/component-model/issues/56) but
+lets see if we can work around this. The idea here is that we define the wit
+data type and then transform it.
+
+
+So we've seen an example of using the wasm component with JavaScript and we
+have now added an example which can be run by Python:
+```console
+$ cd engine/python
+$ make bindings 
+python3 -m wasmtime.bindgen ../seedwing_policy-engine-component.wasm --out-dir dist
+Generating dist/__init__.py
+Generating dist/exports/__init__.py
+Generating dist/exports/engine.py
+Generating dist/imports/__init__.py
+Generating dist/imports/environment.py
+Generating dist/imports/exit.py
+Generating dist/imports/filesystem.py
+Generating dist/imports/preopens.py
+Generating dist/imports/random.py
+Generating dist/imports/streams.py
+Generating dist/intrinsics.py
+Generating dist/seedwing_policy-engine-component.core0.wasm
+Generating dist/seedwing_policy-engine-component.core1.wasm
+Generating dist/seedwing_policy-engine-component.core2.wasm
+Generating dist/seedwing_policy-engine-component.core3.wasm
+Generating dist/types.py
+```
+And this can the be run using:
+```console
+$ make run
+env WASMTIME_BACKTRACE_DETAILS=1 python3 engine.py
+
+EvaluationResult(input=RuntimeValueString(value='{ "name": "goodboy", "trained": true}'), ty=Pattern(name=PatternName(package=PackagePath(path=['wit']), name='dog'), metadata=PatternMeta(documentation=None, unstable=False, deprecation=None, reporting=Reporting(severity=<Severity.NONE: 0>, explanation=None, authoritative=False)), examples=[], parameters=[], inner=InnerPatternObject(value=ObjectPattern(fields=[Field(name='name', optional=False), Field(name='trained', optional=False)]))), rationale=RationaleNotAnObject(), output='Identity')
+```
+
+
 
 
 _work in progress_
