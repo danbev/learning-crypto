@@ -705,8 +705,22 @@ env WASMTIME_BACKTRACE_DETAILS=1 python3 engine.py
 EvaluationResult(input=RuntimeValueString(value='{ "name": "goodboy", "trained": true}'), ty=Pattern(name=PatternName(package=PackagePath(path=['wit']), name='dog'), metadata=PatternMeta(documentation=None, unstable=False, deprecation=None, reporting=Reporting(severity=<Severity.NONE: 0>, explanation=None, authoritative=False)), examples=[], parameters=[], inner=InnerPatternObject(value=ObjectPattern(fields=[Field(name='name', optional=False), Field(name='trained', optional=False)]))), rationale=RationaleNotAnObject(), output='Identity')
 ```
 
+Next, I wanted to get a Rust runtime version working but I've run into some
+issues doing that.
+I also was keen to see if I could find a Go wasm runtime that supports the new
+webassembly component module. But I have not been able to find one yet, though
+there does seem to be interest from [wasmedge] but it sounds like they are
+holding off for now.
 
+Another issue is with the types and not having support for [recursive types]
+which does not look like it will make it into the MVP (Minimal Viable Product).
 
+For Seedwing I think it could make sense to work on the types and provide a
+base component that supports base functionality of the policy engine. Other
+features which currently require thirdparty dependencies which might not compile
+to wasm/wasi could be provided later. And it might also make sense to create
+separate modules/components for them. I need to look into this a little more
+but the component model does support dynamic linking of modules.
 
 _work in progress_
 
@@ -731,3 +745,5 @@ wit-bindings. One thing that might be worth investigating is using [wasi-http].
 [cfd guards]: https://github.com/danbev/seedwing-policy/commit/c893660a99f87d3e326a7509348dac65d44c0ad2
 [wasi-http]: https://github.com/WebAssembly/wasi-http
 [issue]: https://github.com/bytecodealliance/jco/issues/69
+[wasmedge]: https://github.com/WasmEdge/WasmEdge/issues/1877
+[recursive types]: https://github.com/WebAssembly/component-model/issues/56
