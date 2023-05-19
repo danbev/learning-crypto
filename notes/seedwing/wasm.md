@@ -705,16 +705,25 @@ env WASMTIME_BACKTRACE_DETAILS=1 python3 engine.py
 EvaluationResult(input=RuntimeValueString(value='{ "name": "goodboy", "trained": true}'), ty=Pattern(name=PatternName(package=PackagePath(path=['wit']), name='dog'), metadata=PatternMeta(documentation=None, unstable=False, deprecation=None, reporting=Reporting(severity=<Severity.NONE: 0>, explanation=None, authoritative=False)), examples=[], parameters=[], inner=InnerPatternObject(value=ObjectPattern(fields=[Field(name='name', optional=False), Field(name='trained', optional=False)]))), rationale=RationaleNotAnObject(), output='Identity')
 ```
 
-Next, I wanted to get a Rust runtime version working but I've run into some
-issues doing that.
-I also was keen to see if I could find a Go wasm runtime that supports the new
-webassembly component module. But I have not been able to find one yet, though
-there does seem to be interest from [wasmedge] but it sounds like they are
-holding off for now.
+There is also a Rust example showing how the compnent could be used from Rust
+code.
 
-Another issue is with the types and not having support for [recursive types]
+_work in progress_
+
+### Questions/Issues
+
+#### Recursive types
+One issue is with the types and not having support for [recursive types]
 which does not look like it will make it into the MVP (Minimal Viable Product).
 
+#### How should we deal with reqwest
+Like we discussed above reqwest will use wasm-bindgen if that target
+arch is `wasm32`. This is the case for both `wasm32-unknown-unknown` and
+`wasm32-wasi`. And like we mentioned in our case where we want to use
+wit-bindings. One thing that might be worth investigating is using [wasi-http].
+I also found [reqwest-wasi] which might be interesting to look into futher.
+
+### Future works (suggestions)
 For Seedwing I think it could make sense to work on the types and provide a
 base component that supports base functionality of the policy engine. Other
 features which currently require thirdparty dependencies which might not compile
@@ -722,13 +731,12 @@ to wasm/wasi could be provided later. And it might also make sense to create
 separate modules/components for them. I need to look into this a little more
 but the component model does support dynamic linking of modules.
 
-_work in progress_
-
-So how should we deal with reqwest?  
-Like we discussed above reqwest will use wasm-bindgen if that target
-arch is `wasm32`. This is the case for both `wasm32-unknown-unknown` and
-`wasm32-wasi`. And like we mentioned in our case where we want to use
-wit-bindings. One thing that might be worth investigating is using [wasi-http].
+#### wasmtime-go Component Model support
+This [comment](https://github.com/bytecodealliance/wasmtime-go/issues/170#issuecomment-1441976158)
+in issue #170 mentions that WebAssembly Component Model support is currently not
+implemented for wasmtime-go. Could we help out adding this support?  
+Having this would enable the policy engine to be called from Go which simlar to
+the JavaScript, Python, and Rust examples above.
 
 
 [wit-bindgen]: https://github.com/danbev/learning-wasi/blob/master/notes/wit-bindgen.md
@@ -747,3 +755,4 @@ wit-bindings. One thing that might be worth investigating is using [wasi-http].
 [issue]: https://github.com/bytecodealliance/jco/issues/69
 [wasmedge]: https://github.com/WasmEdge/WasmEdge/issues/1877
 [recursive types]: https://github.com/WebAssembly/component-model/issues/56
+[reqwest-wasi]: https://crates.io/crates/reqwest_wasi
