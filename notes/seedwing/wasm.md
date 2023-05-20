@@ -705,8 +705,11 @@ env WASMTIME_BACKTRACE_DETAILS=1 python3 engine.py
 EvaluationResult(input=RuntimeValueString(value='{ "name": "goodboy", "trained": true}'), ty=Pattern(name=PatternName(package=PackagePath(path=['wit']), name='dog'), metadata=PatternMeta(documentation=None, unstable=False, deprecation=None, reporting=Reporting(severity=<Severity.NONE: 0>, explanation=None, authoritative=False)), examples=[], parameters=[], inner=InnerPatternObject(value=ObjectPattern(fields=[Field(name='name', optional=False), Field(name='trained', optional=False)]))), rationale=RationaleNotAnObject(), output='Identity')
 ```
 
-There is also a Rust example showing how the compnent could be used from Rust
-code.
+There is also a Rust example showing how the compnent could be used from Rust.
+This might sound a little odd as the Policy Engine itself is written in Rust
+but the reason the policy engine exists, or was created, was with secure supply
+chain security in mind. Providing the policy engine as a web component module
+allows for projects to use it in a secure way. 
 
 _work in progress_
 
