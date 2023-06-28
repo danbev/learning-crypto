@@ -361,3 +361,12 @@ to github than it would allow.
 ```console
 $ git config --global commit.gpgsign false
 ```
+The we can do the rebase. And after it has been done then enable signing again:
+```console
+$ git config --global commit.gpgsign true
+```
+And the amend the rebase:
+```console
+$ git ci --amend -v
+```
+
