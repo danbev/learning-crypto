@@ -247,3 +247,120 @@ echo "-----END CERTIFICATE-----" | base64
 LS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
 ```
 So this is just the prefix also base64 encoded.
+
+
+### Public key fingerprints
+The `keyid` is an identifier of the public key or certificate that can be used
+to verify the signature. Lets say we have a public key which is base64 encoded:
+```
+LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFcWlMdUFyUmNaQ1kxczY1MHJnS1VEcGo3ZitiOAo5SE11M0svUERhVWNSOWtjeXlYWThxNlUrVEZUa2M5dTg0d0pUc1plMjF3QlBkL1NUUEV6bzBKcnpRPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==
+```
+We can decode this using the following command:
+```console
+$ echo "LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFcWlMdUFyUmNaQ1kxczY1MHJnS1VEcGo3ZitiOAo5SE11M0svUERhVWNSOWtjeXlYWThxNlUrVEZUa2M5dTg0d0pUc1plMjF3QlBkL1NUUEV6bzBKcnpRPT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==" | base64 -d > key.pem
+```
+And we can inspect the pem:
+```console
+$ cat key.pem
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqiLuArRcZCY1s650rgKUDpj7f+b8
+9HMu3K/PDaUcR9kcyyXY8q6U+TFTkc9u84wJTsZe21wBPd/STPEzo0JrzQ==
+-----END PUBLIC KEY-----
+```
+We can use ssh-keygen to generate the public key in OpenSSH format:
+```console
+$ ssh-keygen -i -m PKCS8 -f key.pem > pubkey_pkcs8.pem
+```
+We can inspect this format which looks like this:
+```console
+$ cat pubkey_pkcs8.pem 
+ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBKoi7gK0XGQmNbOudK4ClA6Y+3/m/PRzLtyvzw2lHEfZHMsl2PKulPkxU5HPbvOMCU7GXttcAT3f0kzxM6NCa80=
+```
+And we can generate a fingerprint using:
+```console
+$ ssh-keygen -lf pubkey_pkcs8.pem 
+256 SHA256:caEJWYJSxy1SVF2KObm5Rr3Yt6xIb4T2w56FHtCg8WI no comment (ECDSA)
+```
+
+```console
+$ openssl asn1parse -noout -inform pem -in pem -out public.key
+```
+
+
+We can check use `ssh-keygen` to display the keyid for our public key using
+the following commands:
+```console
+$ make get-public-keyid
+kubectl get secret signing-secrets -n tekton-chains -o jsonpath='{.data}' | jq -r '."cosign.pub"' | base64 -d > public_key
+ssh-keygen -f public_key -i -mPKCS8 > public_key_ssh 
+ssh-keygen -e -l  -f public_key_ssh
+256 SHA256:caEJWYJSxy1SVF2KObm5Rr3Yt6xIb4T2w56FHtCg8WI no comment (ECDSA)
+tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/signature-taskrun-dc37cde4-4d57-47eb-9e10-67153e440db2}" | base64 -d | jq '.signatures[].keyid'
+"SHA256:caEJWYJSxy1SVF2KObm5Rr3Yt6xIb4T2w56FHtCg8WI"
+```
+The last line above is the keyid from the sigatures field in the example
+envelope from above. Notice that they match:
+```
+256 SHA256:caEJWYJSxy1SVF2KObm5Rr3Yt6xIb4T2w56FHtCg8WI no comment (ECDSA)
+    SHA256:caEJWYJSxy1SVF2KObm5Rr3Yt6xIb4T2w56FHtCg8WI"
+```
+We can inspect the public key in Rekor as well using:
+```console
+$ make public-key-from-rekor-log 
+curl -s https://rekor.sigstore.dev/api/v1/log/entries?logIndex=16027962 | jq -r '.[].body' | base64 -d | jq -r '.spec.publicKey' | base64 -d
+-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEqiLuArRcZCY1s650rgKUDpj7f+b8
+9HMu3K/PDaUcR9kcyyXY8q6U+TFTkc9u84wJTsZe21wBPd/STPEzo0JrzQ==
+-----END PUBLIC KEY-----
+```
+We can manually inspect the log entry using the following:
+https://rekor.tlog.dev/?uuid=24296fb24b8ad77ae0d13d8e6787e796456e52513fcb8a0bf77fd6f338a1575296bc8a9653e50007
+
+Lets inspect the `payload`:
+```console
+$ make show-dsse-payload 
+tkn tr describe --last -o jsonpath="{.metadata.annotations.chains\.tekton\.dev/signature-taskrun-f06f8151-3820-4966-a7a8-d10f0d7f064d}"  | base64 -d | jq -r '.payload' | base64 -d | jq
+{
+  "_type": "https://in-toto.io/Statement/v0.1",
+  "predicateType": "https://slsa.dev/provenance/v0.2",
+  "subject": null,
+  "predicate": {
+    "builder": {
+      "id": "https://tekton.dev/chains/v2"
+    },
+    "buildType": "tekton.dev/v1beta1/TaskRun",
+    "invocation": {
+      "configSource": {},
+      "parameters": {}
+    },
+    "buildConfig": {
+      "steps": [
+        {
+          "entryPoint": "#!/usr/bin/env sh\necho 'gcr.io/foo/bar' | tee /tekton/results/TEST_URL\necho \"danbev-tekton-chains-example\" | sha256sum | tr -d '-' | tee /tekton/results/TEST_DIGEST",
+          "arguments": null,
+          "environment": {
+            "container": "create-image",
+            "image": "docker.io/library/busybox@sha256:b5d6fe0712636ceb7430189de28819e195e8966372edfc2d9409d79402a0dc16"
+          },
+          "annotations": null
+        }
+      ]
+    },
+    "metadata": {
+      "buildStartedOn": "2023-03-22T09:57:15Z",
+      "buildFinishedOn": "2023-03-22T09:57:19Z",
+      "completeness": {
+        "parameters": false,
+        "environment": false,
+        "materials": false
+      },
+      "reproducible": false
+    }
+  }
+}
+```
+And from this we can see that the payload contains a SLSA Provenance predicate,
+in this case [SLSA v2]. The `builder` specifies the entity that produced this
+the software artifacts. The `invocation` is what the builder uses as its
+configuration, and the `buildConfig` is what the builder performed.
+See [schema] for all the available fields.
