@@ -369,4 +369,8 @@ And the amend the rebase:
 ```console
 $ git ci --amend -v
 ```
-
+Actually, it `git rebase` accepts `--no-gpg-sign` so we should be able to just
+specify that during a rebase to get the same effect.
+```console
+$ git rebase -i upstream/main --no-gpg-sign`
+```
