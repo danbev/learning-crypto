@@ -351,3 +351,13 @@ $ export GITSIGN_CREDENTIAL_CACHE=~/.cache/.sigstore/gitsign/cache.sock
 ```
 After this we should be able to commit a first time and have our credentials
 stored and the following commit should be done without a browser popup.
+
+### Disabling gitsign
+If you have many commits in a branch and want to rebase it can be useful, and
+sometime needed, to disable gitsign. I ran into this when I had a working branch
+with around 60 commits in it. Trying to rebase this would make more requests
+to github than it would allow. 
+
+```console
+$ git config --global commit.gpgsign false
+```
