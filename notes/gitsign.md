@@ -347,7 +347,7 @@ Nov 28 11:27:47 localhost.localdomain gitsign-credential-cache[177444]: /home/da
 ```
 And we then need to add the following environment variable:
 ```console
-$ export GITSIGN_CREDENTIAL_CACHE=~/.cache/.sigstore/gitsign/cache.sock
+$ export GITSIGN_CREDENTIAL_CACHE=~/.cache/sigstore/gitsign/cache.sock 
 ```
 After this we should be able to commit a first time and have our credentials
 stored and the following commit should be done without a browser popup.
