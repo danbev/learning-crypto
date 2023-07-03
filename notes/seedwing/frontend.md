@@ -33,11 +33,11 @@ $ cargo b --target=wasm32-unknown-unknown --no-default-features --features=""
 This will currently not work.
 
 Now if we start the frontend using `trunk serve` and try to accesss something
-from the policy server api endpoint that will fail with a
-connection refused. We need the policy server running so that it can handle
-the calls. And the policy server is a normal (non-wasm) server binary but it
-can embedd the frontend (the single page web app) but the Rest API calls will
-still be processed by the server.
+from the policy server api endpoint that will fail with a connection refused. We
+need the policy server running so that it can handle the calls. And the policy
+server is a normal (non-wasm) server binary but it can embedd the frontend
+(the single page web app) but the Rest API calls will still be processed by the
+server.
 
 ### server
 The policy-server can be started using the following command:
@@ -60,8 +60,8 @@ frontend = [
 ...
 ]
 ```
-Another thing to not is that server/embedded-frontend has a build.rs defined for
-it (the crate/package) which will be invoked before the package is compiled.
+Another thing to note is that server/embedded-frontend has a build.rs defined
+for it (the crate/package) which will be invoked before the package is compiled.
 What build.rs does is that it will check if a list of files have been changed
 in `../../frontend` and perform a `trunk build` placing the output in the `dist`
 directory (embedded-frontend).
@@ -137,5 +137,13 @@ the policy-server will use the policy-engine to fullfill those requests.
 
 [yew-example]: https://github.com/danbev/learning-rust/tree/master/yew-example
 [trunk]: https://github.com/danbev/learning-rust/blob/master/notes/trunk.md
+
+
+### WebAssembly Component Model
+With the work to make a webassembly component model module of the policy-engine
+it should be possible to use this .wasm module instead of the http calls to the
+running policy engine server.
+But for all features to work we would need to figure out how to handle the
+more advanced features in the policy engine like those that require reqwest.
 
 
