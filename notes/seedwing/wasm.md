@@ -760,11 +760,13 @@ Like we discussed above reqwest will use wasm-bindgen if that target
 arch is `wasm32`. This is the case for both `wasm32-unknown-unknown` and
 `wasm32-wasi`. And like we mentioned in our case where we want to use
 wit-bindings. One thing that might be worth investigating is using [wasi-http].
+
 I also found [reqwest-wasi] which might be interesting to look into futher. One
 thing to note is that the github repository for [reqwest-wasi] is
-https://github.com/WasmEdge/reqwest and this is a fork or reqwest made by
-WasmEdge. They also have fork of hypter-tls which migth allow us to use HTTPS
-which [reqwest-wasi] currently does not support.
+https://github.com/WasmEdge/reqwest and this is a fork of reqwest made by
+WasmEdge.
+They also have fork of hypter-tls which migth allow us to use HTTPS which
+[reqwest-wasi] currently does not support.
 
 [reqwest-wasi]: https://crates.io/crates/reqwest_wasi
 
