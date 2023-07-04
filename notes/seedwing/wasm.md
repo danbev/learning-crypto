@@ -29,7 +29,7 @@ We can now try building using the following command:
 ```
 $ env RUSTFLAGS="--cfg tokio_unstable" cargo b -vv --target=wasm32-wasi --no-default-features --features="" 
 ```
-Notice that this is not using any features at all which we will need later but
+Notice that this is not using any features at all, which we will need later but
 this is a start.
 
 After this we should have a .wasm file in
@@ -718,13 +718,56 @@ _work in progress_
 #### Recursive types
 One issue is with the types and not having support for [recursive types]
 which does not look like it will make it into the MVP (Minimal Viable Product).
+So the reply was that recursive types are coming but they will not be available
+in the MVP. There are ways to work around this. For example, lets take the
+RuntimeValue in seedwing as an example:
+```rust
+pub enum RuntimeValue {
+    Null,
+    String(Arc<str>),
+    Integer(i64),
+    Decimal(f64),
+    Boolean(bool),
+    Object(Object),
+    List(Vec<Arc<RuntimeValue>>),
+    Octets(#[serde(with = "RuntimeValueBase64")] Vec<u8>),
+}
+```
+And the wit type would look like this:
+```wit
+variant runtime-value {
+    null,
+    %string(string),
+    integer(s64),
+    decimal(float64),
+    //object(object),
+    %list(list<runtime-value>),
+}
+```
+What we can do is change the type of the `list` member to:
+```with
+    %list(list<u32>),
+```
+And the number will indicate which type of values that the list contains.
+So 0 would be `null`, 1 would be `string`, 2 would be `integer`, 3 would be
+`decimal`, and 4 would be `list`.
+
+
+
 
 #### How should we deal with reqwest
 Like we discussed above reqwest will use wasm-bindgen if that target
 arch is `wasm32`. This is the case for both `wasm32-unknown-unknown` and
 `wasm32-wasi`. And like we mentioned in our case where we want to use
 wit-bindings. One thing that might be worth investigating is using [wasi-http].
-I also found [reqwest-wasi] which might be interesting to look into futher.
+I also found [reqwest-wasi] which might be interesting to look into futher. One
+thing to note is that the github repository for [reqwest-wasi] is
+https://github.com/WasmEdge/reqwest and this is a fork or reqwest made by
+WasmEdge. They also have fork of hypter-tls which migth allow us to use HTTPS
+which [reqwest-wasi] currently does not support.
+
+[reqwest-wasi]: https://crates.io/crates/reqwest_wasi
+
 
 ### Future works (suggestions)
 For Seedwing I think it could make sense to work on the types and provide a
@@ -758,4 +801,3 @@ the JavaScript, Python, and Rust examples above.
 [issue]: https://github.com/bytecodealliance/jco/issues/69
 [wasmedge]: https://github.com/WasmEdge/WasmEdge/issues/1877
 [recursive types]: https://github.com/WebAssembly/component-model/issues/56
-[reqwest-wasi]: https://crates.io/crates/reqwest_wasi
