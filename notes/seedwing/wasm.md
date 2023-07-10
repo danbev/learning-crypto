@@ -786,6 +786,24 @@ implemented for wasmtime-go. Could we help out adding this support?
 Having this would enable the policy engine to be called from Go which simlar to
 the JavaScript, Python, and Rust examples above.
 
+### WebAssembly Component generation
+[issue 16](https://github.com/seedwing-io/seedwing-policy/issues/16) is about
+generating offline compoent modules that contain all the information needed to
+evaluate a rule, that is the pattern, the pattern name, and perhaps other data
+and policies.
+
+For this we can create a new `world` which imports the policy engine. The 
+implementation of this world could then statically contains the policy and call
+the imported engine to evaluate the pattern.
+Currently, the policy is added at compile time using [include_bytes](https://github.com/danbev/seedwing-policy/blob/88aed53d15f9f6fb78f769610c14b9d60d7cbfec/engine/static-component/src/lib.rs#L17).
+This works but we are required to compile the core wasm module first, then make
+a WebAssembly component out of it and then compose it with the engine component.
+The idea is that it would be possible to have a button in the playground, or
+a command in the cli, to ask for such a module to be generated and the returned
+.wasm component module would be runnable in any wasm runtime that supports the
+webassembly component model.
+
+
 
 [wit-bindgen]: https://github.com/danbev/learning-wasi/blob/master/notes/wit-bindgen.md
 [frontend]: ./frontend.md
