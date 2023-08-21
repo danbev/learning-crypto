@@ -38,6 +38,12 @@ podman start -a compose_init-keycloak_1
 /usr/bin/bash: /init-sso/init.sh: Permission denied 
 ```
 
+Updating compose.yaml with this following allows it to work:
+```toml
+    volumes:
+      - ./container_files/init-sso:/init-sso:Z
+```
+
 I've not been able to see the `SSO initialization complete` message and running
 the integration tests without it will fail:
 ```console
