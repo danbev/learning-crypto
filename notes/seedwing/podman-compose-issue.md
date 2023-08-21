@@ -177,3 +177,6 @@ After this I was able to see the output in the logs
 exit code: 0
 ```
 And the integration test pass as well.
+
+This might be a problem for non Linux systems though so we should probable try
+to find a better solution for this.
