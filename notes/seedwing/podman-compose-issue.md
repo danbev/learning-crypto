@@ -181,4 +181,6 @@ And the integration test pass as well.
 This might be a problem for non Linux systems though so we should probable try
 to find a better solution for this. Actually, after reading up on this it sounds
 like this option will simply be ignored on other systems so perhaps this would
-be an acceptable solution after all.
+be an acceptable solution after all. This was not the case and it would cause
+an error on mac os for example. Instead we have proposed a solution using an
+environment variable for Linus systems in this [PR](https://github.com/trustification/trustification/pull/408)
