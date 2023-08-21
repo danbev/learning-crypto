@@ -184,3 +184,24 @@ like this option will simply be ignored on other systems so perhaps this would
 be an acceptable solution after all. This was not the case and it would cause
 an error on mac os for example. Instead we have proposed a solution using an
 environment variable for Linus systems in this [PR](https://github.com/trustification/trustification/pull/408)
+
+### Second issue
+After being able to run the integration test I wanted to try out the user
+interface which have containers declared in trustification.yaml. The logs
+fly by pretty fast and it is difficult to notice if there is an error just by
+looking at the output. But we can look at the individual logs for the containers
+and specifically the spog-api container which is the one that is failing:
+```console
+$ podman logs compose_spog-api_1
+[2023-08-21T08:12:18.624Z INFO  trustification_infrastructure::infra] Setting up infrastructure endpoint
+[2023-08-21T08:12:18.626Z INFO  trustification_infrastructure::infra] Running infrastructure endpoint on:
+[2023-08-21T08:12:18.626Z INFO  trustification_infrastructure::infra]    http://[::1]:9010
+[2023-08-21T08:12:18.626Z INFO  trustification_infrastructure::infra]    http://127.0.0.1:9010
+[2023-08-21T08:12:18.626Z INFO  actix_server::builder] starting 1 workers
+[2023-08-21T08:12:18.626Z INFO  actix_server::server] Tokio runtime found; starting in existing Tokio runtime
+Error: error sending request for url (http://keycloak:8080/realms/chicken/.well-known/openid-configuration): error trying to connect: tcp connect error: Connection refused (os error 111)
+Caused by:
+	error trying to connect: tcp connect error: Connection refused (os error 111)
+	tcp connect error: Connection refused (os error 111)
+	Connection refused (os error 111)
+```
