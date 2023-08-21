@@ -166,7 +166,7 @@ error: test failed, to rerun pass `-p integration-tests --test bombastic`
 
 Updating compose.yaml and adding the SELinux option `:Z` to the volume mount
 so that contents are accessible by the container (private unshared)
-```toml
+```console
     volumes:
       - ./container_files/init-sso:/init-sso:Z
 ```
@@ -179,4 +179,6 @@ exit code: 0
 And the integration test pass as well.
 
 This might be a problem for non Linux systems though so we should probable try
-to find a better solution for this.
+to find a better solution for this. Actually, after reading up on this it sounds
+like this option will simply be ignored on other systems so perhaps this would
+be an acceptable solution after all.
