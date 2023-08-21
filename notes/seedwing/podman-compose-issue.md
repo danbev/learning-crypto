@@ -38,11 +38,6 @@ podman start -a compose_init-keycloak_1
 /usr/bin/bash: /init-sso/init.sh: Permission denied 
 ```
 
-Updating compose.yaml with this following allows it to work:
-```toml
-    volumes:
-      - ./container_files/init-sso:/init-sso:Z
-```
 
 I've not been able to see the `SSO initialization complete` message and running
 the integration tests without it will fail:
@@ -167,3 +162,18 @@ test result: FAILED. 0 passed; 16 failed; 0 ignored; 0 measured; 0 filtered out;
 error: test failed, to rerun pass `-p integration-tests --test bombastic`
 ```
 
+### Possible solution
+
+Updating compose.yaml and adding the SELinux option `:Z` to the volume mount
+so that contents are accessible by the container (private unshared)
+```toml
+    volumes:
+      - ./container_files/init-sso:/init-sso:Z
+```
+After this I was able to see the output in the logs
+```console
++ echo SSO initialization complete
+[init-keycloak] | SSO initialization complete
+exit code: 0
+```
+And the integration test pass as well.
