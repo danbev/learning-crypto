@@ -1,15 +1,45 @@
+## Trustification podman-compose issue
+This document describes an issue I ran into when using podman-compose to bring
+up a set of containers as described in
+[DEVELOPING.md](https://github.com/trustification/trustification/blob/main/DEVELOPING.md)
 
+### Issue
+First, lets reset the podman environment to start fresh:
 ```console
 $ podman system prune --all --force && podman rmi --all
 ```
-
-Bring up the containers with podman-compose one at a time:
+Bring up the containers for minio, kafka, and keycloak with podman-compose:
 ```console
 $ podman-compose -f compose.yaml  up
 ```
 After this has completed I can access keycloak using http://localhost:8090/.
 
-Run the integration tests:
+Before we can run the integration tests we need to wait for keycloak to be ready
+which would be indicated by the following log message:
+```console
+[init-keycloak] | SSO initialization complete
+```
+
+We can inspect the keycloak container logs to see if we can find this log
+message:
+```console
+$ podman logs compose_keycloak_1  | grep SSO
+```
+Keycloak also has a second container which we can try to inspect:
+```console
+$ podman logs compose_init-keycloak_1  | grep SSO
+/usr/bin/bash: /init-sso/init.sh: Permission denied
+```
+Hmm, so I wonder if this is the cause of the error I'm seeing?  
+Actually, if I search the original log I can see the following:
+```console
+[minio]
+podman start -a compose_init-keycloak_1                                            
+/usr/bin/bash: /init-sso/init.sh: Permission denied 
+```
+
+I've not been able to see the `SSO initialization complete` message and running
+the integration tests without it will fail:
 ```console
 $ cargo test -p integration-tests
    Compiling integration-tests v0.1.0 (/home/danielbevenius/work/security/trustification/trustification/integration-tests)
@@ -129,6 +159,5 @@ failures:
 test result: FAILED. 0 passed; 16 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.42s
 
 error: test failed, to rerun pass `-p integration-tests --test bombastic`
-
 ```
 
