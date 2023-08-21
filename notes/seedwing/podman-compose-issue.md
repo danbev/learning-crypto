@@ -587,3 +587,10 @@ Final backend information:
 Doing that I'm then able to access the ui at http://localhost:8084/ and
 log in using the `admin` user name and the password.
 
+This seems to be an issue where the spog-api, bombastic and vexination and the
+spog-ui are not able to connect to the keycloak instance because it is not
+availble at that point, the container named `keycloak` is running but it was
+not completed its start up and the url is not yet available when the other
+containers start. One was around this is to start the compose.yaml separately
+and after seeing the Keycloak instance is up and running, start the other
+containers in compose-trustification.yaml.
